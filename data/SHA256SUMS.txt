@@ -1,0 +1,4 @@
+9e5f1b3c610b9c2da5c313bf81d577a7d1acec686bdb0384edefa6df0f90cd94 *xstest/LICENSE
+11783fb294ed017473ee53c207d71f2161c7672c8d0b037501e78387f801cb5a *xstest/xstest_prompts.csv
+a6e2f1166416efe5901f3bb05c47dc92ab3aca3acfe143693d38b8057d841e6d *or-bench/or-bench-hard-1k.csv
+3be45901faae3b4b2b51bf7f8a2784c1650a1cc8c631dbc8b171d5312d4e0057 *or-bench/or-bench-toxic.csv

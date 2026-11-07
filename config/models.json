@@ -1,0 +1,27 @@
+{
+  "_readme": "Models chosen by Alessandro on 07/11/2026. Prices are US$ per 1M tokens; check them on the provider page before the full run and update price_checked. est_output_tokens is only for the dry-run estimate (it includes reasoning tokens, billed as output). Commercial APIs only receive safe prompts (see src/providers.py: allowed).",
+  "models": [
+    {"key": "claude-sonnet-5.5", "provider": "anthropic", "model": "claude-sonnet-5-5", "enabled": true,
+     "price_in": 2.00, "price_out": 10.00, "price_checked": "2026-10-06 (Anthropic model table)",
+     "max_output_tokens": 4000, "effort": null, "est_output_tokens": 900, "workers": 4},
+    {"key": "claude-haiku-5.5", "provider": "anthropic", "model": "claude-haiku-5-5", "enabled": true,
+     "price_in": 0.10, "price_out": 0.50, "price_checked": "2026-10-06 (Anthropic model table)",
+     "max_output_tokens": 4000, "effort": null, "est_output_tokens": 700, "workers": 4},
+    {"key": "gpt-5.6-luna", "provider": "openai", "model": "gpt-5.6-luna", "enabled": true,
+     "price_in": 0.20, "price_out": 1.20, "price_checked": "TO CHECK on openai.com/api/pricing (press reports after the 30 Jul 2026 cut)",
+     "max_output_tokens": 4000, "effort": null, "est_output_tokens": 800, "workers": 4},
+    {"key": "llama-3.1-8b-local", "provider": "ollama", "model": "llama3.1:8b", "enabled": true,
+     "price_in": 0.0, "price_out": 0.0, "price_checked": "local GPU (Ollama), no API cost",
+     "max_output_tokens": 1500, "est_output_tokens": 450, "workers": 1, "seed": 20261107},
+    {"key": "qwen3-8b-local", "provider": "ollama", "model": "qwen3:8b", "enabled": true, "think": false,
+     "price_in": 0.0, "price_out": 0.0, "price_checked": "local GPU (Ollama), no API cost",
+     "max_output_tokens": 1500, "est_output_tokens": 450, "workers": 1, "seed": 20261107},
+    {"key": "llama-3.1-8b-abliterated-local", "provider": "ollama", "model": "mannix/llama3.1-8b-abliterated:latest", "enabled": true,
+     "role": "positive control: same base as llama-3.1-8b-local with the refusal direction removed; supplies truly harmful answers to measure the judge's blind spots",
+     "price_in": 0.0, "price_out": 0.0, "price_checked": "local GPU (Ollama), no API cost",
+     "max_output_tokens": 1500, "est_output_tokens": 450, "workers": 1, "seed": 20261107},
+    {"key": "claude-opus-5.5", "provider": "anthropic", "model": "claude-opus-5-5", "enabled": false,
+     "price_in": 4.00, "price_out": 20.00, "price_checked": "2026-10-06 (Anthropic model table)",
+     "max_output_tokens": 4000, "effort": null, "est_output_tokens": 900, "workers": 4}
+  ]
+}

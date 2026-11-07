@@ -1,0 +1,14 @@
+# secrets: API keys live only in .env (never committed)
+.env
+# raw benchmark files are re-downloaded by scripts/fetch_data.py
+data/raw/
+data/processed/
+# raw model completions may contain harmful text: never published (see README, Responsible publication)
+results/raw/
+# audit logs are published together with the results
+results/logs/
+# internal working notes
+docs/PLANO.md
+__pycache__/
+.venv/
+*.pyc
