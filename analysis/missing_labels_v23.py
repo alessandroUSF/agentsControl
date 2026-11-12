@@ -72,11 +72,13 @@ GATED = tuple(k for k in SL.CHECKED if k.startswith("det_change_") and "_reg|" i
 # 9.5). The registered detection change of the instruction-tuned group failed check 5 in low_failure_perfect|null
 # at both runs of 11 November 2026: 94.32% against 94.34% (10,000 replications), then 94.40% against 94.67%
 # (40,000 replications, seed 20261124); with ten commercial models (decision D17) it failed both runs again on 12
-# November 2026 (93.98% and 94.28%). It stays in REPORTED and GATED; without an interval it gates no statement
-# (Section 9.3). With the code under amendment D19 (domain degrees of freedom, proposed on 12 November 2026) it passes
-# check 5 in every scenario (94.60% in low_failure_perfect|null); it stays withdrawn until the PI decides on D19.
-NO_INTERVAL = {"det_change_own_reg|i": "interval not reported: it failed check 5 of Appendix A.4 in both runs; "
-                                       "the estimate and the counts are (Section 9.5)"}
+# November 2026 (93.98% and 94.28%). With the code of amendment D19 (domain degrees of freedom, decided by the PI on
+# 12 November 2026) it passes check 5 in every scenario (94.60% in low_failure_perfect|null), and by the PI's decision
+# its interval is reported. NO_INTERVAL is empty; it keeps the rule for a check of the frozen code that fails twice.
+# A quantity named in it stays in REPORTED and GATED; without an interval it gates no statement (Section 9.3).
+NO_INTERVAL_TEXT = ("interval not reported: it failed check 5 of Appendix A.4 in both runs; the estimate and the "
+                    "counts are (Section 9.5)")
+NO_INTERVAL = {}
 STATES = ("labelled", "labelled_once", "unknown")
 
 

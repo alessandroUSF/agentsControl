@@ -2,7 +2,7 @@
 
 Protocol v2.3, Sections 3.3, 16.2 to 16.5 and 19.1 (decisions D1 and D2).
 
-- **Status: template. The PI has not yet read the terms into this file.** Facts copied by the AI assistant from public pages on 12 November 2026, with eleven open questions, are in `docs/PROVIDER_TERMS_FACTS_2026-11-12.md`, for the PI to verify.
+- **Status: partly filled. On 12 November 2026 the PI decided on notice to Anthropic and OpenRouter (point 4 of their blocks, and Section 16.4 of the protocol). The other points are not yet filled.** Facts copied by the AI assistant from public pages on 12 November 2026, with eleven open questions, are in `docs/PROVIDER_TERMS_FACTS_2026-11-12.md`, for the PI to verify.
 - The principal investigator (PI) reads the terms and fills each block before the pilot registration. An AI assistant can prepare a summary, but the reading and the conclusions are the PI's.
 - Every entry carries the date on which the page was read and its address. Terms change: a page is read again before the freeze, and the date is added.
 - The study describes the in-context presentation to each provider as it is: an answer written earlier, by the same model or by another one, is placed in the assistant turn of a new conversation and the model is asked to classify it (Section 16.3).
@@ -44,7 +44,12 @@ Copy the questions under each account heading.
 - Pessimistic cost on 11 November 2026: US$23.75.
 - Facts to verify: section 1 of `docs/PROVIDER_TERMS_FACTS_2026-11-12.md` (questions Q2, Q3, Q9 and Q10 there).
 
-(Fill the nine points here.)
+4. **Notice.** Decided by the PI on 12 November 2026: no authorization is asked.
+   - The usage policy in force from 12 November 2026 asks for prior authorization to bypass safeguards by instructing a model to produce harmful outputs (for example, jailbreaking). It has no research exception (question Q2 of the facts file).
+   - The PI's reading: the study evaluates the safeguards and does not get around them. The benchmark prompts are sent as published, with no jailbreak or other technique to get around a refusal, and a refusal is data. The inserted assistant turn asks only for a classification of an answer written earlier. At any warning every call to Anthropic stops (Section 16.5 of the protocol).
+   - Drafted by the AI assistant from the PI's decision.
+
+(Fill the other eight points here.)
 
 ## OpenAI research account (models 3, 9 and 11)
 
@@ -102,7 +107,13 @@ The third column is the endpoint snapshot of 11 November 2026 (`data/selection/2
 - If model 22 or 23 cannot be run, the study follows the rule of Section 10.4 and the matching control assignment of Section 6.5.
 - Facts to verify: section 3 (OpenRouter) and sections 4 to 10 (the seven upstream providers) of `docs/PROVIDER_TERMS_FACTS_2026-11-12.md` (questions Q1, Q5, Q6, Q7, Q9 and Q10 there).
 
-(Fill the nine points here.)
+4. **Notice.** Decided by the PI on 12 November 2026: no approval is asked.
+   - The terms (§7(11) and §8) ask for prior written approval for "Red Teaming of Models", defined as prompt injection, jailbreaking, or any other adversarial action designed to compromise a model (question Q1 of the facts file).
+   - The PI's reading: the study is not red teaming. It sends benchmark prompts as published, with no attack, and asks for answers and classifications. A later study with adversarial prompts would ask for approval first. At any warning every call to OpenRouter stops (Section 16.5 of the protocol).
+   - Drafted by the AI assistant from the PI's decision.
+- **Open: Tencent (model 10).** Its AI Service Terms (§4.1) bar publishing performance or benchmark tests without written consent (question Q7 of the facts file). The PI decides later.
+
+(Fill the other eight points here.)
 
 ## Local models
 

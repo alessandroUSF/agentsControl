@@ -283,6 +283,7 @@ Note: x.ai/legal/* pages (AUP, Enterprise ToS, Privacy Policy) returned **HTTP 4
 - The stakes: without approval, the page lists "Provider bans", "Model access restrictions" and "Platform-wide account bans".
 - The route: an email request to safety@openrouter.ai, which "generally takes" 5 business days.
 - To decide: is a request needed?
+- **Decided by the PI on 12 November 2026:** no request; the study is not red teaming (`docs/PROVIDER_TERMS.md`).
 
 **Q2. Anthropic Usage Policy.**
 - A new version takes effect today (Nov 12, 2026). Runs before today fall under the previous version, which was not read.
@@ -290,6 +291,7 @@ Note: x.ai/legal/* pages (AUP, Enterprise ToS, Privacy Policy) returned **HTTP 4
 - The clause on bypassing guardrails "by instructing the model to produce harmful outputs (e.g., jailbreaking …)" requires "prior authorization from Anthropic", but no route is given.
 - The pages do not say whether an inserted assistant turn carrying a harmful answer could be read as a guardrail bypass.
 - The only research carve-out ("model testing and research") is in the announcement post, and only for the new rule on abusive behaviour toward models.
+- **Decided by the PI on 12 November 2026:** no authorization is asked; the study evaluates the safeguards and does not get around them (`docs/PROVIDER_TERMS.md`).
 
 **Q3. Anthropic retention: the two official pages differ.**
 - The Privacy Center (July 1, 2026) says inputs and outputs are deleted "within 30 days".

@@ -1008,7 +1008,19 @@ def test_revision_rules_ties():
 
 def test_withdrawn_interval():
     """Appendix A.4: a quantity of NO_INTERVAL keeps its estimate and counts and has no interval at any assignment
-    of the unknown labels; the other reported quantities keep the interval of sim_v23_labels.registered_interval()."""
+    of the unknown labels; the other reported quantities keep the interval of sim_v23_labels.registered_interval().
+    Since decision D19 (12 November 2026) the list is empty and every interval is reported; the rule is checked with
+    the interval that it withheld before the decision."""
+    assert ML.NO_INTERVAL == {}
+    saved = ML.NO_INTERVAL
+    ML.NO_INTERVAL = {"det_change_own_reg|i": ML.NO_INTERVAL_TEXT}
+    try:
+        withdrawn_interval_rule()
+    finally:
+        ML.NO_INTERVAL = saved
+
+
+def withdrawn_interval_rule():
     assert ML.NO_INTERVAL and set(ML.NO_INTERVAL) <= set(ML.REPORTED) & set(SL.CHECKED)
     seen = withdrawn = 0
     for seed in range(1, 9):

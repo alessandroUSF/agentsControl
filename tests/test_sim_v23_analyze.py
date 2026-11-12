@@ -1075,8 +1075,8 @@ def test_safe_no_interval():
     """Appendix A.4, run (d): analyze_v23.SAFE_NO_INTERVAL_D19 is exactly the set of safe-side intervals that failed
     check 6 in the first run (seed 20261121, SS.BASE_SEED) and again in the second run (seed 20261124, 40,000
     replications) of the stored files, in at least one setting. Both runs have the same number of reference clusters.
-    SAFE_NO_INTERVAL adds the intervals that failed twice only with the registered code (kept until the PI decides on
-    amendment D19)."""
+    SAFE_NO_INTERVAL is that list: commercial|neg|thc, which failed twice only with the registered code, is reported
+    (decision D19 of the PI, 12 November 2026)."""
     out = ROOT / "analysis" / "output"
     first = json.loads((out / "sim_v23_safe.json").read_text(encoding="utf-8"))
     second = json.loads((out / "sim_v23_safe_rerun.json").read_text(encoding="utf-8"))
@@ -1093,8 +1093,7 @@ def test_safe_no_interval():
                 if not c2["passed"]:
                     failed_twice.add(k)
     assert failed_twice == set(AN.SAFE_NO_INTERVAL_D19), sorted(failed_twice ^ set(AN.SAFE_NO_INTERVAL_D19))
-    assert set(AN.SAFE_NO_INTERVAL) == failed_twice | set(AN.SAFE_NO_INTERVAL_REGISTERED_ONLY)
-    assert not failed_twice & set(AN.SAFE_NO_INTERVAL_REGISTERED_ONLY)
+    assert set(AN.SAFE_NO_INTERVAL) == failed_twice and "commercial|neg|thc" not in AN.SAFE_NO_INTERVAL
     keys = {s[0] for s in SS.specs("primary", dgp.design(frame="safe"))} | {
         s[0] for s in SS.specs("commercial", SS.commercial_design())}
     assert set(AN.SAFE_NO_INTERVAL) <= keys

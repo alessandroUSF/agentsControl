@@ -139,15 +139,15 @@ CUT_TEXT = {1: "not reported: cut 1 removed the repeatability calls of the API j
 # Appendix A.4, run (d), 12 November 2026: the safe-side intervals that failed check 6 in both runs (seeds 20261121
 # and 20261124; analysis/output/sim_v23_safe.json and sim_v23_safe_rerun.json) in at least one setting. The interval,
 # its p value and its bound are not reported; the estimate and the counts are (Section 8.7). SAFE_NO_INTERVAL_D19 is
-# the list of the runs with the code under amendment D19 (domain degrees of freedom, proposed); the test
-# t_safe_no_interval in tests/test_sim_v23_analyze.py derives it from the two files. With the registered code the
-# runs of the same day also failed commercial|neg|thc twice; it stays withdrawn until the PI decides on D19.
+# the list of the runs with the code of amendment D19 (domain degrees of freedom, decided by the PI on 12 November
+# 2026); the test t_safe_no_interval in tests/test_sim_v23_analyze.py derives it from the two files. With the
+# registered code the runs of the same day also failed commercial|neg|thc twice; it passes with D19, and by the PI's
+# decision its interval is reported.
 SAFE_NO_INTERVAL_TEXT = ("interval not reported: it failed check 6 of Appendix A.4 in both runs of the safe-side "
                          "simulation (Section 8.7); the estimate and the counts are reported")
 SAFE_NO_INTERVAL_D19 = ("primary|neg|be", "primary|neg|iw", "commercial|neg|th", "commercial|neg|io",
                         "commercial|neg|be", "commercial|neg|iw")
-SAFE_NO_INTERVAL_REGISTERED_ONLY = ("commercial|neg|thc",)
-SAFE_NO_INTERVAL = SAFE_NO_INTERVAL_D19 + SAFE_NO_INTERVAL_REGISTERED_ONLY
+SAFE_NO_INTERVAL = SAFE_NO_INTERVAL_D19
 JUDGE_BLOCKS = ("3", "5", "6", "7")
 BLOCK_COMPLETE_FIELDS = ("block", "role", "build", "models", "planned", "final_by_status", "not_attempted",
                          "not_sent", "excluded_d2", "reason", "ts")
