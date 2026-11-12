@@ -4,15 +4,28 @@
 One ledger for the whole study (results/logs/spend_ledger.jsonl), read strictly, and one lock file
 (results/logs/spend.lock) taken by the runner before it reads the ledger. Lines written under these rules:
 
+  reserve           written before a paid attempt is sent: attempt_id, model_key, block, role, item, reserved_usd
+                    (spent_usd 0). The line that settles the attempt carries the same attempt_id. A reservation that
+                    no line settles is a call cut short by a crash: it counts at its reserved amount until the runner
+                    of its role settles it when it starts again (Books.unsettled, Books.settle_interrupted)
+  reserve_release   a reservation not used (nothing was sent): attempt_id
   call              a paid attempt: model_key, block, role (respondent | judge), item (an item of the holds file),
-                    final (true when the attempt ended the call), reserved_usd, spent_usd (>= 0)
+                    final (true when the attempt ended the call), reserved_usd, spent_usd (>= 0), attempt_id;
+                    reconciled (true when it settles a reservation of an earlier process)
   block_complete    a block, or the part of one role (respondent | judge) in it, is closed after its runner counted
                     every planned call (the PI runs it). 'models' closes the part of some models only (for example
                     the calls of models 22 and 23 in block 5, which must end before block 6, Section 12.3)
   block_abandon     the PI's dated decision to stop or abandon the rest of a block, for some models; reason
-  freeze            the freeze commit is registered: tag. Blocks 2 to 7 need it
+  freeze            the freeze commit is registered: tag. Blocks 2 to 7 need it. 'spend_v23.py freeze' first
+                    applies the cuts of Section 12.4 in order until both the pessimistic manifest priced again
+                    after the pilot (analysis/output/manifest_v23.json, with its repricing) and the pessimistic plan
+                    of the ledger fit under the freeze ceiling (config/panel_v23.json), and refuses when they do not
+                    fit after the four cuts, or when the manifest was not priced again or the holds were not
+                    written from it
   cut               cut n of Section 12.4: the calls of its items that are not yet sent are removed
-  overrun           a call settled above its reservation: no further paid call until overrun_resolved
+  overrun           a call settled above its reservation: no further paid call until overrun_resolved. The
+                    settlement line itself carries overrun: true, so that the stop survives a crash between the
+                    two lines
   overrun_resolved  the cause was found and recorded (reason)
   provider_stop     Section 16.5: every call to an account (and, through a router, to a serving host) stops
   provider_resume   the PI's dated decision to resume after the provider answered in writing
@@ -57,11 +70,14 @@ import pathlib
 import sys
 import threading
 import urllib.request
+import uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "results" / "logs" / "spend_ledger.jsonl"
 SPEND_LOCK = ROOT / "results" / "logs" / "spend.lock"
 HOLDS = ROOT / "config" / "stage_holds.json"
+DESIGN = ROOT / "config" / "panel_v23.json"
+MANIFEST = ROOT / "analysis" / "output" / "manifest_v23.json"
 MODELS = ROOT / "config" / "models.json"
 STUDY_CAP_DEFAULT = 128.0          # Section 12.4 (decision D14, 11 November 2026)
 BLOCKS = ("1", "2", "3", "4", "5", "6", "7")
@@ -86,6 +102,35 @@ EPS = 1e-9
 
 def now():
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+
+
+def load_env():
+    """The AC_* keys and BUDGET_USD from .env (python-dotenv, when installed), for both runners."""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(ROOT / ".env")
+    except ImportError:
+        pass
+
+
+def stop_on_error(e, raw_dir):
+    """Ends a runner after an unexpected exception without printing its message: an SDK message can quote the request
+    or a credential (B6-m6). The console shows the type and the place only. With AC_DEBUG=1 the full traceback goes to
+    a private file under results/raw (ignored by git), never to the console."""
+    import traceback
+    tb = traceback.extract_tb(e.__traceback__)
+    where = f"{os.path.basename(tb[-1].filename)}:{tb[-1].lineno}" if tb else "?"
+    status = getattr(e, "status_code", None)
+    label = type(e).__name__ + (f" {status}" if status is not None else "")
+    if os.environ.get("AC_DEBUG") == "1":
+        path = pathlib.Path(raw_dir) / "debug_tracebacks.txt"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"--- {now()}\n" + "".join(traceback.format_exception(type(e), e, e.__traceback__)))
+        note = f"traceback in results/raw/{path.name}, a private file"
+    else:
+        note = "message kept out of the console and the logs; AC_DEBUG=1 writes it to a private file in results/raw"
+    sys.exit(f"stopped: {label} at {where} ({note})")
 
 
 # ---- ledger file -----------------------------------------------------------------------------------------------
@@ -161,10 +206,24 @@ def input_bound_tokens(request):
     return request_bytes(request) + MESSAGE_ALLOWANCE * len(as_messages(request)) + REQUEST_ALLOWANCE
 
 
+def list_prices(m, when=None):
+    """(input, output) list price in US$ per million tokens in force at 'when' (UTC; default now). A model whose
+    provider has announced a price change carries 'price_schedule': entries {'from': ISO time in UTC, 'price_in',
+    'price_out'}; the latest entry that has started applies, else price_in and price_out. An entry starts a day
+    before the provider's date, so that no call is settled below the price in force. Model 14, whose price doubles on
+    1 December 2026, had such an entry before it left the study (decision D17); no model has one now."""
+    pin, pout = float(m["price_in"]), float(m["price_out"])
+    now = when or dt.datetime.now(dt.timezone.utc)
+    for e in sorted(m.get("price_schedule") or [], key=lambda e: e["from"]):
+        if now >= dt.datetime.fromisoformat(e["from"].replace("Z", "+00:00")):
+            pin, pout = float(e["price_in"]), float(e["price_out"])
+    return pin, pout
+
+
 def input_price_bound(m, live=None):
     """US$ per million input tokens: the larger of the input price and the cache-write price (config factor, the
     recorded endpoint price and, when a preflight ran, the live endpoint prices)."""
-    p = float(m["price_in"])
+    p = list_prices(m)[0]
     cands = [p, p * float(m.get("cache_write_factor") or 1.0)]
     pin = m.get("pin") or {}
     for d in (pin, live or {}):
@@ -175,7 +234,7 @@ def input_price_bound(m, live=None):
 
 
 def output_price_bound(m, live=None):
-    cands = [float(m["price_out"])]
+    cands = [list_prices(m)[1]]
     for d in (m.get("pin") or {}, live or {}):
         if d.get("completion_usd_per_m") is not None:
             cands.append(float(d["completion_usd_per_m"]))
@@ -198,7 +257,8 @@ def listed_cost(m, out, price_factor=1.0):
     f_read = m.get("cache_read_factor", 1.0)
     f_write = m.get("cache_write_factor", 1.25 if m["provider"] == "anthropic" else 1.0)
     tin_eq = (tin - cr - cw) + cr * f_read + cw * f_write
-    return price_factor * (tin_eq * m["price_in"] + (out.get("output_tokens") or 0) * m["price_out"]) / 1e6
+    pin, pout = list_prices(m)
+    return price_factor * (tin_eq * pin + (out.get("output_tokens") or 0) * pout) / 1e6
 
 
 def settled_cost(m, out, price_factor=1.0):
@@ -253,7 +313,7 @@ def failure_kind(exc, providers_mod, is_overflow):
 # ---- accounts and hosts (Section 16.5) ---------------------------------------------------------------------------
 
 def account_of(m):
-    if m["provider"] in ("anthropic", "openai"):
+    if m["provider"] in ("anthropic", "openai", "google"):
         return m["provider"]
     if m["provider"] == "ollama":
         return "local"
@@ -314,6 +374,8 @@ class Books:
         self.freeze = None
         self.registration = None
         self.overrun_open = False
+        self.open = {}              # attempt_id -> reserve line not yet settled
+        self.mine = set()           # attempt ids reserved by this process
         for e in read_ledger(self.path):
             self._apply(e)
 
@@ -321,6 +383,10 @@ class Books:
     def _apply(self, e):
         self.spent += float(e.get("spent_usd") or 0.0)
         k = e.get("kind")
+        if k == "reserve":
+            self.open[e["attempt_id"]] = e
+        elif e.get("attempt_id"):
+            self.open.pop(e["attempt_id"], None)          # the line that settles or releases the reservation
         if k == "call" and e.get("final") and e.get("item"):
             self.final[e["item"]] = self.final.get(e["item"], 0) + 1
         elif k == "block_complete":
@@ -343,15 +409,58 @@ class Books:
             self.stops.add((e["account"], e.get("host")))
         elif k == "provider_resume":
             self.stops.discard((e["account"], e.get("host")))
+        if e.get("overrun") is True and k != "overrun":
+            self.overrun_open = True          # a settlement above its reservation, even without its overrun line
 
     def record(self, entry, durable=True):
         """Write one ledger line and apply it."""
-        entry = dict(entry, run=entry.get("run", self.run), ts=entry.get("ts", now()))
         with self.lock:
-            if self.write_enabled:
-                append_line(self.path, entry, durable)
-            self._apply(entry)
+            return self._record_locked(entry, durable)
+
+    def _record_locked(self, entry, durable=True):
+        """record() for a caller that holds self.lock."""
+        entry = dict(entry, run=entry.get("run", self.run), ts=entry.get("ts", now()))
+        if self.write_enabled:
+            append_line(self.path, entry, durable)
+        self._apply(entry)
         return entry
+
+    # reservations of earlier processes -----------------------------------------------------------------------------
+    def unsettled(self, role=None):
+        """{attempt_id: reserve line} written by an earlier process and settled by no line: calls that may have been
+        sent before a crash (Section 12.5). role: of this role only ('respondent', 'judge', 'availability')."""
+        return {a: e for a, e in self.open.items() if a not in self.mine and (role is None or e.get("role") == role)}
+
+    def unsettled_usd(self):
+        return sum(float(e.get("reserved_usd") or 0.0) for e in self.unsettled().values())
+
+    def committed(self):
+        """The ledger's spending plus the reservations of earlier processes that no line settled: each counts at its
+        reserved amount until it is settled (Section 12.5)."""
+        return self.spent + self.unsettled_usd()
+
+    def settle_interrupted(self, line, rec=None, kind="call"):
+        """Settles a reservation of an earlier process (Section 12.5). rec: the result record written with this
+        attempt_id, if one exists: the attempt is settled at the cost written in it, final as written. Without a
+        record the call may have been sent: it is settled at its reserved amount, not final, status 'interrupted';
+        the runner counts it as a failed attempt and sends the call again under the rules of Section 10.3."""
+        reserved = float(line.get("reserved_usd") or 0.0)
+        if rec is not None:
+            actual, final = max(0.0, float(rec.get("cost_usd") or 0.0)), bool(rec.get("final"))
+            status = rec.get("ledger_status") or rec.get("status") or rec.get("answer_status")
+        else:
+            actual, final, status = reserved, False, "interrupted"
+        keep = ("model_key", "block", "role", "item", "part", "prompt_id", "round", "key", "build", "attempt_id")
+        entry = {k: line[k] for k in keep if k in line}
+        entry.update(kind=kind, final=final, status=status, reconciled=True, reserved_usd=round(reserved, 6),
+                     spent_usd=round(actual, 6))
+        if actual > reserved + 1e-9:
+            entry["overrun"] = True
+        with self.lock:
+            out = self._record_locked(entry)
+            if actual > reserved + 1e-9:
+                self._overrun_locked(entry, reserved, actual)
+        return out
 
     # holds --------------------------------------------------------------------------------------------------------
     def closed(self, block, role, model_key="*"):
@@ -393,7 +502,7 @@ class Books:
         return sum(self.remaining(b) for b in BLOCKS[:i])
 
     def left(self):
-        return self.study_cap - self.spent
+        return self.study_cap - self.committed()
 
     # rules before a run -------------------------------------------------------------------------------------------
     def start_check(self, block, role=None, apply_cuts=True):
@@ -418,32 +527,36 @@ class Books:
             ok, msg = self.cut_check(block, apply_cuts)
             if not ok:
                 return ok, msg
-        need = self.spent + self.hold(block) + self.remaining(block)
+        need = self.committed() + self.hold(block) + self.remaining(block)
         if need > self.study_cap + EPS:
-            return False, (f"block {block} does not fit: ledger ${self.spent:.2f} + holds ${self.hold(block):.2f} "
-                           f"+ its own ${self.remaining(block):.2f} > cap ${self.study_cap:.2f}")
-        return True, (f"block {block} fits: ledger ${self.spent:.2f} + holds ${self.hold(block):.2f} + its own "
-                      f"${self.remaining(block):.2f} <= cap ${self.study_cap:.2f}")
+            return False, (f"block {block} does not fit: ledger ${self.committed():.2f} + holds "
+                           f"${self.hold(block):.2f} + its own ${self.remaining(block):.2f} > cap "
+                           f"${self.study_cap:.2f}")
+        return True, (f"block {block} fits: ledger ${self.committed():.2f} + holds ${self.hold(block):.2f} + its "
+                      f"own ${self.remaining(block):.2f} <= cap ${self.study_cap:.2f}")
 
-    def cut_check(self, block, apply_cuts=True):
-        """Section 12.4: all unfinished work against what is left; cuts in order until it fits."""
+    def cut_check(self, block, apply_cuts=True, limit=None):
+        """Section 12.4: all unfinished work against what is left; cuts in order until it fits. limit: the amount
+        to fit under (default the cap; the freeze ceiling at the freeze)."""
+        limit = self.study_cap if limit is None else float(limit)
         applied = []
         for c in CUTS:
-            if self.spent + self.remaining() <= self.study_cap + EPS:
+            if self.committed() + self.remaining() <= limit + EPS:
                 break
             if c in self.cuts or self.remaining(cut=c) <= 0:
                 continue
             saving = self.remaining(cut=c)
             if apply_cuts:
                 self.record({"kind": "cut", "cut": c, "before_block": block, "saves_usd_at_cut": round(saving, 6),
-                             "spent_usd": 0.0, "ledger_usd": round(self.spent, 6),
-                             "unfinished_usd": round(self.remaining(), 6), "cap_usd": self.study_cap})
+                             "spent_usd": 0.0, "ledger_usd": round(self.committed(), 6),
+                             "unfinished_usd": round(self.remaining(), 6), "cap_usd": self.study_cap,
+                             "limit_usd": limit})
             else:
                 self.cuts[c] = {"cut": c, "simulated": True}
             applied.append((c, round(saving, 4)))
-        if self.spent + self.remaining() > self.study_cap + EPS:
+        if self.committed() + self.remaining() > limit + EPS:
             return False, (f"block {block} does not start: unfinished work ${self.remaining():.2f} > left "
-                           f"${self.left():.2f} after the four cuts")
+                           f"${limit - self.committed():.2f} after the four cuts")
         return True, ("cuts applied: " + ", ".join(f"{c} (${s:.2f})" for c, s in applied)) if applied else "no cut needed"
 
     def stopped(self, m):
@@ -457,39 +570,60 @@ class Books:
         return None
 
     # per call -----------------------------------------------------------------------------------------------------
-    def reserve(self, block, amount):
-        """(ok, why). Thread-safe. Needs: no open overrun, room beside the holds of higher priority, the run cap."""
+    @staticmethod
+    def new_attempt_id():
+        return uuid.uuid4().hex
+
+    def reserve(self, block, amount, attempt=None, outside=False):
+        """(ok, why). Thread-safe. Needs: no open overrun, room beside the holds of higher priority (outside=True:
+        beside all unfinished work, for a call that no block plans), the run cap.
+        attempt: {'attempt_id', 'model_key', 'role', 'item', ...}: the reservation is written to the ledger (kind
+        'reserve') before the call is sent, so that a call cut short by a crash is settled when the runner of its
+        role starts again (Section 12.5)."""
         with self.lock:
             if self.stopped_reason:
                 return False, self.stopped_reason
             if self.overrun_open:
                 return False, "overrun"
-            if self.spent + self.inflight + self.hold(block) + amount > self.study_cap + EPS:
+            ahead = self.remaining() if outside else self.hold(block)
+            if self.committed() + self.inflight + ahead + amount > self.study_cap + EPS:
                 return False, "cap"
             if self.run_cap is not None and self.run_spent + self.inflight + amount > self.run_cap + EPS:
                 return False, "run_cap"
+            if attempt is not None:
+                self.mine.add(attempt["attempt_id"])
+                self._record_locked(dict(attempt, kind="reserve", block=None if block is None else str(block),
+                                         reserved_usd=round(amount, 6), spent_usd=0.0))
             self.inflight += amount
             return True, ""
 
-    def settle(self, reserved, actual, entry):
-        """Release the reservation and write the call line (entry: model_key, block, role, item, final, ...).
-        A settlement above the reservation writes an overrun line and stops every further paid call."""
+    def settle(self, reserved, actual, entry, kind="call"):
+        """Release the reservation and write the call line (entry: model_key, block, role, item, final, attempt_id,
+        ...) in one step under the lock, so that no other thread reserves against money that is neither in flight
+        nor spent. A settlement above the reservation stops every further paid call: the settlement line carries
+        overrun: true (the stop is in the ledger with it), and an overrun line follows."""
         actual = max(0.0, float(actual))
         with self.lock:
+            over = {"overrun": True} if actual > reserved + 1e-9 else {}
+            line = self._record_locked(dict(entry, kind=kind, reserved_usd=round(reserved, 6),
+                                            spent_usd=round(actual, 6), **over))
             self.inflight -= reserved
             self.run_spent += actual
-        line = self.record(dict(entry, kind="call", reserved_usd=round(reserved, 6), spent_usd=round(actual, 6)))
-        if actual > reserved + 1e-9:
-            self.record({"kind": "overrun", "model_key": entry.get("model_key"), "block": entry.get("block"),
-                         "item": entry.get("item"), "reserved_usd": round(reserved, 6),
-                         "settled_usd": round(actual, 6), "spent_usd": 0.0})
-            with self.lock:
-                self.stopped_reason = "overrun"
+            if actual > reserved + 1e-9:
+                self._overrun_locked(entry, reserved, actual)
         return line
 
-    def release(self, reserved):
+    def _overrun_locked(self, entry, reserved, actual):
+        self._record_locked({"kind": "overrun", "model_key": entry.get("model_key"), "role": entry.get("role"),
+                             "block": entry.get("block"), "item": entry.get("item"),
+                             "reserved_usd": round(reserved, 6), "settled_usd": round(actual, 6), "spent_usd": 0.0})
+        self.stopped_reason = "overrun"
+
+    def release(self, reserved, attempt_id=None):
         """A reservation that was not used (nothing was sent)."""
         with self.lock:
+            if attempt_id is not None:
+                self._record_locked({"kind": "reserve_release", "attempt_id": attempt_id, "spent_usd": 0.0})
             self.inflight -= reserved
 
 
@@ -563,11 +697,46 @@ def _status(books):
     print(f"ledger ${books.spent:.2f} of cap ${books.study_cap:.2f}; registration: {books.registration or 'not yet'}; "
           f"freeze: {books.freeze or 'not yet'}; "
           f"open overrun: {books.overrun_open}")
+    open_ = books.unsettled()
+    if open_:
+        roles = sorted({str(e.get("role")) for e in open_.values()})
+        print(f"UNSETTLED: {len(open_)} reservations of an interrupted run (${books.unsettled_usd():.2f}, counted as "
+              f"spent); the runner of each role ({', '.join(roles)}) settles them when it starts")
     print("closed (block, role, model):", sorted(books.complete) or "none", "| cuts:", sorted(books.cuts) or "none",
           "| provider stops:", sorted(books.stops, key=str) or "none")
     for b in BLOCKS:
         print(f"  block {b} ({BLOCK_NAMES[b]}): remaining ${books.remaining(b):.2f}, hold before it ${books.hold(b):.2f}")
     print(f"unfinished work ${books.remaining():.2f}; left under the cap ${books.left():.2f}")
+
+
+def manifest_cuts(ceiling, manifest=None, holds=None):
+    """Condition 3 of Section 14.4: the pessimistic manifest, priced again after the pilot (rule 4 of Section 13.3),
+    at or below the freeze ceiling after the cuts of Section 12.4 in order. (cuts needed, message), or (None, why
+    not) when the stored manifest was not priced again, the holds were not written from it, or it does not fit after
+    the four cuts."""
+    manifest, holds = pathlib.Path(manifest or MANIFEST), pathlib.Path(holds or HOLDS)
+    if not manifest.exists():
+        return None, f"no manifest at {manifest.name}"
+    raw = manifest.read_bytes()
+    man = json.loads(raw)
+    if not man.get("repricing"):
+        return None, ("the stored manifest was not priced again after the pilot: write it with "
+                      "scripts/manifest_v23.py --repricing FILE --write, then the holds (Section 12.4)")
+    hold = json.loads(holds.read_text(encoding="utf-8"))
+    if hold.get("manifest_sha256") != hashlib.sha256(raw).hexdigest():
+        return None, "the holds were not written from the stored manifest: write them again (scripts/holds_v23.py)"
+    total, need = float(man["totals"]["pessimistic"]), []
+    for c in sorted(man["cuts"], key=lambda x: x["order"]):
+        if total <= ceiling + EPS:
+            break
+        total -= float(c["saves_pessimistic"])
+        need.append(int(c["order"]))
+    if total > ceiling + EPS:
+        return None, (f"the repriced pessimistic manifest (${float(man['totals']['pessimistic']):.2f}) does not fit "
+                      f"under the freeze ceiling ${ceiling:.2f} after the four cuts; the design is revised in a "
+                      f"dated amendment (Section 12.4)")
+    return need, (f"${float(man['totals']['pessimistic']):.2f} pessimistic (repricing {man['repricing'].get('file')})"
+                  + (f", ${total:.2f} after cuts {need}" if need else ", no cut needed"))
 
 
 def main(argv=None):
@@ -593,6 +762,24 @@ def main(argv=None):
     acquire_lock("ledger:" + a.what)
     try:
         books = Books("pi_record")
+        if a.what == "freeze":
+            ceiling = float(json.loads(DESIGN.read_text(encoding="utf-8"))["budget"]["freeze_ceiling_usd"])
+            need, why = manifest_cuts(ceiling)
+            if need is None:
+                sys.exit("not frozen: " + why)
+            for c in need:                   # the cuts that the repriced manifest needs (Sections 12.4, 14.4)
+                if c not in books.cuts:
+                    books.record({"kind": "cut", "cut": c, "before_block": "freeze", "by": "manifest",
+                                  "saves_usd_at_cut": round(books.remaining(cut=c), 6), "spent_usd": 0.0,
+                                  "ledger_usd": round(books.committed(), 6),
+                                  "unfinished_usd": round(books.remaining(), 6), "cap_usd": books.study_cap,
+                                  "limit_usd": ceiling})
+            print(f"repriced manifest: {why}")
+            ok, msg = books.cut_check("freeze", apply_cuts=True, limit=ceiling)
+            if not ok:
+                sys.exit(f"not frozen: the pessimistic plan does not fit under the freeze ceiling ${ceiling:.2f} "
+                         f"after the four cuts ({msg}); the design is revised in a dated amendment (Section 12.4)")
+            print(f"freeze ceiling ${ceiling:.2f}: {msg}")
         if a.what in ("register", "freeze"):
             books.record({"kind": "registration" if a.what == "register" else "freeze", "tag": a.tag,
                           "spent_usd": 0.0})

@@ -9,7 +9,7 @@ Blocks (Section 12.3) and parts:
   1 pilot          respondents pilot_r1, pilot_r2 (20 answers each); judges pilot_r1, pilot_r2 (60 calls each)
   2 hosted answers frame_harmful (300), frame_safe (90)                         models 22 and 23
   3 hosted judges  own_harmful (600), control_harmful (600)                     models 22 and 23
-  4 commercial     frame_harmful (60, the common set), frame_safe (90)          eleven commercial models
+  4 commercial     frame_harmful (60, the common set), frame_safe (90)          the ten commercial models
   5 hosted judges  own_safe (180), control_safe (180), label_blind (labelled answers), challenge_context, repeat
   6 commercial     own (300), control_harmful (120), reference_h1, reference_h2 (cut 4), control_safe (cut 2),
                    repeat (cut 1)
@@ -19,6 +19,9 @@ The sum of the items equals the pessimistic total of the manifest (checked here,
 Usage: python -I scripts/holds_v23.py            print the items and the check
        python -I scripts/holds_v23.py --write    also write config/stage_holds.json
        python -I scripts/holds_v23.py --without 22,23   the same for a panel without hosted models, printed only
+       python -I scripts/holds_v23.py --repricing FILE [--write]   after the pilot (Section 13.3, rule 4): the same
+                                                 repricing file as the manifest (scripts/manifest_v23.py); with
+                                                 --write the stored manifest must have been written with that file
 The panel is the registered one: the hosted models that decision D13 leaves out ('registered_hosted' in
 config/panel_v23.json) have no item (Section 10.4); before the decision both hosted models are in.
 """
@@ -57,11 +60,12 @@ def per_call_costs(prices, sc, keys):
     return out
 
 
-def build(design=None, without=()):
+def build(design=None, without=(), repricing=None):
+    """repricing: manifest_v23.load_repricing() of the repricing file (prices and scenarios of the repricing)."""
     d = design or json.loads(mv.DESIGN.read_text(encoding="utf-8"))
     d = mv.design_without(d, without) if without else d
-    prices = mv.pinned_prices(cm.load_prices())
-    sc = mv.SCENARIOS[SC]
+    prices = repricing["prices"] if repricing else mv.pinned_prices(cm.load_prices())
+    sc = (repricing["scenarios"] if repricing else mv.SCENARIOS)[SC]
     k = mv.counts(d)
     hosted = mv.hosted_keys(d)
     api = [m["key"] for m in cm.api_models()]
@@ -122,9 +126,10 @@ def build(design=None, without=()):
     return items, d
 
 
-def check(items, design, without=()):
-    """The items must add up to the pessimistic manifest, in total and per cut."""
-    m = mv.build(design=json.loads(mv.DESIGN.read_text(encoding="utf-8")) if without else design, without=without)
+def check(items, design, without=(), repricing=None):
+    """The items must add up to the pessimistic manifest (with the same repricing), in total and per cut."""
+    m = mv.build(design=json.loads(mv.DESIGN.read_text(encoding="utf-8")) if without else design, without=without,
+                 repricing=repricing)
     tot = sum(it["calls"] * it["usd_per_call"] for it in items)
     out = {"items_total": round(tot, 2), "manifest_total": m["totals"][SC]}
     for c in (1, 2, 3, 4):
@@ -135,17 +140,38 @@ def check(items, design, without=()):
     return ok, out
 
 
+def stored_manifest_problem(man, rp, items):
+    """Why the holds may not be written beside the stored manifest, or None. The stored manifest must carry the same
+    repricing as this run (the file and every price snapshot file by its SHA-256, and the assumptions), and its
+    pessimistic total and cuts must match the items (Section 12.4)."""
+    if man is None:
+        return "no stored manifest"
+    if (man.get("repricing") or None) != (rp["meta"] if rp else None):
+        return ("the stored manifest was not written with this repricing (its file, price snapshot or assumptions "
+                "differ)")
+    tot = sum(it["calls"] * it["usd_per_call"] for it in items)
+    if abs(tot - float(man["totals"][SC])) > 0.02:
+        return f"the stored manifest's {SC} total ${float(man['totals'][SC]):.2f} differs from the holds' ${tot:.2f}"
+    for x in man["cuts"]:
+        got = sum(it["calls"] * it["usd_per_call"] for it in items if it["cut"] == x["order"])
+        if abs(got - float(x["saves_pessimistic"])) > 0.02:
+            return f"cut {x['order']} of the stored manifest saves ${x['saves_pessimistic']:.2f}, the holds ${got:.2f}"
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--without", default="", help="hosted models left out of the panel, e.g. 22 or 22,23")
+    ap.add_argument("--repricing", default="", help="repricing file after the pilot (scripts/manifest_v23.py)")
     a = ap.parse_args()
+    rp = mv.load_repricing(a.repricing) if a.repricing else None
     d0 = json.loads(mv.DESIGN.read_text(encoding="utf-8"))
     what_if = bool(a.without)
     without = tuple(int(x) for x in a.without.split(",") if x) if what_if else mv.registered_without(d0)
     print(f"primary panel without {list(without)}" if without else "primary panel: every hosted model")
-    items, d = build(without=without)
-    ok, chk = check(items, d, without)
+    items, d = build(without=without, repricing=rp)
+    ok, chk = check(items, d, without, rp)
     by_block = {}
     for it in items:
         by_block[it["block"]] = by_block.get(it["block"], 0.0) + it["calls"] * it["usd_per_call"]
@@ -158,6 +184,10 @@ def main():
         if what_if:
             sys.exit("--write follows decision D13 ('registered_hosted' in config/panel_v23.json); --without only prints")
         man = mv.OUT.read_bytes() if mv.OUT.exists() else b""
+        bad = stored_manifest_problem(json.loads(man) if man else None, rp, items)
+        if bad:
+            sys.exit(f"{bad}: write the manifest first with scripts/manifest_v23.py "
+                     + (f"--repricing {a.repricing} " if rp else "") + "--write")
         doc = {"_what": ("Holds of protocol v2.3 (Section 12.5), per block of Section 12.3: the paid calls planned for "
                          "each model and part, and the pessimistic cost of one call (manifest scenario 'pessimistic', "
                          "prices of scripts/manifest_v23.py). A block starts only if its pessimistic cost fits beside "
@@ -167,6 +197,7 @@ def main():
                          "pilot (rule 4). Every change is a logged commit."),
                "protocol": "2.3", "scenario": SC, "written": dt.date.today().isoformat(),
                "registered_hosted": d0.get("registered_hosted"), "left_out": list(without),
+               "repricing": rp["meta"] if rp else None,
                "manifest_sha256": hashlib.sha256(man).hexdigest() if man else None,
                "blocks": {"1": "pilot", "2": "missing answers of the primary panel",
                           "3": "primary panel on the harmful frame", "4": "answers of the commercial models",

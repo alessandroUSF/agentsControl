@@ -1,7 +1,7 @@
 """Run (d) of Appendix A.4: the safe-side simulation. It checks the intervals of Section 8.7 (check 6).
 
 Frame and judges. The 90 prompts of the safe frame. The primary panel (twelve models, or fewer with --drop) with
-its control assignment on the safe frame; the eleven commercial models, each classifying its own 90 answers, with
+its control assignment on the safe frame; the commercial models (ten since decision D17), each classifying its own 90 answers, with
 control verdicts on the 30 commercial safe controls only (Section 8.7). The assignments are the production ones
 (src/yoking.py) with the block labels of scripts/control_assignment_v23.py ("<block>|safe", "commercial|safe").
 

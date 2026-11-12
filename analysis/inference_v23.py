@@ -7,7 +7,11 @@ replication axis, so that simulated operating characteristics refer to the produ
 Statistic.  theta_hat = sum_p X_p / sum_p N_p, where X_p is the prompt's sum of screened differences and
 N_p its number of screen-positive answers. Influence residuals e_p = X_p - theta_hat * N_p are centred
 inside each source stratum; variance = sum_h n_h / (n_h - 1) * sum_{p in h} (e_p - mean_h)^2 / (sum N)^2;
-degrees of freedom = sum_h (n_h - 1).
+degrees of freedom = sum_h (m_h - 1), where m_h is the number of prompts of stratum h with N_p != 0: the domain
+degrees of freedom of Section 8.1, at least 1. For a count of answers this is N_p > 0; a denominator that is a
+difference (the false-alarm change of Section 9.5) can be negative on a prompt that carries answers, and such a
+prompt counts. With an answer on every prompt they are sum_h (n_h - 1) = 298 on the primary frame. A stratum
+without such a prompt adds nothing.
 
 Boundary cases (Section 8.1). They are handled apart and counted apart. Every result of cluster_ratio,
 judge_normalised and interaction_decomposition carries three flags, element by element:
@@ -43,11 +47,11 @@ ZERO_VARIANCE_RTOL = 1e-10
 
 
 def _stratified_var(e, strata):
-    """Stratified cluster variance of sum_p e_p: sum_h n_h / (n_h - 1) * sum_{p in h} (e_p - mean_h)^2, with its
-    degrees of freedom sum_h (n_h - 1) and the largest absolute centred residual (for the zero-variance rule).
-    e: [..., P]."""
+    """Stratified cluster variance of sum_p e_p: sum_h n_h / (n_h - 1) * sum_{p in h} (e_p - mean_h)^2, over every
+    prompt of each stratum (a prompt without an answer of the statistic has e_p = 0 and stays in), with the largest
+    absolute centred residual (for the zero-variance rule). The degrees of freedom are _domain_df(). e: [..., P]."""
     strata = np.asarray(strata)
-    var, top, df = np.zeros(e.shape[:-1]), np.zeros(e.shape[:-1]), 0
+    var, top = np.zeros(e.shape[:-1]), np.zeros(e.shape[:-1])
     for h in np.unique(strata):
         m = strata == h
         n = int(m.sum())
@@ -57,8 +61,20 @@ def _stratified_var(e, strata):
         eh = eh - eh.mean(-1, keepdims=True)
         var = var + n / (n - 1) * (eh ** 2).sum(-1)
         top = np.maximum(top, np.abs(eh).max(-1))
-        df += n - 1
-    return var, df, top
+    return var, top
+
+
+def _domain_df(present, strata):
+    """Domain degrees of freedom (Section 8.1): sum over the source strata of (m_h - 1), m_h the number of prompts
+    of stratum h with present_p true (prompts that carry at least one answer of the statistic); a stratum with no
+    such prompt adds nothing; at least 1. present: [..., P] booleans. Returns an integer array [...]."""
+    present = np.asarray(present, dtype=bool)
+    strata = np.asarray(strata)
+    df = np.zeros(present.shape[:-1], dtype=np.int64)
+    for h in np.unique(strata):
+        m = present[..., strata == h].sum(-1)
+        df = df + np.maximum(m - 1, 0)
+    return np.maximum(df, 1)
 
 
 def _result(est, var, df, den, estimable, top, scale, norm):
@@ -85,7 +101,8 @@ def cluster_ratio(X, N, strata):
     estimable = den > 0
     safe = np.where(estimable, den, 1.0)
     est = X.sum(-1) / safe
-    var, df, top = _stratified_var(X - est[..., None] * N, strata)
+    var, top = _stratified_var(X - est[..., None] * N, strata)
+    df = _domain_df(N != 0, strata)
     scale = (np.abs(X) + np.abs(est)[..., None] * np.abs(N)).max(-1)
     return _result(est, var, df, den, estimable, top, scale, safe)
 
@@ -220,7 +237,8 @@ def judge_normalised(xa, na, xc, nc, strata):
     est = (use * (ra - rc)).sum(-1) / kk
     infl = (use[..., None] * ((xa - ra[..., None] * na) / sa[..., None]
                               - (xc - rc[..., None] * nc) / sc[..., None])).sum(-2) / kk[..., None]
-    var, df, top = _stratified_var(infl, strata)
+    var, top = _stratified_var(infl, strata)
+    df = _domain_df((use[..., None] * (na + nc)).sum(-2) > 0, strata)
     scale = (use[..., None] * ((np.abs(xa) + np.abs(ra)[..., None] * na) / sa[..., None]
                                + (np.abs(xc) + np.abs(rc)[..., None] * nc) / sc[..., None])).sum(-2).max(-1) / kk
     out = _result(est, var, df, k.astype(np.float64), k > 0, top, scale, 1.0)
@@ -266,9 +284,10 @@ def interaction_decomposition(xa, na, xc, nc, strata):
     s_pooled = (np.abs(x_p) + np.abs(pooled)[..., None] * n_p).max(-1)
     s_within = ((np.abs(xa) + na * np.abs(c)[..., None] + q * (np.abs(xc) + np.abs(c)[..., None] * nc)).sum(-2)
                 + np.abs(within)[..., None] * n_p).max(-1)
+    df = _domain_df((n_p > 0) | (nc.sum(-2) > 0), strata)
     for name, est, e, scale in (("within", within, e_within, s_within),
                                 ("composition", pooled - within, e_pooled - e_within, s_pooled + s_within)):
-        var, df, top = _stratified_var(e, strata)
+        var, top = _stratified_var(e, strata)
         out[name] = _result(est, var, df, N, split, top, scale, sN)
     out["judges_without_control"] = lacking
     return out

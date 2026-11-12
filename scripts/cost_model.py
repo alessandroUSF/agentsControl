@@ -44,7 +44,7 @@ MODELS = ROOT / "config" / "models.json"
 # Snapshot IDs of the direct-routed models (for prices only).
 SNAP_ID = {"claude-sonnet-5.5": "anthropic/claude-sonnet-5.5", "claude-haiku-5.5": "anthropic/claude-haiku-5.5",
            "gpt-5.6-luna": "openai/gpt-5.6-luna", "gpt-6-luna": "openai/gpt-6-luna",
-           "gpt-6.1-sol": "openai/gpt-6.1-sol"}
+           "gpt-6.1-sol": "openai/gpt-6.1-sol", "gemini-4-argon": "google/gemini-4-argon"}
 GUARD_API = "openai/gpt-oss-safeguard-20b"
 # Prompt caching in sync mode: Anthropic (cache_control on the system block, providers.py) and OpenAI
 # (automatic for prefixes of 1,024+ tokens). OpenRouter-routed models are assumed uncached.
@@ -90,9 +90,10 @@ NEUTRAL_API = ("deepseek/deepseek-v4.1-flash-1017", "z-ai/glm-5.3-flash", "tence
 CORPUS = 10 * 1230 + 3 * 790 + 8 * 190 + 280     # Section 4: 16,470 answers
 
 
-def load_prices():
+def load_prices(path=None):
+    """US$ per 1M tokens by model id, from an OpenRouter model list (default: the snapshot of 8 November 2026)."""
     out = {}
-    for m in json.loads(SNAP.read_text(encoding="utf-8"))["data"]:
+    for m in json.loads(Path(path or SNAP).read_text(encoding="utf-8"))["data"]:
         p = m["pricing"]
         out[m["id"]] = {"in": float(p["prompt"]) * 1e6, "out": float(p["completion"]) * 1e6,
                         "cache": float(p.get("input_cache_read") or p["prompt"]) * 1e6,
@@ -121,10 +122,11 @@ def respondents(prices, sc, batch, part="all", direct_only=False, counts_all=Non
     'rest' (the remaining 600 prompts of models 1-3). counts_all: the same prompt counts for every API
     respondent; by_key: counts for single models (overrides counts_all)."""
     rows, total = [], 0.0
+    resp_in, resp_out = sc.get("resp_in", RESP_IN), sc.get("resp_out", RESP_OUT)   # the repricing may set them
     for m in api_models():
         mid = SNAP_ID.get(m["key"], m["model"])
         pr, used_batch = price(prices, mid, batch, direct_only)
-        reasoning = REASONING_BY_EFFORT[m.get("effort")] * sc["resp_mult"]
+        reasoning = sc.get("reasoning_by_key", {}).get(m["key"], REASONING_BY_EFFORT[m.get("effort")]) * sc["resp_mult"]
         counts = dict(counts_all or SUBSET_COUNTS[m["prompt_subset"]])
         if by_key and m["key"] in by_key:
             counts = dict(by_key[m["key"]])
@@ -136,12 +138,12 @@ def respondents(prices, sc, batch, part="all", direct_only=False, counts_all=Non
         elif part == "rest":
             counts = {k: 0 for k in counts}
         vis = sc.get("vis_mult", 1.0)        # round 2 (check A): the v2.3 manifest also doubles the visible answer
-        cost = sum(k * (RESP_IN * pr["in"] + (RESP_OUT[kind] * vis + reasoning) * pr["out"]) / 1e6
+        cost = sum(k * (resp_in * pr["in"] + (resp_out[kind] * vis + reasoning) * pr["out"]) / 1e6
                    for kind, k in counts.items())
         sync = prices[mid]
         if part != "rest":
-            cost += sc.get("pilot_rounds", 1) * RESP_PILOT * (RESP_IN * sync["in"]
-                                                              + (450 * vis + reasoning) * sync["out"]) / 1e6
+            cost += sc.get("pilot_rounds", 1) * RESP_PILOT * (resp_in * sync["in"]
+                                                              + (resp_out["safe"] * vis + reasoning) * sync["out"]) / 1e6
         cost *= 1 + sc["retry"]
         rows.append((m["key"], m.get("effort"), sum(counts.values()) + RESP_PILOT, used_batch, cost))
         total += cost
@@ -431,7 +433,7 @@ def manifest_v23b(prices):
         print(f"=== v2.3 draft B, {name} ===")
         print(f"API respondents, retries included: ${r:6.2f}   "
               + " ".join(f"[{k} ${c:.2f}]" for k, _, _, _, c in rows))
-        print(f"eleven commercial judges, {sum(jc.values())} calls each: ${sum(pc.values()):6.2f}")
+        print(f"{len(pc)} commercial judges, {sum(jc.values())} calls each: ${sum(pc.values()):6.2f}")
         for k, v in pc.items():
             print(f"  {k:62s} {jc[k]:4d}  ${v:6.2f}")
         print(f"Venice as judge, {sum(V23B_JUDGE['venice'].values())} calls: ${sum(pv.values()):6.2f}")

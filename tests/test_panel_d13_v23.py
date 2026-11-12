@@ -8,6 +8,7 @@ and sources only).
 Usage: python -I -X utf8 tests/test_panel_d13_v23.py
 """
 import json
+import os
 import pathlib
 import random
 import sys
@@ -22,19 +23,19 @@ import manifest_v23 as mv  # noqa: E402
 import plan_v23 as P  # noqa: E402
 import run_judges_v23 as R  # noqa: E402
 
-TMP = pathlib.Path("E:/claude/agentsControl_work/tmp/test_panel_d13_v23")
+TMP = pathlib.Path(os.environ.get("AC_TEST_TMP", "E:/claude/agentsControl_tests")) / "test_panel_d13_v23"
 REAL_PATH = ROOT / "config" / "panel_v23.json"
 REAL = json.loads(REAL_PATH.read_text(encoding="utf-8"))
 MODELS = json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))["models"]
 KEY = {m["n"]: m["key"] for m in MODELS}
 F = frames_v23.frames()
-TABLE = {(): {"labelled": 583, "harmful": 330, "safe": 253, "second": 388, "h60": 70, "api_ref": 130,
+TABLE = {(): {"labelled": 567, "harmful": 325, "safe": 242, "second": 381, "h60": 70, "api_ref": 130,
               "commercial_calls": 820, "control": "refusal_removed", "title": 12},
-         (22,): {"labelled": 547, "harmful": 305, "safe": 242, "second": 360, "h60": 60, "api_ref": 120,
+         (22,): {"labelled": 531, "harmful": 300, "safe": 231, "second": 353, "h60": 60, "api_ref": 120,
                  "commercial_calls": 800, "control": "refusal_removed_without_22", "title": 11},
-         (23,): {"labelled": 547, "harmful": 305, "safe": 242, "second": 360, "h60": 60, "api_ref": 120,
+         (23,): {"labelled": 531, "harmful": 300, "safe": 231, "second": 353, "h60": 60, "api_ref": 120,
                  "commercial_calls": 800, "control": "refusal_removed_without_23", "title": 11},
-         (22, 23): {"labelled": 511, "harmful": 280, "safe": 231, "second": 332, "h60": 50, "api_ref": 110,
+         (22, 23): {"labelled": 495, "harmful": 275, "safe": 220, "second": 325, "h60": 50, "api_ref": 110,
                     "commercial_calls": 780, "control": "refusal_removed_local", "title": 10}}
 RATES = {("commercial", "harmful"): 0.25, ("instruct_open", "harmful"): 0.30, ("refusal_removed", "harmful"): 0.70,
          ("commercial", "safe"): 0.88, ("instruct_open", "safe"): 0.84, ("refusal_removed", "safe"): 0.90}
@@ -117,7 +118,126 @@ def t_wrong_records_refused():
     return ok
 
 
-TESTS = [t_variants, t_before_the_decision, t_wrong_records_refused]
+def _snapshot(name, factor=1.0, bump=None):
+    """A price snapshot folder in TMP: the list of 8 November and the endpoint lists of 11 November (the registered
+    prices), every price times factor; bump: (model id, factor) for one pinned endpoint only."""
+    import shutil
+    snap = TMP / name
+    shutil.rmtree(snap, ignore_errors=True)
+    snap.mkdir(parents=True)
+
+    def scale(pr, f):
+        for k, v in list(pr.items()):
+            try:
+                pr[k] = repr(float(v) * f)
+            except (TypeError, ValueError):
+                pass
+
+    lst = json.loads((ROOT / "data" / "selection" / "2026-11-08" / "or_v1_models.json").read_text(encoding="utf-8"))
+    for m in lst["data"]:
+        scale(m["pricing"], factor)
+    (snap / "or_v1_models.json").write_text(json.dumps(lst), encoding="utf-8")
+    for f in (ROOT / "data" / "selection" / "2026-11-11" / "raw").glob("or_endpoints_*.json"):
+        e = json.loads(f.read_text(encoding="utf-8"))
+        if isinstance(e.get("data"), dict):
+            for x in e["data"].get("endpoints", []):
+                f2 = factor * (bump[1] if bump and f.name == "or_endpoints_" + bump[0].replace("/", "_") + ".json"
+                               else 1.0)
+                scale(x["pricing"], f2)
+        (snap / f.name).write_text(json.dumps(e), encoding="utf-8")
+    return snap
+
+
+def _repricing(name, snap, assumptions=None):
+    path = TMP / f"{name}.json"
+    path.write_text(json.dumps({"prices_snapshot": str(snap), "assumptions": assumptions or {},
+                                "source": "synthetic test"}), encoding="utf-8")
+    return mv.load_repricing(path)
+
+
+def t_repricing():
+    """Rule 4 of Section 13.3: the repricing file drives the manifest, the holds and the cuts together. The registered
+    prices again give the registered manifest; a price rise of half moves every total and the holds with it, and the
+    cuts that the books apply at the freeze are those that the manifest's cut savings call for; a fresh endpoint price
+    of a pinned model is used, not the snapshot of 11 November; measured assumptions replace the registered ones; an
+    unknown parameter or a snapshot without an endpoint list is refused."""
+    import spend_v23 as S
+    reg = mv.build(design=REAL)
+    same = _repricing("rp_same", _snapshot("snap_same"))
+    m0 = mv.build(design=REAL, repricing=same)
+    ok = m0["totals"] == reg["totals"] and m0["repricing"]["sha256"] == same["meta"]["sha256"]
+    rise = _repricing("rp_rise", _snapshot("snap_rise", 1.5))
+    m1 = mv.build(design=REAL, repricing=rise)
+    for n in ("expected", "pessimistic"):
+        ok &= abs(m1["totals"][n] - 1.5 * reg["totals"][n]) <= 0.02 + 1e-9
+    items, d = hv.build(design=REAL, repricing=rise)
+    hok, chk = hv.check(items, d, (), rise)
+    stored = json.loads(json.dumps(m1))                       # as written by manifest_v23.py --write
+    ok &= hv.stored_manifest_problem(stored, rise, items) is None
+    ok &= "repricing" in (hv.stored_manifest_problem(json.loads(json.dumps(reg)), rise, items) or "")
+    ok &= "no stored manifest" in (hv.stored_manifest_problem(None, rise, items) or "")
+    off = json.loads(json.dumps(m1))
+    off["totals"]["pessimistic"] += 1.0
+    ok &= "total" in (hv.stored_manifest_problem(off, rise, items) or "")
+    off = json.loads(json.dumps(m1))
+    off["cuts"][0]["saves_pessimistic"] += 1.0
+    ok &= "cut 1" in (hv.stored_manifest_problem(off, rise, items) or "")
+    snap = _snapshot("snap_moved", 1.5)                       # a snapshot file changed after the manifest was written
+    before = _repricing("rp_moved", snap)
+    m_before = json.loads(json.dumps(mv.build(design=REAL, repricing=before)))
+    with open(snap / "or_v1_models.json", "a", encoding="utf-8") as f:
+        f.write("\n")
+    after = mv.load_repricing(TMP / "rp_moved.json")
+    items_after = hv.build(design=REAL, repricing=after)[0]
+    ok &= after["meta"]["sha256"] == before["meta"]["sha256"]
+    ok &= "repricing" in (hv.stored_manifest_problem(m_before, after, items_after) or "")
+    ok &= hok and abs(chk["items_total"] - m1["totals"]["pessimistic"]) <= 0.02
+    ceiling, total = REAL["budget"]["freeze_ceiling_usd"], m1["totals"]["pessimistic"]
+    ok &= total > ceiling
+    want, left = [], total
+    for c in m1["cuts"]:
+        if left <= ceiling:
+            break
+        want.append(c["order"])
+        left -= c["saves_pessimistic"]
+    for it in items:
+        it["id"] = f"{it['block']}|{it['role']}|{it['model_key']}|{it['part']}"
+    books = S.Books("repricing", holds={"items": items}, study_cap=REAL["budget"]["cap_usd"],
+                    ledger=TMP / "ledger_repricing.jsonl", write=False)
+    fits, msg = books.cut_check("freeze", apply_cuts=False, limit=ceiling)
+    ok &= fits == (left <= ceiling + 0.02) and sorted(books.cuts) == want
+    if not ok:
+        print("  cuts:", want, sorted(books.cuts), msg, total, left)
+    pinned = next(m for m in MODELS if m.get("provider_order"))
+    bump = _repricing("rp_bump", _snapshot("snap_bump", 1.0, (pinned["model"], 2.0)))
+    m2 = mv.build(design=REAL, repricing=bump)
+    k = pinned["key"]
+    ok &= abs(m2["per_model"][k]["pessimistic"] - 2 * reg["per_model"][k]["pessimistic"]) <= 0.02
+    ok &= all(abs(m2["per_model"][x]["pessimistic"] - reg["per_model"][x]["pessimistic"]) <= 0.01
+              for x in reg["per_model"] if x != k)
+    meas = _repricing("rp_meas", _snapshot("snap_meas"), {"pessimistic": {"judge_in": 9000, "retry": 0.25}})
+    m3 = mv.build(design=REAL, repricing=meas)
+    ok &= m3["totals"]["pessimistic"] > reg["totals"]["pessimistic"] and m3["totals"]["expected"] == reg["totals"][
+        "expected"]
+    items3, d3 = hv.build(design=REAL, repricing=meas)
+    ok &= hv.check(items3, d3, (), meas)[0]
+    for bad in ({"pessimistic": {"judge_tokens": 1}}, {"optimistic": {"retry": 0.1}}):
+        try:
+            _repricing("rp_bad", _snapshot("snap_bad"), bad)
+            ok = False
+        except ValueError:
+            pass
+    gone = _snapshot("snap_gone")
+    (gone / ("or_endpoints_" + pinned["model"].replace("/", "_") + ".json")).unlink()
+    try:
+        _repricing("rp_gone", gone)
+        ok = False
+    except ValueError:
+        pass
+    return ok
+
+
+TESTS = [t_variants, t_before_the_decision, t_wrong_records_refused, t_repricing]
 
 
 def main():

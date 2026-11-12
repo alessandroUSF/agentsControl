@@ -1,14 +1,16 @@
 """Stored answers of protocol v2.3: one canonical answer per (model, prompt), with its side, status and screen.
 
-Answers are the records of src/run_models.py in results/raw/responses_<run>.jsonl. The sealed runs 'full' and
-'v22_local' are used (Section 3.4); 'pilot_local' (the version-1 pilot) is not. v2.3 runs are named by the caller.
+Answers are the records of src/run_models.py in results/raw/responses_<run>.jsonl. v2.3 runs are named by the
+caller. The sealed runs of 7 to 9 November 2026 ('full', 'v22_local', 'pilot_local') hold no answer of the study
+(decision D18, Section 3.4): they are refused as v2.3 runs. The training draw alone reads the run of the retired
+sample G1 ('full', TRAINING_RUNS), for the training answers of Section 9.6.
 
 Canonical answer of (model, prompt):
-  - the last record without a transport error, in file order (sealed runs first, then the v2.3 runs as given);
+  - the last record without a transport error, in file order (the runs as given);
   - otherwise the last record that a v2.3 runner marked as a final rejection (answer status 'error', Section 10.1);
   - otherwise none: the answer is missing (a pending call, or never sent).
-Pilot records (pilot = true) serve the pilot only; frame answers never come from them, and pilot answers of the
-sealed runs are the tail answers of those runs (Section 5.3).
+Pilot records (pilot = true) serve the pilot only; frame answers never come from them. A record without the pilot
+field (the sealed format) counts as a main-run record.
 
 The answer text is read here only to compute the screen (src/screen.py). Nothing in this module prints it.
 Standard library only.
@@ -20,8 +22,10 @@ import screen as screen_mod
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "results" / "raw"
-SEALED_USED = ("full", "v22_local")
-NOT_USED = ("pilot_local",)
+SEALED_RUNS = ("full", "pilot_local", "v22_local")   # written 7-9 Nov 2026; hashes in docs/SEALED_HASHES.md
+SEALED_USED = ()               # decision D18: no sealed answer is an answer of the study
+TRAINING_RUNS = ("full",)      # the run of the retired sample G1, read by the training draw only (Section 9.6)
+NOT_USED = ("pilot_local",)    # never read
 NO_CONTENT = screen_mod.NO_CONTENT
 SIDE = {"refuse": "harmful", "comply": "safe"}
 
@@ -51,8 +55,13 @@ def read_records(path):
 
 
 def run_files(v23_runs, raw=RAW, sealed=SEALED_USED):
-    """Answer files in canonical order: the sealed runs used by v2.3, then the v2.3 runs in the order given."""
-    names = [r for r in sealed] + [r for r in v23_runs if r not in sealed]
+    """Answer files in canonical order: the sealed runs given (none for the answers of the study, decision D18;
+    TRAINING_RUNS for the training draw), then the v2.3 runs in the order given. A sealed name among the v2.3 runs
+    is refused."""
+    bad = [r for r in v23_runs if r in SEALED_RUNS]
+    if bad:
+        raise ValueError(f"runs {bad} are sealed: they hold no answer of the study (decision D18, Section 3.4)")
+    names = list(sealed) + [r for r in v23_runs if r not in sealed]
     for r in names:
         if r in NOT_USED:
             raise ValueError(f"run {r} is not used in v2.3 (Section 3.4)")
@@ -60,8 +69,8 @@ def run_files(v23_runs, raw=RAW, sealed=SEALED_USED):
 
 
 def canonical(records, pilot=False):
-    """{(model_key, prompt_id): record}. pilot=False keeps main-run records of v2.3 runs and every record of the
-    sealed runs; pilot=True keeps the pilot records of v2.3 runs and every record of the sealed runs."""
+    """{(model_key, prompt_id): record}. pilot=False keeps the main-run records, pilot=True the pilot records.
+    Records of a run in SEALED_USED (none since decision D18) would count for both."""
     good, final_err = {}, {}
     for r in records:
         if r.get("run") in NOT_USED:

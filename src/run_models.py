@@ -7,12 +7,11 @@ What is sent (src/plan_v23.respondent_plan; --models keeps some respondents of t
            'hosted_primary'
   block 2  the primary panel, with the hosted models registered at the freeze (decision D13, 'registered_hosted'):
            the harmful frame (300) and the safe frame (90). Models 22 and 23 first, then the local models
-  block 4  the eleven commercial models: the common set (60) and the safe frame (90)
+  block 4  the commercial models (ten since decision D17): the common set (60) and the safe frame (90)
 Only answers that do not exist yet are generated. An answer exists when answers_v23.canonical keeps a record of its
-(model, prompt) pair among the sealed runs used by v2.3 ('full' and 'v22_local', never 'pilot_local') and the v2.3
-runs: a record without a transport error, or a final rejection (final_error). Pilot records count for block 1 only;
-the records of the sealed runs count for both, so that their tail answers are pilot answers (Section 5.3). The
-runner keeps identifiers, flags and statuses of the records and drops their text as each line is parsed; it
+(model, prompt) pair among the v2.3 runs: a record without a transport error, or a final rejection (final_error).
+Pilot records count for block 1 only. The sealed runs of 7 to 9 November 2026 hold no answer of the study (decision
+D18): every respondent answers every prompt of its plan under v2.3, with seed 20261126. The runner keeps identifiers, flags and statuses of the records and drops their text as each line is parsed; it
 computes no screen. The answer files of results/raw are read only after the pilot registration (answers_v23.guard).
 The v2.3 runs are the runs of the sessions listed in results/logs/respondent_runs_v23.jsonl, then --answer-runs,
 then this run.
@@ -115,7 +114,6 @@ import re
 import sys
 import threading
 import time
-import traceback
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import answers_v23 as A  # noqa: E402
@@ -155,6 +153,7 @@ SLEEP = time.sleep
 FETCH_ZDR = S.fetch_zdr
 OLLAMA_IDENTITY = providers.ollama_identity
 OLLAMA_VRAM = providers.ollama_vram
+FSYNC = True                     # off in the offline tests only
 _write_lock = threading.Lock()
 
 
@@ -178,13 +177,9 @@ def error_label(e):
 
 
 def load_env():
-    """The AC_* keys and BUDGET_USD from .env (python-dotenv, when installed). A STUDY_BUDGET_USD there may only
-    repeat the cap of decision D14: spend_v23.Books stops on any other value."""
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(ROOT / ".env")
-    except ImportError:
-        pass
+    """The AC_* keys and BUDGET_USD from .env (spend_v23.load_env). A STUDY_BUDGET_USD there may only repeat the cap
+    of decision D14: spend_v23.Books stops on any other value."""
+    S.load_env()
 
 
 def sha256_text(s):
@@ -345,12 +340,12 @@ def v23_runs(extra=(), current=None):
             names.append(r)
     sealed = [r for r in names if r in SEALED_RUNS]
     if sealed:
-        sys.exit(f"sealed runs {sealed} are not v2.3 runs (Section 3.4); the sealed runs used are read anyway")
+        sys.exit(f"sealed runs {sealed} are not v2.3 runs and hold no answer of the study (decision D18)")
     return names
 
 
 def load_records(runs):
-    """Key records (read_keys) of the sealed runs used by v2.3 and of the given v2.3 runs, in canonical order. The
+    """Key records (read_keys) of the given v2.3 runs, in canonical order (no sealed run: decision D18). The
     answer files of this repository are read only after the pilot registration (answers_v23.guard)."""
     A.guard(RAW)
     out = []
@@ -395,8 +390,12 @@ def new_record(run, block, rnd, m, row, ident, mode="sync"):
             "mode": mode, "pilot": str(block) == "1", "ts": now()}
 
 
-def write_record(rec):
-    """The private record (answer text, error body), then the public line without them."""
+def write_record(rec, durable=False):
+    """The private record (answer text, error body), then the public line without them; both carry the sha256 of the
+    answer text ('text_sha256', decision D18). durable: the private record is flushed to disk before the call is
+    settled in the ledger (paid calls, Section 12.5)."""
+    if rec.get("text") is not None and "text_sha256" not in rec:
+        rec["text_sha256"] = sha256_text(str(rec["text"]))       # the hash of the answer, in both lines (D18)
     log = {k: v for k, v in rec.items() if k not in ("text", "error_body")}
     if rec.get("error_body"):
         log["error_body_sha256"] = sha256_text(str(rec["error_body"]))
@@ -405,8 +404,32 @@ def write_record(rec):
     with _write_lock:
         with open(raw_path(rec["run"]), "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            if durable and FSYNC:
+                f.flush()
+                os.fsync(f.fileno())
         with open(calls_log_path(rec["run"]), "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(log, ensure_ascii=False) + "\n")
+
+
+def reconcile(books, role="respondent"):
+    """Settles the reservations of this role that an earlier process left unsettled (a crash between the reservation
+    and the ledger line, Section 12.5): at the cost written in the record with the same attempt_id, or, when no record
+    was written, at the reserved amount, not final (status 'interrupted'); its prompt is then sent again under the
+    rules of Section 10.3. Needs the paid lock."""
+    lines = books.unsettled(role)
+    if not lines:
+        return 0
+    path_of = availability_raw_path if role == "availability" else None
+    by_path = collections.defaultdict(list)
+    for e in lines.values():
+        by_path[path_of() if path_of else raw_path(e.get("run"))].append(e)
+    for path, es in by_path.items():
+        recs = {r["attempt_id"]: r for r in read_jsonl(path) if r.get("attempt_id")}
+        for e in es:
+            books.settle_interrupted(e, recs.get(e["attempt_id"]),
+                                     kind=AVAILABILITY_KIND if role == "availability" else "call")
+    print(f"settled {len(lines)} {role} reservations left open by an interrupted run (Section 12.5)")
+    return len(lines)
 
 
 def identity_record(m, local=None, live=None):
@@ -438,13 +461,18 @@ class Session:
         self.frames = frames_v23.frames()
         self.pilot = P.load_pilot()
         self.rows = load_rows()
-        self.runs = v23_runs([x for x in (a.answer_runs or "").split(",") if x], current=a.run or None)
+        self.runs = self.find_runs()
         self.want = [x for x in (a.models or "").split(",") if x]
         unknown = [k for k in self.want if k not in self.by_key]
         if unknown:
             sys.exit(f"unknown model keys: {unknown}")
         self.books = None
         self.stop_all = threading.Event()
+
+    def find_runs(self):
+        """The v2.3 runs whose answers count: every session in the runs log, the --answer-runs and this run. Read again
+        under the paid lock, so that a run that another process registered meanwhile is not missed."""
+        return v23_runs([x for x in (self.a.answer_runs or "").split(",") if x], current=self.a.run or None)
 
     def plan(self, rnd=None):
         """{model_key: [prompt ids]} of the block (and round) for the chosen models, in the order of the plan."""
@@ -495,14 +523,18 @@ class ModelRun:
         return not (books.closed(block, "respondent", self.key) or books.abandoned_for(block, self.key))
 
     def send(self, pid):
-        """One attempt: (out, exc, reserved, spent, latency)."""
+        """One attempt: (out, exc, reserved, spent, latency, attempt_id)."""
         books, reserved, prompt = self.sess.books, 0.0, self.sess.rows[pid]["prompt"]
+        aid = S.Books.new_attempt_id()
         if self.paid:
             st = books.stopped(self.m)
             if st:
                 raise Stop(f"provider stop recorded for {st} (Section 16.5)")
             reserved = S.call_bound(self.m, prompt, self.m["max_output_tokens"], live=self.live)
-            ok, why = books.reserve(self.sess.block, reserved)
+            ok, why = books.reserve(self.sess.block, reserved, attempt={
+                "attempt_id": aid, "model_key": self.key, "role": "respondent", "item": self.item(pid),
+                "part": part_of(self.sess.block, self.rnd, self.sess.rows[pid]), "prompt_id": pid,
+                "round": self.rnd})
             if not ok:
                 raise Stop({"cap": "the call would pass the cap beside the holds (Section 12.5)",
                             "run_cap": "the run cap of this session is reached",
@@ -513,7 +545,7 @@ class ModelRun:
             out = self.provider.call(prompt)
         except providers.ProjectKeyError:
             if self.paid:
-                books.release(reserved)
+                books.release(reserved, aid)
             raise
         except Exception as e:      # classified in outcome()
             exc = e
@@ -521,7 +553,7 @@ class ModelRun:
         spent = 0.0
         if self.paid:
             spent = S.settled_cost(self.m, out) if exc is None else S.settle_failed(exc, reserved, providers)
-        return out, exc, reserved, spent, latency
+        return out, exc, reserved, spent, latency, aid
 
     def outcome(self, out, exc):
         """{'kind': final | transient | config, 'status': answer status, ...} of one attempt."""
@@ -555,10 +587,10 @@ class ModelRun:
         tries = 0
         while True:
             tries += 1
-            out, exc, reserved, spent, latency = self.send(pid)
+            out, exc, reserved, spent, latency, aid = self.send(pid)
             oc = self.outcome(out, exc)
             pending = oc["kind"] == "transient" and tries > retries
-            self.write(pid, tries, oc, out, exc, reserved, spent, latency, pending)
+            self.write(pid, tries, oc, out, exc, reserved, spent, latency, pending, aid)
             if oc["kind"] == "config":
                 raise Stop(f"rejected with {oc.get('http_status')}: the configuration of the model is wrong "
                            f"(Section 10.3)")
@@ -567,7 +599,7 @@ class ModelRun:
                 continue
             return "pending" if pending else oc["status"]
 
-    def write(self, pid, tries, oc, out, exc, reserved, spent, latency, pending):
+    def write(self, pid, tries, oc, out, exc, reserved, spent, latency, pending, aid=None):
         sess, m, row = self.sess, self.m, self.sess.rows[pid]
         rec = new_record(sess.run, sess.block, self.rnd, m, row, self.ident)
         rec.update({"model_returned": None, "served_provider": None}, **(out or {}))
@@ -593,12 +625,14 @@ class ModelRun:
         rec["answer_status"] = answer_status(rec)
         status = ("pending" if pending else "failed" if oc["kind"] == "transient" else
                   "config_error" if oc["kind"] == "config" else rec["answer_status"])
-        if self.paid:                     # the charge first, then the record (B6-m1)
+        rec.update(attempt_id=aid, ledger_status=status)
+        write_record(rec, durable=self.paid)      # the record, then its charge: the reserve line covers the gap (12.5)
+        if self.paid:
             sess.books.settle(reserved, spent, {"model_key": m["key"], "block": sess.block, "role": "respondent",
                                                 "item": self.item(pid), "final": final, "part": rec["part"],
-                                                "status": status, "prompt_id": pid, "round": self.rnd})
+                                                "status": status, "prompt_id": pid, "round": self.rnd,
+                                                "attempt_id": aid})
             self.spent += spent
-        write_record(rec)
         self.counts["attempts"] += 1
         if not self.paid and not self.vram_checked and final:
             self.vram_checked = True
@@ -991,7 +1025,7 @@ def collect_batch(run, batch_id, by_key, rows):
             books.record({"kind": "call", "model_key": m["key"], "block": block, "role": "respondent",
                           "item": rec["item"], "final": final, "part": rec["part"], "status": status_line,
                           "prompt_id": pid, "batch_id": batch_id, "reserved_usd": round(bound, 6),
-                          "spent_usd": round(spent, 6)})
+                          "spent_usd": round(spent, 6), **({"overrun": True} if spent > bound + 1e-9 else {})})
             if spent > bound + 1e-9:
                 books.record({"kind": "overrun", "model_key": m["key"], "block": block, "item": rec["item"],
                               "batch_id": batch_id, "reserved_usd": round(bound, 6), "settled_usd": round(spent, 6),
@@ -1008,7 +1042,8 @@ def collect_batch(run, batch_id, by_key, rows):
                   "spent_usd": round(-entry["reserved_usd"] + unattributed_usd, 6),
                   "unreadable_lines": counts["unreadable_lines"], "unattributed_lines": counts["unattributed_lines"],
                   "model_mismatch_lines": counts["model_mismatch_lines"],
-                  "unattributed_usd": round(unattributed_usd, 6)})
+                  "unattributed_usd": round(unattributed_usd, 6),
+                  **({"overrun": True} if total > entry["reserved_usd"] + 1e-6 else {})})
     if total > entry["reserved_usd"] + 1e-6:
         books.record({"kind": "overrun", "model_key": m["key"], "block": block, "batch_id": batch_id,
                       "reserved_usd": entry["reserved_usd"], "settled_usd": round(total, 6), "spent_usd": 0.0})
@@ -1226,6 +1261,12 @@ def run_block(sess):
         S.acquire_lock("respondents:" + sess.run)         # before the ledger is read (B5-m5)
     try:
         sess.books = S.Books(sess.run, run_cap=run_cap if paid else None, write=bool(paid))
+        if paid:
+            reconcile(sess.books)
+            sess.runs = sess.find_runs()                                         # runs and answers read again
+            done = A.canonical(load_records(sess.runs), pilot=block == "1")      # under the lock
+            for mr in paid:
+                mr.todo = [p for p in mr.todo if (mr.key, p) not in done]
         if not sess.books.registration:
             print("NOT STARTED: the pilot registration is not recorded (spend_v23.py register; Sections 13.1, 14)")
             return 2
@@ -1320,11 +1361,13 @@ def complete_block(sess):
     were never sent: they are counted as excluded under D2 (Section 3.3), not as open. Block 1 counts both rounds,
     round 2 only if any of it was run. Writes 'block_complete' with role 'respondent' and the counts by status."""
     a, block = sess.a, sess.block
-    records = load_records(sess.runs)
-    done = A.canonical(records, pilot=block == "1")
     S.acquire_lock("respondents:" + (sess.run or "complete"))
     try:
         books = S.Books(sess.run or "complete")
+        reconcile(books)
+        sess.runs = sess.find_runs()                     # under the lock: runs and answers of every session
+        records = load_records(sess.runs)
+        done = A.canonical(records, pilot=block == "1")
         ledger = S.read_ledger()
         plans = []
         for rnd in ((1, 2) if block == "1" else (None,)):
@@ -1467,46 +1510,29 @@ def pilot_fact(books, ledger, key):
     return holds, "; ".join(notes)
 
 
-def reserve_outside_plan(books, amount):
+def reserve_outside_plan(books, amount, attempt=None):
     """(ok, why) for a call that no block plans: room beside the holds of all unfinished work, every block included
-    (Books.reserve counts the blocks of higher priority only), and the run cap (Section 12.5)."""
-    with books.lock:
-        if books.stopped_reason:
-            return False, books.stopped_reason
-        if books.overrun_open:
-            return False, "overrun"
-        if books.spent + books.inflight + books.remaining() + amount > books.study_cap + S.EPS:
-            return False, "cap"
-        if books.run_cap is not None and books.run_spent + books.inflight + amount > books.run_cap + S.EPS:
-            return False, "run_cap"
-        books.inflight += amount
-        return True, ""
+    (Books.reserve counts the blocks of higher priority only), and the run cap (Section 12.5). attempt: written to
+    the ledger before the call is sent, as for a respondent call."""
+    return books.reserve(None, amount, attempt=attempt, outside=True)
 
 
 def settle_outside_plan(books, reserved, actual, entry):
     """Books.settle with the ledger kind of the test calls, so that no holds item counts them. A settlement above
     the reservation writes an overrun line and stops every further paid call."""
-    actual = max(0.0, float(actual))
-    with books.lock:
-        books.inflight -= reserved
-        books.run_spent += actual
-    books.record(dict(entry, kind=AVAILABILITY_KIND, reserved_usd=round(reserved, 6), spent_usd=round(actual, 6)))
-    if actual > reserved + 1e-9:
-        books.record({"kind": "overrun", "model_key": entry.get("model_key"), "role": entry.get("role"),
-                      "block": None, "item": None, "reserved_usd": round(reserved, 6),
-                      "settled_usd": round(actual, 6), "spent_usd": 0.0})
-        with books.lock:
-            books.stopped_reason = "overrun"
+    return books.settle(reserved, actual, entry, kind=AVAILABILITY_KIND)
 
 
-def write_availability_attempt(run, m, live, attempt, out, exc, oc, status, ident, reserved, spent, latency):
+def write_availability_attempt(run, m, live, attempt, out, exc, oc, status, ident, reserved, spent, latency,
+                               aid=None):
     """The private record (answer text, error body), then the public line without them."""
     out = out or {}
     body = providers.error_text(exc) if exc is not None else None
     rec = {"protocol": "2.3", "kind": "attempt", "run": run, "ts": now(), "model_key": m["key"], "model": m["model"],
            "provider": m["provider"], "endpoint": m["pin"]["tag"], "live": live, "attempt": attempt,
            "prompt_sha256": sha256_text(AVAILABILITY_PROMPT), "request_sha256": request_hash(m, AVAILABILITY_PROMPT),
-           "config_sha256": config_hash(m), "text": out.get("text"), "stop_reason": out.get("stop_reason"),
+           "config_sha256": config_hash(m), "pin_sha256": pin_hash(m), "text": out.get("text"),
+           "stop_reason": out.get("stop_reason"),
            "model_returned": out.get("model_returned"), "served_provider": out.get("served_provider"),
            "identity_match": ident, "input_tokens": out.get("input_tokens"), "output_tokens": out.get("output_tokens"),
            "reasoning_tokens": out.get("reasoning_tokens"), "cost_reported": out.get("cost_reported"),
@@ -1515,7 +1541,7 @@ def write_availability_attempt(run, m, live, attempt, out, exc, oc, status, iden
            "error": f"{error_label(exc)}: {str(exc)[:300]}" if exc is not None else None, "error_body": body,
            "cost_usd": round(spent, 6), "reserved_usd": round(reserved, 6),
            "bound_input_tokens": S.input_bound_tokens(AVAILABILITY_PROMPT), "output_cap": m["max_output_tokens"],
-           "latency_s": latency}
+           "latency_s": latency, "attempt_id": aid}
     pub = {k: v for k, v in rec.items() if k not in ("text", "error_body")}
     if rec["text"]:
         pub["text_sha256"] = sha256_text(str(rec["text"]))
@@ -1523,7 +1549,7 @@ def write_availability_attempt(run, m, live, attempt, out, exc, oc, status, iden
         pub["error_body_sha256"] = sha256_text(str(body))
     if rec["error"]:
         pub["error"] = public_error(rec["error"])
-    append(availability_raw_path(), rec)
+    append(availability_raw_path(), rec, durable=True)
     append(availability_log_path(), pub)
 
 
@@ -1540,7 +1566,9 @@ def availability_call(books, run, m, live, provider, settings):
     while True:
         tries += 1
         bound = S.call_bound(m, AVAILABILITY_PROMPT, m["max_output_tokens"], live=live)
-        ok, why = reserve_outside_plan(books, bound)
+        aid = S.Books.new_attempt_id()
+        ok, why = reserve_outside_plan(books, bound, attempt={"attempt_id": aid, "model_key": m["key"],
+                                                              "role": "availability", "attempt": tries})
         if not ok:
             return False, f"not sent{' again' if tries > 1 else ''}: {NOT_SENT.get(why, why)}", False
         t0 = time.perf_counter()
@@ -1548,7 +1576,7 @@ def availability_call(books, run, m, live, provider, settings):
         try:
             out = provider.call(AVAILABILITY_PROMPT)
         except providers.ProjectKeyError:
-            books.release(bound)
+            books.release(bound, aid)
             return False, "not sent: no project key for this model", False
         except Exception as e:      # classified as for a respondent call
             exc = e
@@ -1559,19 +1587,65 @@ def availability_call(books, run, m, live, provider, settings):
         pending = oc["kind"] == "transient" and tries > retries
         status = ("pending" if pending else "failed" if oc["kind"] == "transient" else
                   "config_error" if oc["kind"] == "config" else oc["status"])
+        write_availability_attempt(run, m, live, tries, out, exc, oc, status, ident, bound, spent, latency, aid)
         settle_outside_plan(books, bound, spent, {
             "model_key": m["key"], "role": "availability", "attempt": tries, "final": oc["kind"] == "final",
-            "status": status, "identity_match": ident, "prompt_sha256": sha256_text(AVAILABILITY_PROMPT)})
-        write_availability_attempt(run, m, live, tries, out, exc, oc, status, ident, bound, spent, latency)
+            "status": status, "identity_match": ident, "prompt_sha256": sha256_text(AVAILABILITY_PROMPT),
+            "attempt_id": aid})
         spent_all, reserved_all = spent_all + spent, reserved_all + bound
         if oc["kind"] == "transient" and not pending:
             SLEEP(waits[min(tries - 1, len(waits) - 1)])
             continue
         break
     cost = f"{tries} attempt{'s' if tries > 1 else ''}, ${spent_all:.6f} settled of ${reserved_all:.6f} reserved"
+    err = f" ({type(exc).__name__}, HTTP {oc.get('http_status')})" if exc is not None else ""
+    return availability_result(m, status, ident, out, err, cost, tries)
+
+
+def settled_availability_records():
+    """{attempt_id: private record} of the test calls whose ledger line exists (settled by the check that made them or
+    by the reconciliation of an interrupted one). Read after reconcile(), under the paid lock."""
+    settled = {e["attempt_id"] for e in S.read_ledger() if e.get("kind") == AVAILABILITY_KIND and e.get("attempt_id")}
+    return {r["attempt_id"]: r for r in read_jsonl(availability_raw_path())
+            if r.get("attempt_id") in settled and r.get("kind") == "attempt"}
+
+
+def pin_hash(m):
+    """The pinned endpoint as configured (tag, serving host, precision): part of 'the same configuration' of a
+    recorded test call (Section 12.5), beside config_hash()."""
+    return sha256_json(m.get("pin") or {})
+
+
+def recovered_availability(m, found, date):
+    """The first final test call of model m recorded and settled today under the same configuration (the behavioural
+    settings and the pinned endpoint) and test prompt (Section 12.5): its answer gives fact 3 and the call is not
+    sent again, whether the check that made it was interrupted before or after its ledger line, or ran to the end.
+    None otherwise. The identity of a reused answer is judged again against the current pin."""
+    for rec in sorted(found.values(), key=lambda r: r.get("ts") or ""):
+        if (rec.get("model_key") == m["key"] and rec.get("final") and rec.get("config_sha256") == config_hash(m)
+                and rec.get("pin_sha256") == pin_hash(m)
+                and rec.get("prompt_sha256") == sha256_text(AVAILABILITY_PROMPT)
+                and local_date(rec.get("ts")) == date):
+            return rec
+    return None
+
+
+def today_local():
+    """The local date of the availability check (Section 10.4)."""
+    return dt.datetime.now().astimezone().date().isoformat()
+
+
+def local_date(ts):
+    try:
+        return dt.datetime.fromisoformat(str(ts).replace("Z", "+00:00")).astimezone().date().isoformat()
+    except ValueError:
+        return None
+
+
+def availability_result(m, status, ident, out, err, cost, tries=1):
+    """(holds, evidence, complete) of fact 3 from the last attempt of a test call."""
     got = (f"returned '{(out or {}).get('model_returned')}', served by '{(out or {}).get('served_provider')}' "
            f"(pinned: '{m['pin'].get('provider_name')}')")
-    err = f" ({type(exc).__name__}, HTTP {oc.get('http_status')})" if exc is not None else ""
     if status in ("ok", "truncated") and ident is True:
         return True, f"answered (status {status}); {got}; {cost}", True
     if status in ("ok", "truncated"):
@@ -1605,6 +1679,9 @@ def availability_check(a):
     S.acquire_lock("availability:" + a.run)          # before the ledger is read
     try:
         books = S.Books(a.run, run_cap=run_cap)
+        reconcile(books, "availability")
+        found = settled_availability_records()
+        today = today_local()
         if not books.registration:
             print("NOT STARTED: the pilot registration is not recorded (spend_v23.py register; Sections 13.1, 14)")
             return 2
@@ -1637,10 +1714,24 @@ def availability_check(a):
                 except providers.ProjectKeyError:
                     f3, complete = (False, "not sent: no project key for this model"), False
                 else:
-                    h, ev, done = availability_call(books, a.run, m, live, provider, settings)
+                    rec = recovered_availability(m, found, today)
+                    if rec is not None:                  # its answer is recorded: not sent again (Section 12.5)
+                        h, ev, done = availability_result(
+                            m, rec["status"], ModelRun(None, m, [], None).identity(rec), rec,
+                            f" ({rec['error'].split(':')[0]}, HTTP {rec.get('http_status')})" if rec.get("error")
+                            else "",
+                            f"recorded at {rec.get('ts')} (run {rec.get('run')}) and settled at "
+                            f"${float(rec.get('cost_usd') or 0):.6f}; not sent again")
+                    else:
+                        h, ev, done = availability_call(books, a.run, m, live, provider, settings)
                     f3, complete = (h, ev), complete and done
             facts[m["key"]] = (d2_fact(m, live, problems), pilot_fact(books, ledger, m["key"]), f3)
-        date = dt.datetime.now().astimezone().date().isoformat()
+        date = today                                  # the day of the check, also that of any answer it reused
+        if today_local() != today:                    # a fresh answer may belong to the next day (Section 10.4)
+            print(f"INCOMPLETE: the check began on {today} and ended after midnight, so its answers do not belong to "
+                  f"one day; no facts are recorded. Run it again: the answers recorded on the new day are used and "
+                  f"the other test calls are sent again")
+            return 3
         print(f"availability check of decision D13 (Section 10.4), run {a.run}, {date}")
         print(f"  test prompt: fixed and harmless, not a benchmark prompt (SHA-256 "
               f"{sha256_text(AVAILABILITY_PROMPT)[:16]}), under each model's configuration in config/models.json")
@@ -1648,6 +1739,7 @@ def availability_check(a):
             print(f"  model {m['n']} {m['key']} ({m['model']}, endpoint {m['pin']['tag']})")
             line = {"kind": "facts", "protocol": "2.3", "run": a.run, "ts": now(), "date": date, "model_key": m["key"],
                     "n": m["n"], "model": m["model"], "endpoint": m["pin"]["tag"], "config_sha256": config_hash(m),
+                    "pin_sha256": pin_hash(m),
                     "prompt_sha256": sha256_text(AVAILABILITY_PROMPT)}
             for (name, label), (holds, ev) in zip(D13_FACTS, facts[m["key"]]):
                 print(f"    {label}: {'yes' if holds else 'not established' if holds is None else 'no'}. {ev}")
@@ -1743,11 +1835,7 @@ def main(argv=None):
     try:
         return _main(a)
     except Exception as e:      # B6-m6: an SDK message can quote the input; report type and place only
-        if os.environ.get("AC_DEBUG") == "1":
-            raise
-        tb = traceback.extract_tb(e.__traceback__)[-1]
-        sys.exit(f"stopped: {error_label(e)} at {os.path.basename(tb.filename)}:{tb.lineno} "
-                 f"(message kept out of the logs; AC_DEBUG=1 shows it)")
+        S.stop_on_error(e, RAW)
 
 
 if __name__ == "__main__":

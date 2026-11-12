@@ -2,7 +2,7 @@
 src/spend_v23.py that it uses.
 
 Fake providers, synthetic answer files and the recorded prices; every file goes to a scratch folder (AC_TEST_TMP,
-default E:/claude/agentsControl_work/tmp/respondent_agent). Nothing is sent over the network, no model is called,
+default E:/claude/agentsControl_tests/respondent_agent). Nothing is sent over the network, no model is called,
 and no file under results/ is read or written. Benchmark prompts are read from data/processed/sample.jsonl, as the
 runner does; nothing is printed from them. The real Anthropic and OpenAI adapters are checked at the end with
 stand-in SDK clients.
@@ -35,11 +35,12 @@ import run_judges_v23 as RJ  # noqa: E402
 import run_models as R  # noqa: E402
 import spend_v23 as S  # noqa: E402
 
-TMP = pathlib.Path(os.environ.get("AC_TEST_TMP", "E:/claude/agentsControl_work/tmp/respondent_agent")) \
+TMP = pathlib.Path(os.environ.get("AC_TEST_TMP", "E:/claude/agentsControl_tests/respondent_agent")) \
     / "test_runner_offline"
 REAL_MODELS = json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))
 REAL_DESIGN = json.loads((ROOT / "config" / "panel_v23.json").read_text(encoding="utf-8"))
 REAL_HOLDS = json.loads((ROOT / "config" / "stage_holds.json").read_text(encoding="utf-8"))
+REAL_MANIFEST = json.loads((ROOT / "analysis" / "output" / "manifest_v23.json").read_text(encoding="utf-8"))
 REAL_SETTINGS = json.loads((ROOT / "config" / "judge_v23.json").read_text(encoding="utf-8"))
 SNAPSHOT = json.loads((ROOT / "data/selection/2026-11-11/raw/or_endpoints_zdr.json").read_text(encoding="utf-8"))["data"]
 FR = frames_v23.frames()
@@ -51,9 +52,37 @@ ANSWER = "Synthetic answer of a fake model."
 PILOT_REPORT_FIELDS = ("model_key", "prompt_id", "error", "input_tokens", "output_tokens", "reasoning_tokens",
                        "cost_usd", "latency_s", "pilot")
 LOCAL = (4, 5, 6, 15, 16, 17, 18, 19, 20, 21)
-API = (1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 22, 23)
+API = (1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 22, 23)
+PER_ROUND = len(LOCAL) * 100 + len(API) * 20     # pilot answers per round: 1,240 since decision D17
 for v in ("STUDY_BUDGET_USD", "BUDGET_USD"):
     os.environ.pop(v, None)
+
+# The route of model 14 before decision D2 (11 November 2026): through OpenRouter, pinned to an endpoint with safety
+# retention. Decision D17 (12 November 2026) took model 14 out of the study, and no pinned endpoint of the panel keeps
+# data for safety review. The D2 tests put this route on model D2_N of the commercial panel: their example of a pinned
+# endpoint with safety retention, the case that the D2 rules still cover.
+D2_N = 13
+ROUTED_14 = {
+    "provider": "openai_compatible", "base_url": "https://openrouter.ai/api/v1", "api_key_env": "AC_OPENROUTER_API_KEY",
+    "model": "google/gemini-4-argon", "zdr": True, "allow_fallbacks": False, "provider_order": ["google-vertex/global"],
+    "price_checked": "2026-11-11 pinned endpoint google-vertex/global (data/selection/2026-11-11)",
+    "pin": {"tag": "google-vertex/global", "provider_name": "Google", "quantization": "unknown",
+            "prompt_usd_per_m": 2.0, "completion_usd_per_m": 10.0, "cache_write_usd_per_m": 0.1875,
+            "safety_retention": True, "status": -2, "context_length": 1048576,
+            "supported_parameters": ["include_reasoning", "max_tokens", "reasoning", "reasoning_effort",
+                                     "response_format", "seed", "stop", "structured_outputs", "temperature",
+                                     "tool_choice", "tools", "top_p"],
+            "discount": 0.5, "source": "data/selection/2026-11-11/raw/or_endpoints_zdr.json", "recorded": "2026-11-11"},
+}
+
+
+def via_openrouter_14(models, d2):
+    """Puts the OpenRouter route that model 14 had before decision D2 on model D2_N, with this D2 value."""
+    m = next(x for x in models if x["n"] == D2_N)
+    for k in ("price_schedule", "cache_read_factor", "cache_write_factor"):
+        m.pop(k, None)
+    m.update(copy.deepcopy(ROUTED_14), d2_safety_retention=d2)
+
 
 _orig_append_line = S.append_line
 
@@ -66,6 +95,8 @@ SLEEPS = []
 S.append_line = fast_append_line
 R.SLEEP = lambda s: SLEEPS.append(s)
 R.load_env = lambda: None                             # never the real .env in tests
+RJ.LOAD_ENV = lambda: None
+R.FSYNC = False
 
 
 def sha(s):
@@ -193,9 +224,6 @@ def setup(name, cap=128.0, models_edit=None, design_edit=None, holds_edit=None, 
     R.RAW, R.LOGS = tmp / "raw", tmp / "logs"
     S.LEDGER, S.SPEND_LOCK = tmp / "logs" / "spend_ledger.jsonl", tmp / "logs" / "spend.lock"
     models = copy.deepcopy(REAL_MODELS)
-    for m in models["models"]:
-        if m["n"] == 14:
-            m["d2_safety_retention"] = "all"          # decision D2 is the PI's; the D2 test sets other values
     if models_edit:
         models_edit(models["models"])
     design = copy.deepcopy(REAL_DESIGN)
@@ -213,6 +241,7 @@ def setup(name, cap=128.0, models_edit=None, design_edit=None, holds_edit=None, 
         (tmp / fname).write_text(json.dumps(obj, indent=1), encoding="utf-8")
     R.CONFIG, R.DESIGN, S.HOLDS, J.SETTINGS = tmp / "models.json", tmp / "panel.json", tmp / "holds.json", \
         tmp / "judge.json"
+    S.MANIFEST = tmp / "manifest.json"                 # none until write_manifest()
     S.STUDY_CAP_DEFAULT = cap
     Fake.rules, Fake.sent, Fake.batches, Fake.submits, Fake.deleted, Fake.uploads_deleted = {}, [], {}, [], [], []
     Fake.batch_rules, Fake.result_rules, Fake.running, Fake.zdr_calls = {}, {}, set(), 0
@@ -220,6 +249,26 @@ def setup(name, cap=128.0, models_edit=None, design_edit=None, holds_edit=None, 
     SLEEPS.clear()
     OUTPUTS.clear()
     return tmp, models["models"]
+
+
+def write_manifest(scale=1.0, repriced=True, holds_from_it=True):
+    """The manifest of the scratch study: the registered one, every pessimistic figure times scale, with the record of
+    a (synthetic) repricing after the pilot if repriced; holds_from_it: the holds name its SHA-256, as
+    scripts/holds_v23.py does when it writes them from it."""
+    import hashlib
+    assert S.MANIFEST != ROOT / "analysis" / "output" / "manifest_v23.json" and S.HOLDS != ROOT / "config" /         "stage_holds.json", "write_manifest() writes only in a scratch study"
+    man = copy.deepcopy(REAL_MANIFEST)
+    man["totals"] = {k: round(v * scale, 2) for k, v in man["totals"].items()}
+    for c in man["cuts"]:
+        c["saves_pessimistic"] = round(c["saves_pessimistic"] * scale, 2)
+    man["repricing"] = ({"file": "synthetic_repricing.json", "sha256": "0" * 64, "snapshot": "synthetic",
+                         "source": "offline test", "snapshot_files": {}, "assumptions": {}} if repriced else None)
+    S.MANIFEST.write_text(json.dumps(man, indent=1), encoding="utf-8")
+    if holds_from_it:
+        h = json.loads(S.HOLDS.read_text(encoding="utf-8"))
+        h["manifest_sha256"] = hashlib.sha256(S.MANIFEST.read_bytes()).hexdigest()
+        S.HOLDS.write_text(json.dumps(h, indent=1), encoding="utf-8")
+    return man
 
 
 class Checks:
@@ -348,16 +397,17 @@ def t_block1_rounds_sealed_and_close():
     ledger(kind="registration", tag="t")
     r1, r2 = PILOT["rounds"]
     ids1 = list(r1["harmful"]) + list(r1["safe"])
+    # decision D18: no sealed run holds an answer of the study, complete or not
     write_sealed("full", model_of(models, 4), ids1[:-3], error_ids={ids1[0]})   # 3 missing, 1 transport error
-    write_sealed("v22_local", model_of(models, 15), ids1)                      # complete: tail answers of a sealed run
-    write_sealed("pilot_local", model_of(models, 5), ids1)                     # the version-1 pilot: not used
+    write_sealed("v22_local", model_of(models, 15), ids1)                      # complete
+    write_sealed("pilot_local", model_of(models, 5), ids1)                     # the version-1 pilot
     c1 = run(["--run", "p1", "--block", "1", "--round", "1", "--run-cap", "100", "--workers", "4"])
     recs = records("p1")
     per = collections.Counter(r["model_key"] for r in recs)
     ck("round 1 exit", c1 == 0)
-    ck("sealed answers are done; a sealed transport error is sent again", per[K[4]] == 4 and K[15] not in per)
+    ck("sealed answers are not used (decision D18)", per[K[4]] == 100 and per[K[15]] == 100)
     ck("pilot_local is not used", per[K[5]] == 100)
-    ck("local models answer 100", all(per[K[n]] == 100 for n in LOCAL if n not in (4, 15)))
+    ck("local models answer 100", all(per[K[n]] == 100 for n in LOCAL))
     ck("API models answer 20", all(per[K[n]] == 20 for n in API))
     ck("record fields", all(r["protocol"] == "2.3" and r["block"] == "1" and r["round"] == 1 and r["pilot"] is True
                             and r["final"] is True and r["error"] is None and r["answer_status"] == "ok"
@@ -367,11 +417,11 @@ def t_block1_rounds_sealed_and_close():
                                                             for r in recs))
     calls = led("call")
     paid = [r for r in recs if r["provider"] != "ollama"]
-    ck("one ledger call line per paid attempt", len(calls) == len(paid) == 13 * 20)
+    ck("one ledger call line per paid attempt", len(calls) == len(paid) == len(API) * 20)
     ck("call lines", all(e["role"] == "respondent" and e["block"] == "1" and e["final"] is True
                          and e["item"].endswith("|pilot_r1") and e["model_key"] in M for e in calls))
     pre = {e["model_key"]: e for e in led("preflight")}
-    ck("preflight of every routed model", sorted(pre) == sorted(K[n] for n in (7, 8, 10, 12, 13, 14, 22, 23))
+    ck("preflight of every routed model", sorted(pre) == sorted(K[n] for n in (7, 8, 10, 12, 13, 22, 23))
        and all(e["ok"] and e["role"] == "respondent" for e in pre.values()))
     lines = jsonl(S.LEDGER)
     first_call = next(i for i, e in enumerate(lines) if e.get("kind") == "call")
@@ -388,7 +438,7 @@ def t_block1_rounds_sealed_and_close():
     ck("ledger = records", abs(sum(e["spent_usd"] for e in calls) - sum(r["cost_usd"] for r in paid)) < 1e-6)
     ck("public log without text", all("text" not in x and "error_body" not in x for x in public("p1")))
     ses = jsonl(R.runs_log_path())
-    ck("session line", len(ses) == 1 and ses[0]["block"] == "1" and ses[0]["round"] == 1 and ses[0]["to_do"] == 1064)
+    ck("session line", len(ses) == 1 and ses[0]["block"] == "1" and ses[0]["round"] == 1 and ses[0]["to_do"] == PER_ROUND)
     ck("manifest", {e["model_key"] for e in jsonl(R.manifest_path("p1"))} >= {K[n] for n in API}
        and any(e.get("event") == "vram_after_first_call" for e in jsonl(R.manifest_path("p1"))))
     # the pilot report reads these records (scripts/pilot_report_v23.py)
@@ -412,15 +462,15 @@ def t_block1_rounds_sealed_and_close():
     ck("partial round 2", c3 == 0 and len(records("p2")) == 3)
     ck("complete-block refused", isinstance(cc, str) and "cannot be closed" in cc and not led("block_complete"))
     c4 = run(["--run", "p2b", "--block", "1", "--round", "2", "--run-cap", "100", "--workers", "4"])
-    ck("round 2 done", c4 == 0 and len(records("p2b")) == 1260 - 3)
+    ck("round 2 done", c4 == 0 and len(records("p2b")) == PER_ROUND - 3)
     cc2 = run(["--run", "close1", "--block", "1", "--complete-block", "--reason", "pilot done"])
     bc = led("block_complete")
     ck("block 1 closed on both rounds", cc2 == 0 and len(bc) == 1 and bc[0]["role"] == "respondent"
-       and bc[0]["models"] is None and bc[0]["rounds"] == [1, 2] and bc[0]["planned"] == 2520
-       and bc[0]["final_by_status"] == {"ok": 2520} and bc[0]["not_attempted"] == {})
+       and bc[0]["models"] is None and bc[0]["rounds"] == [1, 2] and bc[0]["planned"] == 2 * PER_ROUND
+       and bc[0]["final_by_status"] == {"ok": 2 * PER_ROUND} and bc[0]["not_attempted"] == {})
     ck("closed in the books", S.Books("probe", write=False).closed("1", "respondent"))
     c5 = run(["--run", "p3", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[22]])
-    ck("closed block not started", c5 in (0, 2) and len(Fake.sent) == n + 1260)
+    ck("closed block not started", c5 in (0, 2) and len(Fake.sent) == n + PER_ROUND)
     ck("each prompt sent once, verbatim", all(v == 1 for v in collections.Counter(Fake.sent).values())
        and all(pid is not None for _, pid in Fake.sent))
     ck("no leaks", no_leaks(tmp))
@@ -436,7 +486,7 @@ def t_block2_registered_hosted_first():
     tmp, models = setup("block2", design_edit=lambda d: d.update(registered_hosted=[22]))
     K, M = keymap(models)
     ids = list(FR["harmful"][0]) + list(FR["safe"][0])
-    write_sealed("full", model_of(models, 4), ids[2:])
+    write_sealed("full", model_of(models, 4), ids[2:])          # sealed answers are not used (decision D18)
     write_sealed("full", model_of(models, 5), ids)
     ledger(kind="registration", tag="t")
     c0 = run(["--run", "b2", "--block", "2", "--run-cap", "50", "--models", f"{K[22]},{K[4]}"])
@@ -447,7 +497,7 @@ def t_block2_registered_hosted_first():
     c2 = run(["--run", "b2", "--block", "2", "--run-cap", "50", "--models", f"{K[4]},{K[22]},{K[5]}"])
     recs = records("b2")
     by = collections.Counter(r["model_key"] for r in recs)
-    ck("counts", c2 == 0 and by == {K[22]: 390, K[4]: 2})
+    ck("counts", c2 == 0 and by == {K[22]: 390, K[4]: 390, K[5]: 390})
     first_local = min(i for i, r in enumerate(recs) if r["model_key"] == K[4])
     ck("hosted model first", first_local == 390)
     parts = collections.Counter((r["model_key"], r["part"]) for r in recs)
@@ -458,7 +508,7 @@ def t_block2_registered_hosted_first():
     ck("ledger", len(calls) == 390 and {e["item"] for e in calls} == {f"2|respondent|{K[22]}|frame_harmful",
                                                                       f"2|respondent|{K[22]}|frame_safe"})
     ses = jsonl(R.runs_log_path())
-    ck("session line", ses[-1]["block"] == "2" and set(ses[-1]["models"]) == {K[4], K[22]})
+    ck("session line", ses[-1]["block"] == "2" and set(ses[-1]["models"]) == {K[4], K[5], K[22]})
     ck("no leaks", no_leaks(tmp))
     return ck.ok()
 
@@ -623,6 +673,15 @@ def t_batch_item_kinds_overrun_and_stale():
     ck("another model's answer is not recorded", "another model" in run.out)
     over = [e for e in led("overrun") if e.get("batch_id") == bid]
     ck("overrun recorded", len(over) >= 1 and S.Books("probe", write=False).overrun_open)
+    flagged = [e for e in led("call") if e.get("batch_id") == bid and e.get("overrun") is True]
+    without = [e for e in led() if e.get("kind") != "overrun"]       # as after a crash before each overrun line
+    real_read = S.read_ledger
+    S.read_ledger = lambda *a: without
+    try:
+        still = S.Books("probe", write=False).overrun_open
+    finally:
+        S.read_ledger = real_read
+    ck("the stop survives without the overrun lines", flagged and still)
     st = next(e for e in led("batch_settlement") if e["batch_id"] == bid)
     worst = max(sub["bounds"].values())
     ck("lines without a request charged at the largest bound", st["unreadable_lines"] == 1
@@ -652,6 +711,41 @@ def t_batch_item_kinds_overrun_and_stale():
     ck("stale batch cancelled, then collected", c4 == 0 and any(e.get("cancel_requested") == sub2["batch_id"]
                                                                  for e in jsonl(p)))
     ck("no leaks", no_leaks(tmp))
+    return ck.ok()
+
+
+def t_batch_overrun_aggregate_only():
+    """Section 12.5 (review round 8): a batch whose items all settle within their bounds but whose lines without a
+    request take the total above the batch reservation stops every paid call; the stop is on the batch settlement
+    line itself, so a crash before the overrun line keeps it."""
+    ck = Checks("batch aggregate overrun")
+    tmp, models = setup("batch_aggregate")
+    K, M = keymap(models)
+    open_blocks_before(4)
+    write_pilot("p0", [model_of(models, 1)])
+    base = ["--run", "b4", "--block", "4", "--batch", "--run-cap", "100", "--answer-runs", "p0", "--models", K[1]]
+
+    def kinds(i, cid, prompt, cfg):
+        if i == 0:
+            return [(cid, answer(cfg, prompt), None)] + [(None, None, ("parse_error", "unreadable_line"))] * 300
+        return None
+    Fake.result_rules[M[K[1]]["model"]] = kinds
+    run(base)
+    bid = next(e for e in jsonl(R.batch_log_path("b4")) if e.get("batch_id"))["batch_id"]
+    c = run(["--run", "b4", "--collect", bid])
+    calls = [e for e in led("call") if e.get("batch_id") == bid]
+    st = next(e for e in led("batch_settlement") if e["batch_id"] == bid)
+    ck("no item above its bound", c == 0 and calls and not any(e.get("overrun") for e in calls)
+       and all(e["spent_usd"] <= e["reserved_usd"] + 1e-12 for e in calls))
+    ck("the batch settlement carries the stop", st.get("overrun") is True and led("overrun"))
+    without = [e for e in led() if e.get("kind") != "overrun"]
+    real_read = S.read_ledger
+    S.read_ledger = lambda *a: without
+    try:
+        still = S.Books("probe", write=False).overrun_open
+    finally:
+        S.read_ledger = real_read
+    ck("the stop survives without the overrun line", still)
     return ck.ok()
 
 
@@ -812,29 +906,29 @@ def t_run_cap_and_study_cap():
 def t_preflight_and_d2():
     ck = Checks("preflight")
     api = list(PILOT["rounds"][0]["api"])
-    tmp, models = setup("d2_safe_only", models_edit=lambda ms: model_of(ms, 14).update(d2_safety_retention="safe_only"))
+    tmp, models = setup("d2_safe_only", models_edit=lambda ms: via_openrouter_14(ms, "safe_only"))
     K, M = keymap(models)
     ledger(kind="registration", tag="t")
-    c = run(["--run", "d1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", f"{K[14]},{K[7]}"])
-    r14 = [r for r in records("d1") if r["model_key"] == K[14]]
+    c = run(["--run", "d1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", f"{K[D2_N]},{K[7]}"])
+    r14 = [r for r in records("d1") if r["model_key"] == K[D2_N]]
     pre = {e["model_key"]: e for e in led("preflight")}
     ck("safe prompts only", c == 0 and len(r14) == sum(1 for p in api if ROWS[p]["expected"] == "comply")
        and all(ROWS[r["prompt_id"]]["expected"] == "comply" for r in r14) and "not_sent_d2" in run.out)
-    ck("preflight line", pre[K[14]]["ok"] and pre[K[14]]["safe_only"] and pre[K[7]]["ok"]
+    ck("preflight line", pre[K[D2_N]]["ok"] and pre[K[D2_N]]["safe_only"] and pre[K[7]]["ok"]
        and not pre[K[7]]["safe_only"])
-    ck("D2 harmful prompts never sent", not any(m == M[K[14]]["model"] and ROWS[p]["expected"] == "refuse"
+    ck("D2 harmful prompts never sent", not any(m == M[K[D2_N]]["model"] and ROWS[p]["expected"] == "refuse"
                                                 for m, p in Fake.sent))
-    c = run(["--run", "d1close", "--block", "1", "--complete-block", "--models", K[14]])
+    c = run(["--run", "d1close", "--block", "1", "--complete-block", "--models", K[D2_N]])
     bc = [e for e in led("block_complete") if e.get("role") == "respondent"]
     ck("D2 close: the harmful prompts are excluded under D2, not abandoned",
-       c == 0 and bool(bc) and bc[-1].get("excluded_d2") == {K[14]: sum(1 for p in api if ROWS[p]["expected"] == "refuse")}
+       c == 0 and bool(bc) and bc[-1].get("excluded_d2") == {K[D2_N]: sum(1 for p in api if ROWS[p]["expected"] == "refuse")}
        and not bc[-1]["not_attempted"] and not led("block_abandon"))
-    tmp, models = setup("d2_none", models_edit=lambda ms: model_of(ms, 14).update(d2_safety_retention=None))
+    tmp, models = setup("d2_none", models_edit=lambda ms: via_openrouter_14(ms, None))
     ledger(kind="registration", tag="t")
-    c = run(["--run", "d2", "--block", "1", "--round", "1", "--run-cap", "100", "--models", f"{K[14]},{K[7]}"])
+    c = run(["--run", "d2", "--block", "1", "--round", "1", "--run-cap", "100", "--models", f"{K[D2_N]},{K[7]}"])
     pre = {e["model_key"]: e for e in led("preflight")}
-    ck("D2 undecided: no call", c == 3 and not [r for r in records("d2") if r["model_key"] == K[14]]
-       and "preflight: " in run.out and pre[K[14]]["ok"] is False and pre[K[7]]["ok"] is True)
+    ck("D2 undecided: no call", c == 3 and not [r for r in records("d2") if r["model_key"] == K[D2_N]]
+       and "preflight: " in run.out and pre[K[D2_N]]["ok"] is False and pre[K[7]]["ok"] is True)
     ck("the other model answers", len([r for r in records("d2") if r["model_key"] == K[7]]) == 20)
 
     def price(ms):
@@ -1135,6 +1229,189 @@ def t_availability_check_facts_and_ledger():
     return ck.ok()
 
 
+def t_availability_recovered_after_crash():
+    """Section 12.5 (review rounds 6 and 7): a test call of the availability check whose answer was recorded is not
+    sent again when the check runs again the same day, whether the process died before its ledger line (the
+    reconciliation settles it at its recorded cost) or after it; its answer gives fact 3. A test call killed before
+    its record is settled at its reservation as interrupted and is sent again."""
+    ck = Checks("availability crash")
+
+    def prepare(name):
+        tmp, models = setup(name)
+        K, M = keymap(models)
+        hosted = [K[22], K[23]]
+        ledger(kind="registration", tag="t")
+        run(["--run", "p1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", ",".join(hosted)])
+        run(["--run", "close1", "--block", "1", "--complete-block", "--models", ",".join(hosted)])
+        judge_pilot(hosted)
+        return K, M, hosted
+
+    def crash_at(target, when):
+        orig = getattr(R, target)
+
+        def wrapped(*args, **kwargs):
+            if when == "before":
+                raise Crash()
+            out = orig(*args, **kwargs)
+            raise Crash()
+        setattr(R, target, wrapped)
+        sent = len(Fake.sent)
+        try:
+            run(["--run", "d13", "--availability-check", "--run-cap", "1"])
+            crashed = False
+        except Crash:
+            crashed = True
+        finally:
+            setattr(R, target, orig)
+        S.SPEND_LOCK.unlink(missing_ok=True)
+        return crashed, Fake.sent[sent:]
+
+    for name, target, when, resent in (("before the ledger line", "settle_outside_plan", "before", False),
+                                       ("after the ledger line", "settle_outside_plan", "after", False),
+                                       ("before the record", "write_availability_attempt", "before", True)):
+        K, M, hosted = prepare("availability_crash_" + name.replace(" ", "_"))
+        crashed, first = crash_at(target, when)
+        ck(f"{name}: killed after one test call", crashed and len(first) == 1)
+        done_model = first[0][0]
+        by_model = {M[k]["model"]: k for k in hosted}
+        sent = len(Fake.sent)
+        c = run(["--run", "d13r", "--availability-check", "--run-cap", "1"])
+        again = [x for x, _ in Fake.sent[sent:]]
+        f = avail_facts()
+        ck(f"{name}: books settled", c == 0 and not S.Books("look", write=False).unsettled()
+           and len(led("availability_call")) == 3 - (not resent))
+        raw = {r["attempt_id"]: r for r in jsonl(R.availability_raw_path())}
+        if name == "before the ledger line":
+            rl = [e for e in led("availability_call") if e.get("reconciled")]
+            ck(f"{name}: settled at the recorded cost", len(rl) == 1
+               and abs(rl[0]["spent_usd"] - raw[rl[0]["attempt_id"]]["cost_usd"]) < 1e-12
+               and rl[0]["spent_usd"] < rl[0]["reserved_usd"])
+        if resent:
+            rl = [e for e in led("availability_call") if e.get("reconciled")]
+            ck(f"{name}: settled at its reservation and sent again", len(rl) == 1 and rl[0]["status"] == "interrupted"
+               and rl[0]["final"] is False and sorted(again) == sorted(by_model)
+               and rl[0]["spent_usd"] == rl[0]["reserved_usd"] and rl[0]["attempt_id"] not in raw)
+        else:
+            ck(f"{name}: not sent again; the other model is", again == [m for m in by_model if m != done_model])
+            ck(f"{name}: fact 3 from the recorded answer", fact(f[by_model[done_model]], 3)[0] is True
+               and "not sent again" in fact(f[by_model[done_model]], 3)[1])
+        ck(f"{name}: fact 3 for both models", all(fact(f[k], 3)[0] is True for k in hosted))
+    sent = len(Fake.sent)                       # a check run again the same day uses the answers of the first
+    c = run(["--run", "d13s", "--availability-check", "--run-cap", "1"])
+    ck("a check run again the same day sends nothing", c == 0 and len(Fake.sent) == sent)
+    # killed before its ledger line, then killed again right after the reconciliation settled it
+    K, M, hosted = prepare("availability_crash_twice")
+    crashed, first = crash_at("settle_outside_plan", "before")
+    orig_rec = R.reconcile
+
+    def reconcile_then_die(books, role="respondent"):
+        out = orig_rec(books, role)
+        raise Crash()
+    R.reconcile = reconcile_then_die
+    sent = len(Fake.sent)
+    try:
+        run(["--run", "d13r", "--availability-check", "--run-cap", "1"])
+        crashed2 = False
+    except Crash:
+        crashed2 = True
+    finally:
+        R.reconcile = orig_rec
+    S.SPEND_LOCK.unlink(missing_ok=True)
+    ck("killed after the reconciliation: nothing sent", crashed and crashed2 and len(Fake.sent) == sent
+       and len([e for e in led("availability_call") if e.get("reconciled")]) == 1)
+    c = run(["--run", "d13t", "--availability-check", "--run-cap", "1"])
+    again = [x for x, _ in Fake.sent[sent:]]
+    ck("then the recorded answer is used", c == 0 and first[0][0] not in again and len(again) == 1)
+    return ck.ok()
+
+
+def t_availability_reuse_conditions():
+    """Section 12.5 (review round 8): a recorded test answer is reused only if it is final, settled in the ledger,
+    from the same day, and made under the same behavioural configuration, pinned endpoint (host and precision
+    included) and test prompt; its identity is judged again against the current pin."""
+    ck = Checks("availability reuse")
+    tmp, models = setup("availability_reuse")
+    K, M = keymap(models)
+    m = M[K[22]]
+    ts = R.now()
+    day = R.local_date(ts)
+    good = dict(model_key=m["key"], final=True, ts=ts, config_sha256=R.config_hash(m), pin_sha256=R.pin_hash(m),
+                prompt_sha256=R.sha256_text(R.AVAILABILITY_PROMPT), model_returned=m["model"],
+                served_provider=m["pin"]["provider_name"], identity_match=True, status="ok")
+    ck("the same day and configuration: reused", R.recovered_availability(m, {"a": good}, day) is good)
+    for what, change in (("another pinned host", {"provider_name": "changed-host"}),
+                         ("another pinned precision", {"quantization": "changed-precision"})):
+        other = copy.deepcopy(m)
+        other["pin"].update(change)
+        ck(f"{what}: not reused", R.recovered_availability(other, {"a": good}, day) is None)
+    for what, change in (("not final", {"final": False}), ("another configuration", {"config_sha256": "0" * 64}),
+                         ("another test prompt", {"prompt_sha256": "0" * 64}), ("no pin record", {"pin_sha256": None}),
+                         ("another day", {"ts": "2026-01-01T12:00:00+00:00"})):
+        ck(f"{what}: not reused", R.recovered_availability(m, {"a": dict(good, **change)}, day) is None)
+    ledger(kind="registration", tag="t")
+    R.append_jsonl(R.availability_raw_path(), dict(good, kind="attempt", attempt_id="settled"))
+    R.append_jsonl(R.availability_raw_path(), dict(good, kind="attempt", attempt_id="open"))
+    ledger(kind="reserve", attempt_id="open", role="availability", reserved_usd=0.01, spent_usd=0.0)
+    ledger(kind="availability_call", attempt_id="settled", role="availability", model_key=m["key"], final=True,
+           reserved_usd=0.01, spent_usd=0.001)
+    ck("only settled records are read", sorted(R.settled_availability_records()) == ["settled"])
+    return ck.ok()
+
+
+def t_availability_saved_identity_ignored():
+    """Review round 9: a reused answer's identity is judged again by the check against the current pin; a saved
+    identity_match of true does not give fact 3 when the answer names another serving host. Nothing is sent."""
+    ck = Checks("availability identity")
+    tmp, models = setup("availability_identity_saved")
+    K, M = keymap(models)
+    ledger(kind="registration", tag="t")
+    ts = R.now()
+    for k, host in ((K[22], "Another Host"), (K[23], None)):
+        m = M[k]
+        R.append_jsonl(R.availability_raw_path(), {
+            "kind": "attempt", "attempt_id": "rec_" + k, "model_key": k, "final": True, "ts": ts, "run": "earlier",
+            "config_sha256": R.config_hash(m), "pin_sha256": R.pin_hash(m),
+            "prompt_sha256": R.sha256_text(R.AVAILABILITY_PROMPT), "model_returned": m["model"],
+            "served_provider": host or m["pin"]["provider_name"], "identity_match": True, "status": "ok",
+            "cost_usd": 0.001})
+        ledger(kind="availability_call", attempt_id="rec_" + k, role="availability", model_key=k, final=True,
+               reserved_usd=0.01, spent_usd=0.001)
+    c = run(["--run", "d13", "--availability-check", "--run-cap", "1"])
+    f = avail_facts()
+    ck("nothing sent", c == 0 and not Fake.sent)
+    ck("the saved flag is not trusted", fact(f[K[22]], 3)[0] is False and "Another Host" in fact(f[K[22]], 3)[1])
+    ck("the other model's answer gives fact 3", fact(f[K[23]], 3)[0] is True)
+    return ck.ok()
+
+
+def t_availability_midnight_rollover():
+    """Review round 9: a check that begins on one day and ends after midnight records no facts (its answers do not
+    belong to one day) and says so; the answers stay recorded and settled, and a check run again uses them."""
+    ck = Checks("availability midnight")
+    tmp, models = setup("availability_midnight")
+    K, M = keymap(models)
+    ledger(kind="registration", tag="t")
+    real = R.today_local
+    day = real()
+    nxt = (dt.date.fromisoformat(day) + dt.timedelta(days=1)).isoformat()
+    calls = {"n": 0}
+
+    def clock():
+        calls["n"] += 1
+        return day if calls["n"] == 1 else nxt
+    R.today_local = clock
+    try:
+        c = run(["--run", "d13", "--availability-check", "--run-cap", "1"])
+    finally:
+        R.today_local = real
+    ck("incomplete, no facts", c == 3 and "after midnight" in run.out and not avail_facts())
+    ck("its test calls are recorded and settled", len(Fake.sent) == 2 and len(led("availability_call")) == 2
+       and not S.Books("look", write=False).unsettled())
+    c = run(["--run", "d13b", "--availability-check", "--run-cap", "1"])
+    ck("the check run again uses them", c == 0 and len(Fake.sent) == 2 and len(avail_facts()) == 2)
+    return ck.ok()
+
+
 def t_availability_pilot_and_d2():
     ck = Checks("availability facts 1 and 2")
     tmp, models = setup("avail_pilot")
@@ -1153,11 +1430,16 @@ def t_availability_pilot_and_d2():
     judge_pilot(hosted)
     c = run(["--run", "d2", "--availability-check", "--run-cap", "1", "--models", f"{K[23]},{K[22]},{K[23]}"])
     f = avail_facts()
-    ck("a repeated key: one test call", collections.Counter(e["run"] for e in led("availability_call"))
-       == {"d1": 2, "d2": 2})
+    ck("the same day: the recorded answers, no new test call (Section 12.5)",
+       collections.Counter(e["run"] for e in led("availability_call")) == {"d1": 2}
+       and all("not sent again" in fact(f[k], 3)[1] for k in hosted))
     ck("abandoned in the pilot: fact 2 does not hold", c2 == 0 and c == 0 and fact(f[K[23]], 2)[0] is False
        and "abandoned in block 1" in fact(f[K[23]], 2)[1] and "15 calls not_attempted" in fact(f[K[23]], 2)[1])
     ck("the other model: fact 2 holds", fact(f[K[22]], 2)[0] is True and fact(f[K[22]], 1)[0] is True)
+    setup("avail_repeat")
+    ledger(kind="registration", tag="t")
+    run(["--run", "d3", "--availability-check", "--run-cap", "1", "--models", f"{K[23]},{K[22]},{K[23]}"])
+    ck("a repeated key: one test call", len(led("availability_call")) == 2 and len(Fake.sent) == 2)
     pin22 = M[K[22]]["pin"]["tag"], M[K[22]]["model"]
     marked = copy.deepcopy(SNAPSHOT)
     for e in marked:
@@ -1256,8 +1538,10 @@ def t_availability_call_failures():
     ledger(kind="registration", tag="t")
     c = run(["--run", "f5", "--availability-check", "--run-cap", "1"])
     ck("cap that covers both calls", c == 0 and len(Fake.sent) == 2 and len(led("availability_call")) == 2)
+    tmp, models = setup("avail_more", cap=rem + b22 + b23 + 1e-6)    # no answer recorded today in this study
+    ledger(kind="registration", tag="t")
     c = run(["--run", "f6", "--availability-check", "--run-cap", "0.000001"])
-    ck("run cap", c == 3 and len(Fake.sent) == 2 and "run cap" in fact(avail_facts()[K[22]], 3)[1])
+    ck("run cap", c == 3 and not Fake.sent and "run cap" in fact(avail_facts()[K[22]], 3)[1])
 
     def no_key(cfg):
         raise providers.ProjectKeyError("no key")
@@ -1267,7 +1551,7 @@ def t_availability_call_failures():
         c = run(["--run", "f7", "--availability-check", "--run-cap", "1"])
     finally:
         R.MAKE_PROVIDER = saved
-    ck("no project key: not sent, incomplete", c == 3 and len(Fake.sent) == 2
+    ck("no project key: not sent, incomplete", c == 3 and not Fake.sent
        and "no project key" in fact(avail_facts()[K[23]], 3)[1])
     Fake.rules[m22["model"]] = [FakeHTTP(400, "unsupported parameter: SYNTHETIC-QUOTE")]
     c = run(["--run", "f8", "--availability-check", "--run-cap", "1"])
@@ -1411,13 +1695,498 @@ def t_adapters_offline():
     return ck.ok()
 
 
+# The configuration of model 14 under decision D2 (11 November 2026). Decision D17 (12 November 2026) took model 14
+# out of the study, so no model of config/models.json uses the Gemini adapter; the adapter keeps its tests here.
+GEMINI_D2_ENTRY = {
+    "key": "gemini-4-argon", "n": 14, "provider": "google",
+    "base_url": "https://generativelanguage.googleapis.com/v1beta", "model": "gemini-4-argon", "enabled": False,
+    "prompt_subset": "added_api", "receives_harmful": True, "price_in": 2.0, "price_out": 10.0,
+    "price_schedule": [{"from": "2026-11-30T00:00:00Z", "price_in": 4.0, "price_out": 20.0}],
+    "price_checked": "2026-11-11 Gemini API pricing page (test fixture)", "max_output_tokens": 16000,
+    "effort": "medium", "est_output_tokens": 1450, "workers": 4, "seed": 20261107, "cache_read_factor": 0.05,
+    "cache_write_factor": 1.0, "notes": "test fixture: model 14 as configured under decision D2",
+    "d2_safety_retention": "all"}
+
+
+def t_google_adapter_offline():
+    """Decision D2: the Gemini adapter against a local stub of generateContent. Request shape (roles, system
+    instruction, thinking level, no safety settings, the study key in its header), parsing (thought parts left out,
+    thinking tokens billed as output, blocks), the HTTP errors as the runner classifies them, and the price that
+    doubles on 1 December 2026."""
+    import http.server
+    import threading
+    ck = Checks("google adapter")
+    seen, replies = [], []
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            seen.append({"path": self.path, "key": self.headers.get("x-goog-api-key"),
+                         "body": json.loads(self.rfile.read(n) or b"{}")})
+            status, payload = replies.pop(0)
+            data = payload if isinstance(payload, bytes) else json.dumps(payload).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    old_key = os.environ.get("AC_GOOGLE_API_KEY")
+    try:
+        ck("D17: no model of the study uses the Gemini API",
+           all(x["provider"] != "google" and x["n"] != 14 for x in REAL_MODELS["models"]))
+        m = copy.deepcopy(GEMINI_D2_ENTRY)
+        ck("the D2 entry of model 14 is direct on the Gemini API", m["provider"] == "google"
+           and m["model"] == "gemini-4-argon" and m["d2_safety_retention"] == "all" and S.account_of(m) == "google"
+           and S.host_of(m) == "google" and providers.is_remote(m) and providers.allowed(m, {"expected": "refuse"}))
+        os.environ.pop("AC_GOOGLE_API_KEY", None)
+        try:
+            providers.make(m)
+            ck("no key, no adapter", False)
+        except providers.ProjectKeyError:
+            ck("no key, no adapter", True)
+        os.environ["AC_GOOGLE_API_KEY"] = "test-key"
+        base = f"http://127.0.0.1:{srv.server_address[1]}/v1beta"
+        jc = J.judge_cfg(m, REAL_SETTINGS)
+        p = providers.make(dict(jc, base_url=base))
+        usage = {"promptTokenCount": 100, "candidatesTokenCount": 20, "thoughtsTokenCount": 30,
+                 "cachedContentTokenCount": 40, "totalTokenCount": 150}
+        replies.append((200, {"candidates": [{"content": {"role": "model", "parts": [
+            {"text": "weighing the rubric", "thought": True}, {"text": "{\"label\": \"full_refusal\"}"}]},
+            "finishReason": "STOP"}], "usageMetadata": usage, "modelVersion": "gemini-4-argon", "responseId": "r1"}))
+        msgs = [{"role": "system", "content": "RUBRIC"}, {"role": "user", "content": "REQUEST"},
+                {"role": "assistant", "content": "ANSWER"}, {"role": "user", "content": "INSTRUCTION"}]
+        out = providers.timed_call(p, msgs)
+        req = seen[-1]
+        g = req["body"]["generationConfig"]
+        ck("request", req["path"] == "/v1beta/models/gemini-4-argon:generateContent" and req["key"] == "test-key"
+           and [c["role"] for c in req["body"]["contents"]] == ["user", "model", "user"]
+           and req["body"]["contents"][1]["parts"][0]["text"] == "ANSWER"
+           and req["body"]["systemInstruction"]["parts"][0]["text"] == "RUBRIC"
+           and "safetySettings" not in req["body"] and "service_tier" not in req["body"]
+           and g["maxOutputTokens"] == jc["max_output_tokens"] and g["thinkingConfig"] == {"thinkingLevel": "LOW"}
+           and g.get("temperature") == jc.get("temperature") and g.get("seed") == jc.get("seed"))
+        ck("parse", out["text"] == '{"label": "full_refusal"}' and out["output_tokens"] == 50
+           and out["reasoning_tokens"] == 30 and out["input_tokens"] == 100 and out["cache_read_tokens"] == 40
+           and out["stop_reason"] == "stop" and not out["provider_block"] and out["served_provider"] == "google"
+           and out["model_returned"] == "gemini-4-argon" and out["request_id"] == "r1"
+           and R.answer_status(out) == "ok")
+        # respondent settings: provider defaults and effort medium; Flex only when the config asks for it
+        p2 = providers.make(dict(m, base_url=base, service_tier="flex"))
+        replies.append((200, {"candidates": [{"content": {"parts": [{"text": "x", "thought": True}]},
+                                              "finishReason": "MAX_TOKENS"}],
+                              "usageMetadata": {"promptTokenCount": 10, "thoughtsTokenCount": 16000}}))
+        out = p2.call("PROMPT")
+        b = seen[-1]["body"]
+        ck("respondent request", b["contents"] == [{"role": "user", "parts": [{"text": "PROMPT"}]}]
+           and "systemInstruction" not in b and b["service_tier"] == "flex"
+           and b["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "MEDIUM"}
+           and "temperature" not in b["generationConfig"] and b["generationConfig"]["seed"] == m["seed"])
+        ck("thinking used up the cap", out["stop_reason"] == "max_tokens" and out["text"] == ""
+           and R.answer_status(out) == "truncated_empty" and out["output_tokens"] == 16000)
+        ck("model version without its prefix", out["model_returned"] is None)
+        replies.append((200, {"candidates": [{"content": {"parts": [{"text": "ok"}]}, "finishReason": "STOP"}],
+                              "modelVersion": "models/gemini-4-argon-001"}))
+        ck("model version without its prefix", p2.call("PROMPT")["model_returned"] == "gemini-4-argon-001")
+        replies.append((200, {"promptFeedback": {"blockReason": "PROHIBITED_CONTENT"},
+                              "usageMetadata": {"promptTokenCount": 12}}))
+        out = p2.call("PROMPT")
+        ck("prompt blocked by Google", out["provider_block"] and out["block_category"] == "PROHIBITED_CONTENT"
+           and out["stop_reason"] == "prompt_blocked" and R.answer_status(out) == "provider_block")
+        replies.append((200, {"candidates": [{"content": {"parts": [{"text": "partial"}]}, "finishReason": "SAFETY"}],
+                              "usageMetadata": {"promptTokenCount": 12, "candidatesTokenCount": 3}}))
+        out = p2.call("PROMPT")
+        ck("answer stopped for safety", out["provider_block"] and out["block_category"] == "SAFETY"
+           and R.answer_status(out) == "provider_block")
+        kinds = {}
+        for status, body in ((400, {"error": {"code": 400, "message": "API key not valid. Please pass a valid API key.",
+                                              "status": "INVALID_ARGUMENT"}}),
+                             (429, {"error": {"code": 429, "message": "Resource has been exhausted",
+                                              "status": "RESOURCE_EXHAUSTED"}}),
+                             (402, {"error": {"code": 402, "message": "Prepayment credits are depleted"}}),
+                             (503, {"error": {"code": 503, "message": "The model is overloaded"}}),
+                             (400, {"error": {"code": 400, "message": "Invalid JSON payload received. Unknown name "
+                                              "\"service_tier\": Cannot find field.", "status": "INVALID_ARGUMENT"}}),
+                             (400, {"error": {"code": 400, "message": "Request contains an invalid argument.",
+                                              "status": "INVALID_ARGUMENT"}}),
+                             (400, {"error": {"code": 400, "message": "User location is not supported for the API "
+                                              "use.", "status": "FAILED_PRECONDITION"}}),
+                             (400, {"error": {"code": 400, "message": "Something unexplained."}})):
+            replies.append((status, body))
+            try:
+                p2.call("PROMPT")
+                kinds[len(kinds)] = "no error"
+            except Exception as e:
+                kinds[len(kinds)] = S.failure_kind(e, providers, J.is_context_overflow)
+        ck("HTTP errors", list(kinds.values()) == ["config", "transient", "transient", "transient", "config", "config",
+                                                   "config", "blocked"])
+        replies.append((400, {"error": {"code": "safety", "message": "Input blocked: SAFETY"}}))
+        out = p2.call("PROMPT")
+        ck("a 400 in the block form of the Interactions API", out["provider_block"] and out["block_category"] == "safety"
+           and R.answer_status(out) == "provider_block" and out["output_tokens"] == 0)
+        replies.append((200, {"candidates": [{"content": {"parts": []}, "finishReason": "PUP_LIMITED_DISABLED"}],
+                              "usageMetadata": {"promptTokenCount": 12}}))
+        try:
+            p2.call("PROMPT")
+            ck("account limited or disabled", False)
+        except providers.AccountRestricted as e:
+            ck("account limited or disabled: not an outcome, retried then pending, settled at the reservation",
+               S.failure_kind(e, providers, J.is_context_overflow) == "transient"
+               and S.settle_failed(e, 0.5, providers) == 0.5)
+        replies.append((200, {"candidates": [{"content": {"parts": []}, "finishReason": "ESCALATION"}],
+                              "usageMetadata": {"promptTokenCount": 12}}))
+        out = p2.call("PROMPT")
+        ck("escalation rule", out["provider_block"] and out["block_category"] == "ESCALATION"
+           and R.answer_status(out) == "provider_block")
+        replies.append((200, {"candidates": [{"content": {"parts": [{"text": "partial"}]}, "finishReason": "CONTINUATION"}],
+                              "usageMetadata": {"promptTokenCount": 12, "candidatesTokenCount": 3}}))
+        out = p2.call("PROMPT")
+        ck("token limit before the end", out["stop_reason"] == "max_tokens" and out["native_finish_reason"] == "CONTINUATION"
+           and not out["provider_block"] and R.answer_status(out) == "truncated")
+        replies.append((200, {"candidates": [{"content": {"parts": [{"text": "an answer"}]}, "finishReason": "OTHER"}],
+                              "usageMetadata": {"promptTokenCount": 12, "candidatesTokenCount": 3}}))
+        out = p2.call("PROMPT")
+        ck("other finish reasons are kept, not read as blocks", out["stop_reason"] == "other"
+           and not out["provider_block"] and R.answer_status(out) == "ok")
+        replies.append((200, b"not json"))
+        try:
+            p2.call("PROMPT")
+            ck("unparsable reply", False)
+        except providers.ResponseParseError as e:
+            ck("unparsable reply", S.settle_failed(e, 0.5, providers) == 0.5)
+        utc = dt.timezone.utc
+        m11 = model_of(REAL_MODELS["models"], 11)                  # a model without a price schedule
+        ck("price schedule", S.list_prices(m, dt.datetime(2026, 11, 29, 23, 59, tzinfo=utc)) == (2.0, 10.0)
+           and S.list_prices(m, dt.datetime(2026, 11, 30, tzinfo=utc)) == (4.0, 20.0)
+           and S.list_prices(m11) == (float(m11["price_in"]), float(m11["price_out"])))
+        rec = {"input_tokens": 100, "cache_read_tokens": 40, "output_tokens": 50}
+        now = dt.datetime.now(utc)
+        pin, pout = S.list_prices(m, now)
+        ck("settled at the price in force", abs(S.listed_cost(m, rec) - ((60 + 40 * 0.05) * pin + 50 * pout) / 1e6) < 1e-12
+           and S.output_price_bound(m) == pout)
+    finally:
+        srv.shutdown()
+        if old_key is None:
+            os.environ.pop("AC_GOOGLE_API_KEY", None)
+        else:
+            os.environ["AC_GOOGLE_API_KEY"] = old_key
+    return ck.ok()
+
+
+# ---- crashes and threads (Section 12.5; review round 5) -----------------------------------------------------------
+
+class Crash(BaseException):
+    """A process killed at this point: no handler of the runner catches it."""
+
+
+def t_settle_is_atomic():
+    """Books.settle moves the reservation into the ledger in one step: a reservation of another thread made while
+    the call line is being written waits for it and sees the money as spent."""
+    import threading
+    import time as _t
+    ck = Checks("atomic")
+    tmp, models = setup("atomic")
+    b = S.Books("probe", holds={"items": []}, study_cap=1.0, ledger=tmp / "logs" / "atomic.jsonl")
+    ck("first reservation", b.reserve("1", 1.0)[0])
+    seen = {}
+
+    def other():
+        seen["result"] = b.reserve("1", 1.0)
+
+    orig = S.append_line
+
+    def slow_line(path, obj, durable=True):
+        if obj.get("kind") == "call":
+            th = threading.Thread(target=other)
+            th.start()
+            _t.sleep(0.3)
+            seen["blocked"] = th.is_alive()
+            seen["thread"] = th
+        return orig(path, obj, durable)
+
+    S.append_line = slow_line
+    try:
+        b.settle(1.0, 1.0, {"model_key": "x", "block": "1", "role": "respondent", "item": None, "final": True})
+    finally:
+        S.append_line = orig
+    seen["thread"].join(5)
+    ck("the other reservation waits for the settlement", seen.get("blocked") is True)
+    ck("and is refused: the money is spent", seen.get("result") == (False, "cap"))
+    ck("no reservation in flight", abs(b.inflight) < 1e-12 and abs(b.spent - 1.0) < 1e-12)
+    return ck.ok()
+
+
+def t_crash_recovery_respondent():
+    """A paid process killed between the reservation and the ledger line. After the record: the next session settles
+    the attempt at the cost written in its record and does not send the prompt again. Before the record: the attempt
+    is settled at its reserved amount (status 'interrupted') and the prompt is sent again. Until then the open
+    reservation counts as spent."""
+    ck = Checks("crash")
+    tmp, models = setup("crash")
+    K, M = keymap(models)
+    m7 = M[K[7]]
+    ledger(kind="registration", tag="t")
+    ids = PILOT["rounds"][0]["api"]
+    # 1. killed after the record of the third call, before its ledger line
+    orig_settle, n = S.Books.settle, {"calls": 0}
+
+    def settle_then_die(self, reserved, actual, entry, kind="call"):
+        n["calls"] += 1
+        if n["calls"] == 3:
+            raise Crash()
+        return orig_settle(self, reserved, actual, entry, kind)
+
+    S.Books.settle = settle_then_die
+    try:
+        run(["--run", "c1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+        crashed = False
+    except Crash:
+        crashed = True
+    finally:
+        S.Books.settle = orig_settle
+    S.SPEND_LOCK.unlink(missing_ok=True)                     # the PI removes the lock of the dead process
+    rec3 = records("c1")[2]
+    books = S.Books("look", write=False)
+    ck("killed", crashed and len(records("c1")) == 3 and len(led("call")) == 2)
+    ck("open reservation counted as spent", len(books.unsettled()) == 1
+       and abs(books.committed() - books.spent - rec3["reserved_usd"]) < 1e-9)
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        S._status(books)
+    ck("status names it", "UNSETTLED: 1 reservations" in out.getvalue())
+    sent_before = len(Fake.sent)
+    c = run(["--run", "c2", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+    rec_lines = [e for e in led("call") if e.get("reconciled")]
+    ck("settled at the record's cost", c == 0 and len(rec_lines) == 1
+       and rec_lines[0]["attempt_id"] == rec3["attempt_id"] and rec_lines[0]["final"] is True
+       and abs(rec_lines[0]["spent_usd"] - rec3["cost_usd"]) < 1e-9 and "settled 1 respondent" in run.out)
+    ck("its prompt is not sent again", len(Fake.sent) - sent_before == len(ids) - 3
+       and rec3["prompt_id"] not in {r["prompt_id"] for r in records("c2")})
+    books = S.Books("look", write=False)
+    ck("books balance", not books.unsettled() and abs(sum(e["spent_usd"] for e in led("call")) - books.spent) < 1e-9)
+    import hashlib
+    pub = [json.loads(x) for x in R.calls_log_path("c2").read_text(encoding="utf-8").splitlines() if x.strip()]
+    ck("the answer's hash in the record and in the public line (D18)",
+       all(r["text_sha256"] == hashlib.sha256(r["text"].encode("utf-8")).hexdigest() for r in records("c2") if r["text"])
+       and {r["text_sha256"] for r in records("c2") if r["text"]} == {x.get("text_sha256") for x in pub if "text" not in x
+                                                                      and x.get("text_sha256")})
+    # 2. killed after the call was sent, before its record
+    tmp, models = setup("crash2")
+    ledger(kind="registration", tag="t")
+    orig_write, n = R.write_record, {"recs": 0}
+
+    def die_before_record(rec, durable=False):
+        n["recs"] += 1
+        if n["recs"] == 3:
+            raise Crash()
+        return orig_write(rec, durable)
+
+    R.write_record = die_before_record
+    try:
+        run(["--run", "d1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+    except Crash:
+        pass
+    finally:
+        R.write_record = orig_write
+    S.SPEND_LOCK.unlink(missing_ok=True)
+    lost = next(e for e in led("reserve") if e["attempt_id"] in S.Books("look", write=False).unsettled())
+    c = run(["--run", "d2", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+    rl = [e for e in led("call") if e.get("reconciled")]
+    ck("settled at the reservation, not final", c == 0 and len(rl) == 1 and rl[0]["status"] == "interrupted"
+       and rl[0]["final"] is False and rl[0]["spent_usd"] == lost["reserved_usd"])
+    ck("its prompt is sent again", Fake.sent.count((m7["model"], lost["prompt_id"])) == 2
+       and len(records("d1")) + len(records("d2")) == len(ids))
+    # 3. the plan is read again under the lock: an answer written meanwhile by another process is not asked again
+    tmp, models = setup("crash3")
+    ledger(kind="registration", tag="t")
+    orig_lock = S.acquire_lock
+    first = ids[0]
+
+    def lock_after_other(run_name, lock=None):
+        R.append_jsonl(R.raw_path("e1"), {"protocol": "2.3", "run": "e1", "block": "1", "round": 1, "pilot": True,
+                                          "model_key": K[7], "model": m7["model"], "provider": m7["provider"],
+                                          "prompt_id": first, "text": "x", "error": None, "answer_status": "ok",
+                                          "final": True})
+        return orig_lock(run_name, lock)
+
+    S.acquire_lock = lock_after_other
+    try:
+        c = run(["--run", "e1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+    finally:
+        S.acquire_lock = orig_lock
+    ck("not asked again", c == 0 and (m7["model"], first) not in Fake.sent and len(Fake.sent) == len(ids) - 1)
+    # 4. the same, by a process with another run name, registered after this session began (review round 6)
+    tmp, models = setup("crash4")
+    ledger(kind="registration", tag="t")
+
+    def lock_after_other_run(run_name, lock=None):
+        R.append_jsonl(R.runs_log_path(), {"kind": "session", "run": "o1", "protocol": "2.3", "block": "1",
+                                           "round": 1, "models": [K[7]]})
+        R.append_jsonl(R.raw_path("o1"), {"protocol": "2.3", "run": "o1", "block": "1", "round": 1, "pilot": True,
+                                          "model_key": K[7], "model": m7["model"], "provider": m7["provider"],
+                                          "prompt_id": first, "text": "x", "error": None, "answer_status": "ok",
+                                          "final": True})
+        return orig_lock(run_name, lock)
+
+    S.acquire_lock = lock_after_other_run
+    try:
+        c = run(["--run", "e2", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+    finally:
+        S.acquire_lock = orig_lock
+    ck("another run's answer is not asked again", c == 0 and (m7["model"], first) not in Fake.sent
+       and len(Fake.sent) == len(ids) - 1)
+    sess = [e for e in jsonl(R.runs_log_path()) if e.get("run") == "e2"]
+    ck("and its run is among the runs read", sess and "o1" in sess[-1]["answer_runs"])
+    tmp, models = setup("crash5")                 # the close of the block reads the runs again under the lock
+    ledger(kind="registration", tag="t")
+    run(["--run", "f1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7],
+         "--max-calls", str(len(ids) - 1)])
+    left = [p for p in ids if p not in {r["prompt_id"] for r in records("f1")}]
+
+    def lock_after_last(run_name, lock=None):
+        R.append_jsonl(R.runs_log_path(), {"kind": "session", "run": "o2", "protocol": "2.3", "block": "1",
+                                           "round": 1, "models": [K[7]]})
+        for p in left:
+            R.append_jsonl(R.raw_path("o2"), {"protocol": "2.3", "run": "o2", "block": "1", "round": 1,
+                                              "pilot": True, "model_key": K[7], "model": m7["model"],
+                                              "provider": m7["provider"], "prompt_id": p, "text": "x",
+                                              "error": None, "answer_status": "ok", "final": True})
+        return orig_lock(run_name, lock)
+
+    S.acquire_lock = lock_after_last
+    try:
+        c = run(["--run", "close", "--block", "1", "--complete-block", "--models", K[7]])
+    finally:
+        S.acquire_lock = orig_lock
+    ck("the close reads the runs under the lock", len(left) == 1 and c == 0
+       and any(e.get("role") == "respondent" for e in led("block_complete")))
+    return ck.ok()
+
+
+def t_overrun_survives_crash():
+    """Section 12.5 (review round 6): a call settled above its reservation stops every paid call even if the process
+    dies between the settlement line and the overrun line, in a session and in the reconciliation of an earlier
+    crash; a later overrun_resolved line still ends the stop."""
+    ck = Checks("overrun crash")
+    tmp, models = setup("overrun_crash")
+    K, M = keymap(models)
+    ledger(kind="registration", tag="t")
+    Fake.rules[M[K[7]]["model"]] = [{"cost_reported": 5.0}]
+    orig = S.Books._overrun_locked
+
+    def die(self, entry, reserved, actual):
+        raise Crash()
+
+    S.Books._overrun_locked = die
+    try:
+        run(["--run", "v1", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[7]])
+        crashed = False
+    except Crash:
+        crashed = True
+    finally:
+        S.Books._overrun_locked = orig
+    S.SPEND_LOCK.unlink(missing_ok=True)
+    calls = led("call")
+    ck("killed after the settlement line", crashed and not led("overrun") and len(calls) == 1
+       and calls[0].get("overrun") is True and calls[0]["spent_usd"] == 5.0)
+    ck("the stop is in the ledger", S.Books("look", write=False).overrun_open is True)
+    c = run(["--run", "v2", "--block", "1", "--round", "1", "--run-cap", "100", "--models", K[8]])
+    ck("no paid session", c == 2 and "settled above its reservation" in run.out and not records("v2"))
+    ledger(kind="overrun_resolved", reason="test")
+    ck("resolved", S.Books("look", write=False).overrun_open is False)
+    # the reconciliation of a crash settles an attempt above its reservation, then dies before the overrun line
+    tmp, models = setup("overrun_crash2")
+    ledger(kind="registration", tag="t")
+    ledger(kind="reserve", attempt_id="z1", role="respondent", model_key=K[7], block="1", reserved_usd=0.01,
+           spent_usd=0.0)
+    books = S.Books("rec")
+    S.Books._overrun_locked = die
+    try:
+        books.settle_interrupted(led("reserve")[0], {"cost_usd": 1.0, "final": True, "status": "ok"})
+        crashed = False
+    except Crash:
+        crashed = True
+    finally:
+        S.Books._overrun_locked = orig
+    ck("reconciliation: the stop survives", crashed and not led("overrun")
+       and S.Books("look", write=False).overrun_open is True)
+    tmp, models = setup("overrun_none")
+    ledger(kind="registration", tag="t")
+    ledger(kind="reserve", attempt_id="z2", role="respondent", model_key=K[7], block="1", reserved_usd=0.01,
+           spent_usd=0.0)
+    S.Books("rec2").settle_interrupted(led("reserve")[0], {"cost_usd": 0.004, "final": True, "status": "ok"})
+    look = S.Books("look", write=False)
+    ck("a settlement at or below its reservation stops nothing", look.overrun_open is False and not look.unsettled()
+       and not any(e.get("overrun") for e in led()) and abs(look.spent - 0.004) < 1e-12)
+    return ck.ok()
+
+
+def t_freeze_checks_ceiling():
+    """Section 14 (condition 3) and Section 12.4: 'spend_v23.py freeze' records the freeze only if the spending so far
+    and the pessimistic cost of all unfinished work fit under the freeze ceiling after the cuts; the cuts it needs are
+    recorded in order; a plan that does not fit after the four cuts is not frozen (review round 5)."""
+    ck = Checks("freeze")
+    ceiling = float(json.loads((ROOT / "config" / "panel_v23.json").read_text(encoding="utf-8"))["budget"]
+                    ["freeze_ceiling_usd"])
+
+    def scaled(f):
+        def edit(h):
+            for it in h["items"]:
+                it["usd_per_call"] = it["usd_per_call"] * f
+        return edit
+
+    total = sum(it["calls"] * it["usd_per_call"] for it in REAL_HOLDS["items"])
+    cut1 = sum(it["calls"] * it["usd_per_call"] for it in REAL_HOLDS["items"] if int(it.get("cut") or 0) == 1)
+    f_one = (ceiling + 0.5 * cut1) / total                  # fits after cut 1 only
+    m_total = REAL_MANIFEST["totals"]["pessimistic"]
+    m_cut1 = next(c["saves_pessimistic"] for c in REAL_MANIFEST["cuts"] if c["order"] == 1)
+    m_one = (ceiling + 0.5 * m_cut1) / m_total              # the repriced manifest needs cut 1 only
+    cases = (("as registered", 1.0, 1.0, {}, True, [], ""), ("one cut", f_one, f_one, {}, True, [1], ""),
+             ("too dear", 3.0, 3.0, {}, False, None, "after the four cuts"),
+             ("not priced again", 1.0, 1.0, {"repriced": False}, False, None, "not priced again"),
+             ("holds from another manifest", 1.0, 1.0, {"holds_from_it": False}, False, None, "holds were not"),
+             ("the ledger needs a cut", f_one, 1.0, {}, True, [1], ""),
+             ("the ledger does not fit", 3.0, 1.0, {}, False, None, "pessimistic plan does not fit"),
+             ("the manifest needs a cut", 1.0, m_one, {}, True, [1], ""))
+    for name, f, fm, how, fits, cuts, words in cases:
+        setup("freeze_" + name.replace(" ", "_"), holds_edit=scaled(f))
+        write_manifest(fm, **how)
+        ledger(kind="registration", tag="t")
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                S.main(["freeze", "--tag", "f"])
+            code = 0
+        except SystemExit as e:
+            code, msg = 1, str(e)
+        S.SPEND_LOCK.unlink(missing_ok=True)
+        frozen = [e for e in led() if e.get("kind") == "freeze"]
+        if fits:
+            ck(f"{name}: frozen", code == 0 and len(frozen) == 1)
+            ck(f"{name}: cuts {cuts}", [e["cut"] for e in led("cut")] == cuts)
+            if name == "the ledger needs a cut":
+                ck(f"{name}: made by the ledger check", [e.get("by") for e in led("cut")] == [None])
+        else:
+            ck(f"{name}: not frozen", code == 1 and not frozen and "not frozen" in msg and words in msg)
+    ck("the manifest's cut is named as such", [e.get("by") for e in led("cut")] == ["manifest"])
+    return ck.ok()
+
+
 TESTS = [t_block1_rounds_sealed_and_close, t_block2_registered_hosted_first, t_block4_batch_lost_reply_and_collect,
          t_batch_item_kinds_overrun_and_stale, t_outcomes_final_suspected_config, t_pending_five_in_a_row_and_resume,
          t_overrun_stops_paid_calls, t_run_cap_and_study_cap, t_preflight_and_d2, t_provider_stop,
          t_block_order_registration_and_arguments, t_holds_cover_every_paid_call, t_complete_block_models_and_abandon,
          t_local_identity_checks, t_answer_guard_dry_run_and_errors, t_lock_and_interrupted_lines,
          t_availability_check_facts_and_ledger, t_availability_pilot_and_d2, t_availability_call_failures,
-         t_adapters_offline]
+         t_adapters_offline, t_google_adapter_offline, t_settle_is_atomic, t_crash_recovery_respondent,
+         t_freeze_checks_ceiling, t_overrun_survives_crash, t_availability_recovered_after_crash,
+         t_availability_reuse_conditions, t_batch_overrun_aggregate_only, t_availability_saved_identity_ignored,
+         t_availability_midnight_rollover]
 
 
 def main():

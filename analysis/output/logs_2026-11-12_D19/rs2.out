@@ -1,0 +1,38 @@
+rejected stored row noise_shocks_only|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row literal_null|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_alternating_all|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_alternating_all|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_alternating_harmful|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_alternating_harmful|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_all|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_all|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_harmful|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_harmful|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_invalid_10_15|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_invalid_10_15|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_invalid_harm|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_invalid_harm|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_all_invalid_harm|zero: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_all_invalid_harm|null: its fingerprint differs from the present code, design or arguments
+rejected stored row het_aligned_all|both: its fingerprint differs from the present code, design or arguments
+noise_shocks_only|zero             th -0.0031 (ref -0.0032) cov 0.948 | io -0.0013 (ref -0.0016) cov 0.947 | iw -0.0013 (ref -0.0016) cov 0.947 | holm th 0.031 io 0.025 any 0.042 both 0.014 | io&iw 0.025 | p3 1.000 | 73s
+literal_null|zero                  th +0.0001 (ref +0.0000) cov 0.949 | io +0.0001 (ref +0.0000) cov 0.952 | iw +0.0001 (ref +0.0000) cov 0.951 | holm th 0.022 io 0.022 any 0.035 both 0.009 | io&iw 0.022 | p3 1.000 | 62s
+het|zero                           th -0.0031 (ref -0.0033) cov 0.948 | io -0.0014 (ref -0.0016) cov 0.948 | iw -0.0014 (ref -0.0017) cov 0.950 | holm th 0.032 io 0.026 any 0.045 both 0.014 | io&iw 0.025 | p3 1.000 | 69s
+het|null                           th -0.0000 (ref +0.0001) cov 0.950 | io -0.0000 (ref -0.0000) cov 0.948 | iw -0.0001 (ref -0.0000) cov 0.949 | holm th 0.023 io 0.023 any 0.034 both 0.011 | io&iw 0.021 | p3 1.000 | 72s
+het_alternating_all|zero           th -0.0142 (ref -0.0142) cov 0.954 | io -0.0020 (ref -0.0019) cov 0.951 | iw -0.0026 (ref -0.0026) cov 0.950 | holm th 0.245 io 0.033 any 0.252 both 0.026 | io&iw 0.031 | p3 1.000 | 65s
+het_alternating_all|null           th +0.0001 (ref +0.0001) cov 0.951 | io +0.0002 (ref +0.0001) cov 0.953 | iw -0.0003 (ref -0.0004) cov 0.955 | holm th 0.022 io 0.021 any 0.033 both 0.010 | io&iw 0.020 | p3 0.999 | 69s
+het_alternating_harmful|zero       th -0.0152 (ref -0.0153) cov 0.950 | io -0.0013 (ref -0.0012) cov 0.951 | iw -0.0018 (ref -0.0017) cov 0.954 | holm th 0.267 io 0.030 any 0.274 both 0.022 | io&iw 0.027 | p3 0.999 | 61s
+het_alternating_harmful|null       th +0.0004 (ref +0.0001) cov 0.953 | io +0.0003 (ref +0.0001) cov 0.952 | iw +0.0002 (ref -0.0001) cov 0.951 | holm th 0.021 io 0.022 any 0.033 both 0.010 | io&iw 0.021 | p3 0.998 | 67s
+het_aligned_all|zero               th -0.0196 (ref -0.0195) cov 0.948 | io -0.0211 (ref -0.0210) cov 0.950 | iw -0.0048 (ref -0.0047) cov 0.947 | holm th 0.486 io 0.378 any 0.522 both 0.342 | io&iw 0.063 | p3 0.999 | 59s
+het_aligned_all|null               th -0.0002 (ref -0.0000) cov 0.951 | io -0.0001 (ref +0.0000) cov 0.955 | iw +0.0162 (ref +0.0163) cov 0.953 | holm th 0.022 io 0.021 any 0.033 both 0.010 | io&iw 0.011 | p3 1.000 | 66s
+het_aligned_harmful|zero           th -0.0218 (ref -0.0218) cov 0.953 | io -0.0238 (ref -0.0238) cov 0.947 | iw -0.0092 (ref -0.0092) cov 0.948 | holm th 0.570 io 0.449 any 0.603 both 0.417 | io&iw 0.114 | p3 0.999 | 58s
+het_aligned_harmful|null           th +0.0000 (ref -0.0000) cov 0.949 | io -0.0001 (ref -0.0001) cov 0.956 | iw +0.0146 (ref +0.0145) cov 0.952 | holm th 0.021 io 0.021 any 0.034 both 0.009 | io&iw 0.011 | p3 0.999 | 64s
+het_invalid_10_15|zero             th -0.0350 (ref -0.0350) cov 0.951 | io -0.0016 (ref -0.0014) cov 0.948 | iw -0.0020 (ref -0.0019) cov 0.948 | holm th 0.876 io 0.036 any 0.882 both 0.030 | io&iw 0.034 | p3 0.998 | 58s
+het_invalid_10_15|null             th -0.0003 (ref -0.0001) cov 0.954 | io -0.0001 (ref -0.0001) cov 0.951 | iw +0.0000 (ref +0.0001) cov 0.951 | holm th 0.022 io 0.022 any 0.035 both 0.009 | io&iw 0.021 | p3 0.998 | 64s
+het_invalid_harm|zero              th -0.1258 (ref -0.1259) cov 0.952 | io -0.0012 (ref -0.0013) cov 0.953 | iw -0.0030 (ref -0.0031) cov 0.953 | holm th 1.000 io 0.038 any 1.000 both 0.038 | io&iw 0.033 | p3 0.998 | 56s
+het_invalid_harm|null              th +0.0000 (ref -0.0003) cov 0.954 | io +0.0004 (ref +0.0001) cov 0.950 | iw +0.0009 (ref +0.0006) cov 0.953 | holm th 0.020 io 0.022 any 0.033 both 0.009 | io&iw 0.022 | p3 0.998 | 64s
+het_aligned_all_invalid_harm|zero  th -0.1379 (ref -0.1381) cov 0.947 | io -0.0157 (ref -0.0158) cov 0.952 | iw -0.0046 (ref -0.0047) cov 0.952 | holm th 1.000 io 0.157 any 1.000 both 0.157 | io&iw 0.050 | p3 0.999 | 57s
+het_aligned_all_invalid_harm|null  th +0.0002 (ref +0.0000) cov 0.952 | io +0.0001 (ref +0.0001) cov 0.949 | iw +0.0040 (ref +0.0039) cov 0.949 | holm th 0.023 io 0.024 any 0.037 both 0.011 | io&iw 0.022 | p3 0.999 | 64s
+het_aligned_all|both               th -0.0502 (ref -0.0501) cov 0.950 | io -0.0505 (ref -0.0502) cov 0.947 | iw -0.0342 (ref -0.0339) cov 0.948 | holm th 1.000 io 0.987 any 1.000 both 0.987 | io&iw 0.814 | p3 0.999 | 63s

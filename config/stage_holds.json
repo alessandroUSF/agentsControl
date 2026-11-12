@@ -2,8 +2,10 @@
  "_what": "Holds of protocol v2.3 (Section 12.5), per block of Section 12.3: the paid calls planned for each model and part, and the pessimistic cost of one call (manifest scenario 'pessimistic', prices of scripts/manifest_v23.py). A block starts only if its pessimistic cost fits beside that of every unfinished block of higher priority; the runners count the calls that remain before every call (src/spend_v23.py). 'cut' names the cut of Section 12.4 that removes an item's unsent calls. Written by scripts/holds_v23.py; re-made with the manifest after the pilot (rule 4). Every change is a logged commit.",
  "protocol": "2.3",
  "scenario": "pessimistic",
- "written": "2026-11-11",
- "manifest_sha256": "365fc1e4547a5882dfae4d6221d90c855e78b5a6a22704b9d5825aad19a2ec5f",
+ "written": "2026-11-12",
+ "registered_hosted": null,
+ "left_out": [],
+ "manifest_sha256": "1771c8940b39346cfd7a0c08409b28b84ed64fd17e999c9f1d3e251a5dd8cce7",
  "blocks": {
   "1": "pilot",
   "2": "missing answers of the primary panel",
@@ -14,23 +16,23 @@
   "7": "commercial judges, challenge set"
  },
  "check": {
-  "items_total": 123.3,
-  "manifest_total": 123.3,
+  "items_total": 102.03,
+  "manifest_total": 102.03,
   "cut_1": [
-   2.05,
-   2.05
+   1.68,
+   1.68
   ],
   "cut_2": [
-   5.98,
-   5.98
+   4.86,
+   4.86
   ],
   "cut_3": [
-   6.98,
-   6.98
+   5.67,
+   5.67
   ],
   "cut_4": [
-   2.99,
-   2.99
+   2.43,
+   2.43
   ]
  },
  "items": [
@@ -276,26 +278,6 @@
   },
   {
    "block": "1",
-   "role": "respondent",
-   "model_key": "gemini-4-argon",
-   "part": "pilot_r1",
-   "calls": 20,
-   "usd_per_call": 0.033511,
-   "cut": 0,
-   "id": "1|respondent|gemini-4-argon|pilot_r1"
-  },
-  {
-   "block": "1",
-   "role": "respondent",
-   "model_key": "gemini-4-argon",
-   "part": "pilot_r2",
-   "calls": 20,
-   "usd_per_call": 0.033511,
-   "cut": 0,
-   "id": "1|respondent|gemini-4-argon|pilot_r2"
-  },
-  {
-   "block": "1",
    "role": "judge",
    "model_key": "claude-sonnet-5.5",
    "part": "pilot_r1",
@@ -497,26 +479,6 @@
   {
    "block": "1",
    "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "pilot_r1",
-   "calls": 60,
-   "usd_per_call": 0.01863,
-   "cut": 0,
-   "id": "1|judge|gemini-4-argon|pilot_r1"
-  },
-  {
-   "block": "1",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "pilot_r2",
-   "calls": 60,
-   "usd_per_call": 0.01863,
-   "cut": 0,
-   "id": "1|judge|gemini-4-argon|pilot_r2"
-  },
-  {
-   "block": "1",
-   "role": "judge",
    "model_key": "venice-uncensored",
    "part": "pilot_r1",
    "calls": 60,
@@ -599,7 +561,7 @@
    "role": "judge",
    "model_key": "venice-uncensored",
    "part": "label_blind",
-   "calls": 583,
+   "calls": 567,
    "usd_per_call": 0.0011592,
    "cut": 0,
    "id": "5|judge|venice-uncensored|label_blind"
@@ -709,7 +671,7 @@
    "role": "judge",
    "model_key": "cydonia-24b-v4.1",
    "part": "label_blind",
-   "calls": 583,
+   "calls": 567,
    "usd_per_call": 0.0016215,
    "cut": 0,
    "id": "5|judge|cydonia-24b-v4.1|label_blind"
@@ -1733,106 +1695,6 @@
    "usd_per_call": 0.015318,
    "cut": 3,
    "id": "7|judge|grok-4.7|challenge_context"
-  },
-  {
-   "block": "4",
-   "role": "respondent",
-   "model_key": "gemini-4-argon",
-   "part": "frame_harmful",
-   "calls": 60,
-   "usd_per_call": 0.026611,
-   "cut": 0,
-   "id": "4|respondent|gemini-4-argon|frame_harmful"
-  },
-  {
-   "block": "4",
-   "role": "respondent",
-   "model_key": "gemini-4-argon",
-   "part": "frame_safe",
-   "calls": 90,
-   "usd_per_call": 0.033511,
-   "cut": 0,
-   "id": "4|respondent|gemini-4-argon|frame_safe"
-  },
-  {
-   "block": "6",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "own",
-   "calls": 300,
-   "usd_per_call": 0.01863,
-   "cut": 0,
-   "id": "6|judge|gemini-4-argon|own"
-  },
-  {
-   "block": "6",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "control_harmful",
-   "calls": 120,
-   "usd_per_call": 0.01863,
-   "cut": 0,
-   "id": "6|judge|gemini-4-argon|control_harmful"
-  },
-  {
-   "block": "6",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "reference_h1",
-   "calls": 30,
-   "usd_per_call": 0.01863,
-   "cut": 0,
-   "id": "6|judge|gemini-4-argon|reference_h1"
-  },
-  {
-   "block": "6",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "reference_h2",
-   "calls": 30,
-   "usd_per_call": 0.01863,
-   "cut": 4,
-   "id": "6|judge|gemini-4-argon|reference_h2"
-  },
-  {
-   "block": "6",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "control_safe",
-   "calls": 60,
-   "usd_per_call": 0.01863,
-   "cut": 2,
-   "id": "6|judge|gemini-4-argon|control_safe"
-  },
-  {
-   "block": "6",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "repeat",
-   "calls": 20,
-   "usd_per_call": 0.01863,
-   "cut": 1,
-   "id": "6|judge|gemini-4-argon|repeat"
-  },
-  {
-   "block": "7",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "challenge_blind",
-   "calls": 70,
-   "usd_per_call": 0.01863,
-   "cut": 0,
-   "id": "7|judge|gemini-4-argon|challenge_blind"
-  },
-  {
-   "block": "7",
-   "role": "judge",
-   "model_key": "gemini-4-argon",
-   "part": "challenge_context",
-   "calls": 70,
-   "usd_per_call": 0.01863,
-   "cut": 3,
-   "id": "7|judge|gemini-4-argon|challenge_context"
   }
  ]
 }

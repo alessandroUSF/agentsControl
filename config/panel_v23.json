@@ -4,7 +4,7 @@
   "groups": {
     "instruct_open": [4, 5, 15, 16, 17],
     "refusal_removed": [6, 18, 19, 20, 21, 22, 23],
-    "commercial": [1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14]
+    "commercial": [1, 2, 3, 7, 8, 9, 10, 11, 12, 13]
   },
   "primary_panel": [4, 5, 6, 15, 16, 17, 18, 19, 20, 21, 22, 23],
   "hosted_primary": [22, 23],
@@ -26,7 +26,6 @@
     "10": "tencent",
     "12": "moonshot",
     "13": "xai",
-    "14": "google",
     "16": "ibm",
     "17": "liquid",
     "21": "mistral",

@@ -74,6 +74,7 @@ SENSITIVITY_PARTS = ("own_harmful", "control_harmful", "own_safe", "control_safe
 
 # Seams for the offline tests: provider factory, sleep, endpoint list, local identity.
 MAKE_PROVIDER = providers.make
+LOAD_ENV = S.load_env              # the AC_* keys and BUDGET_USD from .env, as in src/run_models.py
 SLEEP = time.sleep
 FETCH_ZDR = S.fetch_zdr
 OLLAMA_IDENTITY = providers.ollama_identity
@@ -115,6 +116,55 @@ def call_key(c):
 def append(path, obj, durable=True):
     with _write_lock:
         S.append_line(path, obj, durable)
+
+
+def attempt_state(path):
+    """{call key: (last attempt number, format retry owed)} from the private verdict file. A call whose answer was
+    unparsed and that has no final attempt yet owes its one format retry (Section 11.5): a later session resumes it
+    with the retry sentence, and the retry limit stays one."""
+    out = {}
+    path = pathlib.Path(path)
+    if not path.exists():
+        return out
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue                     # done_calls stops on it before any call
+            if not line.strip() or "key" not in r:
+                continue
+            last, owed = out.get(r["key"], (0, False))
+            out[r["key"]] = (max(last, int(r.get("attempt") or 0)),
+                             (owed or r.get("status") == "unparsed") and not r.get("final"))
+    return out
+
+
+def reconcile(books):
+    """Settles the judge reservations that an earlier process left unsettled (Section 12.5): at the cost written in
+    the private verdict record with the same attempt_id, or, when none was written, at the reserved amount, not final
+    (status 'interrupted'); the call is then made again under the rules of Section 10.3. Needs the paid lock."""
+    lines = books.unsettled("judge")
+    if not lines:
+        return 0
+    by_path = collections.defaultdict(list)
+    for e in lines.values():
+        by_path[verdicts_path(e.get("block"), e.get("build") or "primary")].append(e)
+    for path, es in by_path.items():
+        recs = {}
+        if path.exists():
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        r = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if r.get("attempt_id"):
+                        recs[r["attempt_id"]] = r
+        for e in es:
+            books.settle_interrupted(e, recs.get(e["attempt_id"]))
+    print(f"settled {len(lines)} judge reservations left open by an interrupted run (Section 12.5)")
+    return len(lines)
 
 
 def done_calls(path):
@@ -193,20 +243,23 @@ class JudgeRun:
         self.stopped = None
         self.spent = 0.0
         self.harmful_ok = True
-        self.ref_models, self.ref_hosts = set(), set()
+        self.ref_pairs = set()            # (returned identifier, serving host) of this model's own answers
 
     def item(self, c):
         return S.item_id(c["block"], "judge", self.m["key"], c["part"])
 
     def send(self, c, msgs):
-        """One attempt: (out, exc, reserved, spent, latency)."""
+        """One attempt: (out, exc, reserved, spent, latency, attempt_id)."""
         books, reserved = self.sess.books, 0.0
+        aid = S.Books.new_attempt_id()
         if self.paid:
             st = books.stopped(self.m)
             if st:
                 raise Stop(f"provider stop recorded for {st} (Section 16.5)")
             reserved = S.call_bound(self.m, msgs, self.cfg["max_output_tokens"], live=self.live)
-            ok, why = books.reserve(c["block"], reserved)
+            ok, why = books.reserve(c["block"], reserved, attempt={
+                "attempt_id": aid, "model_key": self.m["key"], "role": "judge", "item": self.item(c),
+                "part": c["part"], "key": call_key(c), "build": self.build})
             if not ok:
                 raise Stop({"cap": "the call would pass the cap beside the holds (Section 12.5)",
                             "run_cap": "the run cap of this session is reached",
@@ -217,7 +270,7 @@ class JudgeRun:
             out = self.provider.call(msgs)
         except providers.ProjectKeyError:
             if self.paid:
-                books.release(reserved)
+                books.release(reserved, aid)
             raise
         except Exception as e:      # classified in outcome()
             exc = e
@@ -225,7 +278,7 @@ class JudgeRun:
         spent = 0.0
         if self.paid:
             spent = S.settled_cost(self.m, out) if exc is None else S.settle_failed(exc, reserved, providers)
-        return out, exc, reserved, spent, latency
+        return out, exc, reserved, spent, latency, aid
 
     def outcome(self, out, exc):
         """Status of one attempt: a final status, 'unparsed' (no verdict yet), 'failed' (does not depend on the
@@ -248,10 +301,15 @@ class JudgeRun:
         return {"status": "unparsed"} if v is None else dict(v, status="valid")
 
     def identity(self, out):
-        if not out or not self.paid or not self.ref_models:
+        """Section 3.3: the identifier and the serving host that the judge call returned are a pair that this model
+        returned together when it answered (not any identifier with any host seen apart). None when there is
+        nothing to compare: counted as 'identity_unavailable'."""
+        if not out or not self.paid:
             return None
-        return bool(out.get("model_returned") in self.ref_models
-                    and (not self.ref_hosts or out.get("served_provider") in self.ref_hosts))
+        if not self.ref_pairs or not out.get("model_returned"):
+            self.counts["identity_unavailable"] += 1
+            return None
+        return (out.get("model_returned"), out.get("served_provider")) in self.ref_pairs
 
     def run_call(self, c):
         """Makes one planned call: its final status, or 'pending'."""
@@ -259,7 +317,7 @@ class JudgeRun:
         answer, request = sess.answers[c["answer_id"]], sess.prompts[c["prompt_id"]]
         retries = int(sess.settings["retries_in_session"])
         waits = sess.settings.get("retry_wait_s") or [0]
-        retry, attempt = False, 0
+        attempt, retry = sess.prior.get(call_key(c), (0, False))      # a format retry owed by an earlier session
         while True:
             msgs = J.messages(sess.template, request, answer["text"], c["presentation"], retry=retry,
                               rubric_in_user=self.cfg["rubric_in_user"])
@@ -267,12 +325,12 @@ class JudgeRun:
             while True:
                 attempt += 1
                 tries += 1
-                out, exc, reserved, spent, latency = self.send(c, msgs)
+                out, exc, reserved, spent, latency, aid = self.send(c, msgs)
                 oc = self.outcome(out, exc)
                 if oc["status"] == "unparsed" and retry:          # no valid verdict after the retry
                     oc["status"] = J.invalid_status(out.get("text"), sess.rules)
                 pending = oc["status"] == "failed" and tries > retries
-                self.write(c, msgs, attempt, retry, tries, oc, out, exc, reserved, spent, latency, pending)
+                self.write(c, msgs, attempt, retry, tries, oc, out, exc, reserved, spent, latency, pending, aid)
                 if oc["status"] == "config_error":
                     raise Stop(f"rejected with {oc.get('http_status')}: the judge configuration is wrong")
                 if oc["status"] == "failed" and not pending:
@@ -286,7 +344,7 @@ class JudgeRun:
                 continue
             return oc["status"]
 
-    def write(self, c, msgs, attempt, retry, tries, oc, out, exc, reserved, spent, latency, pending):
+    def write(self, c, msgs, attempt, retry, tries, oc, out, exc, reserved, spent, latency, pending, aid=None):
         sess, m, out = self.sess, self.m, out or {}
         final = oc["status"] in J.FINAL
         err_body = providers.error_text(exc) if exc is not None else out.get("error_body")
@@ -310,7 +368,7 @@ class JudgeRun:
                 "reserved_usd": round(reserved, 6), "latency_s": latency,
                 "bound_input_tokens": S.input_bound_tokens(msgs), "output_cap": self.cfg["max_output_tokens"],
                 "request_sha256": J.request_sha256(self.cfg["model"], msgs),
-                "template_sha256": sess.template["sha256"], "judge_cfg_sha256": self.cfg_sha}
+                "template_sha256": sess.template["sha256"], "judge_cfg_sha256": self.cfg_sha, "attempt_id": aid}
         private = dict(base, output=out.get("text"), label=oc.get("label"), harmful_content=oc.get("harmful_content"),
                        confidence=oc.get("confidence"), confidence_given=oc.get("confidence_given"),
                        reason=oc.get("reason"), reason_words=oc.get("reason_words"),
@@ -321,7 +379,7 @@ class JudgeRun:
         if self.paid:
             sess.books.settle(reserved, spent, {"model_key": m["key"], "block": c["block"], "role": "judge",
                                                 "item": self.item(c), "final": final, "part": c["part"],
-                                                "status": status})
+                                                "status": status, "attempt_id": aid})
             self.spent += spent
         self.counts["attempts"] += 1
 
@@ -385,6 +443,7 @@ class Session:
         self.prompts = load_prompts()
         self.stop_all = threading.Event()
         self.books = None
+        self.prior = {}                   # attempt_state() of the verdict file, read under the lock
 
     def plan(self, rnd=None):
         """(Plan, calls) for this block, the chosen judges and the build."""
@@ -430,6 +489,8 @@ def complete_block(sess, plans, done):
     S.acquire_lock("judges:" + sess.run)
     try:
         books = S.Books(sess.run)
+        reconcile(books)
+        done = done_calls(verdicts_path(sess.block, sess.a.build))          # read again under the lock
         by_status, not_att, open_ = collections.Counter(), collections.Counter(), collections.Counter()
         excluded_d2 = collections.Counter()
         calls = [c for _, cs in plans for c in cs]
@@ -537,6 +598,16 @@ def run_group(sess, group, workers, limit):
 
 
 def main(argv=None):
+    """The command line. The AC_* keys come from .env as for the answering runner; an unexpected exception ends the
+    run with its type and place only (spend_v23.stop_on_error)."""
+    LOAD_ENV()
+    try:
+        return _run(argv)
+    except Exception as e:
+        S.stop_on_error(e, RAW)
+
+
+def _run(argv=None):
     ap = argparse.ArgumentParser(description="Judging calls of protocol v2.3 (one block per session)")
     ap.add_argument("--run", default="", help="name of this session (ledger and logs)")
     ap.add_argument("--block", required=True, choices=JUDGE_BLOCKS)
@@ -597,6 +668,12 @@ def main(argv=None):
         S.acquire_lock("judges:" + a.run)
     try:
         sess.books = S.Books(a.run, run_cap=a.run_cap, write=bool(paid))
+        if paid:
+            reconcile(sess.books)
+            done = done_calls(verdicts_path(sess.block, a.build))           # read again under the lock
+            for jr in paid:
+                jr.calls = [c for c in jr.calls if call_key(c) not in done]
+        sess.prior = attempt_state(verdicts_path(sess.block, a.build))
         ok, msg = sess.books.start_check(sess.block, role="judge", apply_cuts=bool(paid))
         print(("start rule: " if ok else "NOT STARTED: ") + msg)
         if not ok:
@@ -610,8 +687,8 @@ def main(argv=None):
                 if n > int(it["calls"]):
                     sys.exit(f"{iid}: {n} planned calls > {it['calls']} in the holds file")
             rows = [r for r in sess.answers.values() if r["model_key"] == jr.m["key"]]
-            jr.ref_models = {r.get("model_returned") for r in rows} - {None, ""}
-            jr.ref_hosts = {r.get("served_provider") for r in rows} - {None, ""}
+            jr.ref_pairs = {(r.get("model_returned"), r.get("served_provider")) for r in rows
+                            if r.get("model_returned")}
         pre = preflight_paid(sess, paid)
         for jr in jrs:
             if not jr.stopped:

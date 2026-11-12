@@ -26,7 +26,7 @@ Boundary cases: in no replication was a denominator zero, an estimated variance 
 
 Null rows. Half-widths in percentage points.
 
-**Approximate power of the bound P3 for other margins.** Normal approximation with the simulated standard error of β̂_S; not a simulation of the test.
+**Approximate power of the bound P3 for other margins.** Normal approximation with the simulated standard error of β̂_S and the 99% quantile of Student's t with 298 degrees of freedom (all 300 prompts with a screen-positive answer; with fewer, the domain degrees of freedom of Section 8.1 are fewer and the quantile slightly larger); not a simulation of the test.
 
 | Scenario | Standard error of β̂_S | Margin 3: β = 0 | β = −1 | Margin 5: β = 0 | β = −1 | β = −2 | Margin 7: β = 0 | β = −1 | β = −2 | β = −3 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -70,120 +70,120 @@ Boundary cases: in no replication was a denominator zero, an estimated variance 
 
 | Scenario | Statistic | Interval | True value | Bias | Replications with an interval | Coverage of the 95% interval | Half-width | Labelled answers in the class (mean; minimum) | Events (mean): positive; negative | Zero variance | Coverage of the replaced ratio interval |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| screen_0.9_0.8 / null | `harm_share_pos / all` | eff-n | +80.04 | +0.00 | 10,000 | 99.6 | 6.5 | 215; 215 | 161.1; 53.9 | 0 | 96.4 |
-| screen_0.9_0.8 / null | `harm_share_neg / all` | eff-n | +10.02 | -0.02 | 10,000 | 99.4 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 92.8 |
-| screen_0.9_0.8 / null | `screen_pass_harm / all` | eff-n | +90.00 | +0.12 | 10,000 | 99.9 | 9.8 | 170; 147 | 161.1; 8.4 | 1 | 93.8 |
-| screen_0.9_0.8 / null | `det_blind_own / all` | eff-n | +74.98 | -0.03 | 10,000 | 98.0 | 7.9 | 161; 141 | 121.9; 39.1 | 0 | 95.3 |
-| screen_0.9_0.8 / null | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.7 | 7.9 | 161; 141 | 122.0; 39.1 | 0 | 94.5 |
-| screen_0.9_0.8 / null | `fa_blind_own / all` | eff-n | +11.72 | +0.06 | 10,000 | 97.6 | 9.9 | 54; 33 | 6.5; 47.4 | 9 | 91.6 |
-| screen_0.9_0.8 / null | `fa_blind_ctrl / all` | eff-n | +11.71 | +0.04 | 10,000 | 97.7 | 9.9 | 54; 33 | 6.4; 47.5 | 14 | 90.9 |
-| screen_0.9_0.8 / null | `det_change_own_reg / all` | ratio | -0.13 | -0.02 | 10,000 | 95.3 | 2.5 | 161; 141 | 10.9; 11.2 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_diff_reg / all` | ratio | -0.05 | +0.00 | 10,000 | 95.4 | 3.4 | 161; 141 | 18.8; 18.9 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_own_reg / r` | ratio | -0.12 | -0.02 | 10,000 | 95.5 | 2.6 | 128; 113 | 9.2; 9.4 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_diff_reg / r` | ratio | -0.04 | -0.00 | 10,000 | 95.3 | 3.4 | 128; 113 | 15.8; 15.8 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_own_reg / i` | ratio | -0.24 | -0.06 | 9,989 | 95.1 | 8.4 | 33; 17 | 1.7; 1.8 | 0 | – |
-| screen_0.9_0.8 / null | `fa_change_own_reg / all` | ratio | +0.50 | +0.00 | 10,000 | 99.1 | 6.9 | 54; 33 | 2.3; 2.0 | 0 | – |
-| screen_0.9_0.8 / null | `fa_change_diff_reg / all` | ratio | +0.25 | -0.05 | 10,000 | 99.2 | 9.5 | 54; 33 | 3.9; 3.8 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_own / all` | ratio | -0.13 | +0.01 | 10,000 | 95.0 | 5.9 | 161; 141 | 10.9; 11.2 | 0 | – |
-| screen_0.9_0.8 / null | `fa_change_own / all` | ratio | +0.50 | +0.03 | 9,884 | 96.2 | 7.5 | 54; 33 | 2.3; 2.0 | 116 | – |
-| screen_0.9_0.8 / both | `harm_share_pos / all` | eff-n | +80.04 | +0.00 | 10,000 | 99.6 | 6.5 | 215; 215 | 161.1; 53.9 | 0 | 96.4 |
-| screen_0.9_0.8 / both | `harm_share_neg / all` | eff-n | +10.02 | -0.02 | 10,000 | 99.4 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 92.8 |
-| screen_0.9_0.8 / both | `screen_pass_harm / all` | eff-n | +90.00 | +0.12 | 10,000 | 99.9 | 9.8 | 170; 147 | 161.1; 8.4 | 1 | 93.8 |
-| screen_0.9_0.8 / both | `det_blind_own / all` | eff-n | +74.98 | -0.03 | 10,000 | 98.0 | 7.9 | 161; 141 | 121.9; 39.1 | 0 | 95.3 |
-| screen_0.9_0.8 / both | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.7 | 7.9 | 161; 141 | 122.0; 39.1 | 0 | 94.5 |
-| screen_0.9_0.8 / both | `fa_blind_own / all` | eff-n | +11.72 | +0.06 | 10,000 | 97.6 | 9.9 | 54; 33 | 6.5; 47.4 | 9 | 91.6 |
-| screen_0.9_0.8 / both | `fa_blind_ctrl / all` | eff-n | +11.71 | +0.04 | 10,000 | 97.7 | 9.9 | 54; 33 | 6.4; 47.5 | 14 | 90.9 |
-| screen_0.9_0.8 / both | `det_change_own_reg / all` | ratio | -6.38 | -0.02 | 10,000 | 96.4 | 2.8 | 161; 141 | 8.1; 18.1 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_diff_reg / all` | ratio | -6.30 | +0.00 | 10,000 | 95.7 | 3.6 | 161; 141 | 15.8; 25.1 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_own_reg / r` | ratio | -6.64 | -0.02 | 10,000 | 96.7 | 2.9 | 128; 113 | 6.8; 15.2 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_diff_reg / r` | ratio | -6.56 | -0.00 | 10,000 | 95.8 | 3.7 | 128; 113 | 13.2; 21.0 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_own_reg / i` | ratio | -4.74 | -0.07 | 9,989 | 94.6 | 9.0 | 33; 17 | 1.3; 2.9 | 0 | – |
-| screen_0.9_0.8 / both | `fa_change_own_reg / all` | ratio | +0.50 | -0.01 | 10,000 | 98.8 | 7.1 | 54; 33 | 2.3; 2.0 | 0 | – |
-| screen_0.9_0.8 / both | `fa_change_diff_reg / all` | ratio | +0.25 | -0.06 | 10,000 | 99.1 | 9.7 | 54; 33 | 3.9; 3.8 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_own / all` | ratio | -6.38 | +0.00 | 10,000 | 94.7 | 6.4 | 161; 141 | 8.1; 18.1 | 0 | – |
-| screen_0.9_0.8 / both | `fa_change_own / all` | ratio | +0.50 | +0.03 | 9,884 | 96.2 | 7.5 | 54; 33 | 2.3; 2.0 | 116 | – |
+| screen_0.9_0.8 / null | `harm_share_pos / all` | eff-n | +80.04 | -0.04 | 10,000 | 99.4 | 6.6 | 215; 215 | 161.0; 54.0 | 0 | 96.7 |
+| screen_0.9_0.8 / null | `harm_share_neg / all` | eff-n | +10.02 | +0.00 | 10,000 | 99.5 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 93.3 |
+| screen_0.9_0.8 / null | `screen_pass_harm / all` | eff-n | +90.00 | +0.09 | 10,000 | 99.9 | 9.8 | 169; 145 | 161.0; 8.4 | 1 | 93.8 |
+| screen_0.9_0.8 / null | `det_blind_own / all` | eff-n | +74.98 | -0.00 | 10,000 | 97.9 | 7.9 | 161; 140 | 121.9; 39.1 | 0 | 94.9 |
+| screen_0.9_0.8 / null | `det_blind_ctrl / all` | eff-n | +74.94 | -0.03 | 10,000 | 97.6 | 7.9 | 161; 140 | 121.8; 39.2 | 0 | 94.8 |
+| screen_0.9_0.8 / null | `fa_blind_own / all` | eff-n | +11.72 | +0.01 | 10,000 | 97.7 | 9.9 | 54; 32 | 6.5; 47.5 | 21 | 91.7 |
+| screen_0.9_0.8 / null | `fa_blind_ctrl / all` | eff-n | +11.71 | -0.02 | 10,000 | 97.6 | 9.9 | 54; 32 | 6.4; 47.6 | 15 | 91.2 |
+| screen_0.9_0.8 / null | `det_change_own_reg / all` | ratio | -0.13 | +0.01 | 10,000 | 95.1 | 2.5 | 161; 140 | 10.9; 11.1 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_diff_reg / all` | ratio | -0.05 | +0.02 | 10,000 | 95.2 | 3.4 | 161; 140 | 18.9; 18.8 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_own_reg / r` | ratio | -0.12 | +0.01 | 10,000 | 95.4 | 2.6 | 128; 113 | 9.2; 9.3 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_diff_reg / r` | ratio | -0.04 | +0.02 | 10,000 | 95.5 | 3.4 | 128; 113 | 15.8; 15.8 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_own_reg / i` | ratio | -0.24 | +0.03 | 9,994 | 95.9 | 8.8 | 33; 17 | 1.7; 1.8 | 0 | – |
+| screen_0.9_0.8 / null | `fa_change_own_reg / all` | ratio | +0.50 | -0.06 | 10,000 | 99.1 | 6.8 | 54; 32 | 2.3; 2.0 | 0 | – |
+| screen_0.9_0.8 / null | `fa_change_diff_reg / all` | ratio | +0.25 | -0.07 | 10,000 | 99.1 | 9.5 | 54; 32 | 3.9; 3.7 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_own / all` | ratio | -0.13 | +0.05 | 10,000 | 95.0 | 6.0 | 161; 140 | 10.9; 11.1 | 0 | – |
+| screen_0.9_0.8 / null | `fa_change_own / all` | ratio | +0.50 | -0.02 | 9,866 | 96.3 | 7.6 | 54; 32 | 2.3; 2.0 | 134 | – |
+| screen_0.9_0.8 / both | `harm_share_pos / all` | eff-n | +80.04 | -0.04 | 10,000 | 99.4 | 6.6 | 215; 215 | 161.0; 54.0 | 0 | 96.7 |
+| screen_0.9_0.8 / both | `harm_share_neg / all` | eff-n | +10.02 | +0.00 | 10,000 | 99.5 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 93.3 |
+| screen_0.9_0.8 / both | `screen_pass_harm / all` | eff-n | +90.00 | +0.09 | 10,000 | 99.9 | 9.8 | 169; 145 | 161.0; 8.4 | 1 | 93.8 |
+| screen_0.9_0.8 / both | `det_blind_own / all` | eff-n | +74.98 | -0.00 | 10,000 | 97.9 | 7.9 | 161; 140 | 121.9; 39.1 | 0 | 94.9 |
+| screen_0.9_0.8 / both | `det_blind_ctrl / all` | eff-n | +74.94 | -0.03 | 10,000 | 97.6 | 7.9 | 161; 140 | 121.8; 39.2 | 0 | 94.8 |
+| screen_0.9_0.8 / both | `fa_blind_own / all` | eff-n | +11.72 | +0.01 | 10,000 | 97.7 | 9.9 | 54; 32 | 6.5; 47.5 | 21 | 91.7 |
+| screen_0.9_0.8 / both | `fa_blind_ctrl / all` | eff-n | +11.71 | -0.02 | 10,000 | 97.6 | 9.9 | 54; 32 | 6.4; 47.6 | 15 | 91.2 |
+| screen_0.9_0.8 / both | `det_change_own_reg / all` | ratio | -6.38 | +0.01 | 10,000 | 96.1 | 2.8 | 161; 140 | 8.1; 18.1 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_diff_reg / all` | ratio | -6.30 | +0.02 | 10,000 | 95.7 | 3.6 | 161; 140 | 15.9; 25.1 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_own_reg / r` | ratio | -6.64 | +0.01 | 10,000 | 96.2 | 2.9 | 128; 113 | 6.7; 15.1 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_diff_reg / r` | ratio | -6.56 | +0.02 | 10,000 | 96.0 | 3.7 | 128; 113 | 13.2; 21.0 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_own_reg / i` | ratio | -4.74 | -0.01 | 9,994 | 95.6 | 9.4 | 33; 17 | 1.3; 2.9 | 0 | – |
+| screen_0.9_0.8 / both | `fa_change_own_reg / all` | ratio | +0.50 | -0.05 | 10,000 | 98.7 | 7.1 | 54; 32 | 2.3; 2.0 | 0 | – |
+| screen_0.9_0.8 / both | `fa_change_diff_reg / all` | ratio | +0.25 | -0.06 | 10,000 | 99.1 | 9.6 | 54; 32 | 3.9; 3.7 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_own / all` | ratio | -6.38 | +0.03 | 10,000 | 95.1 | 6.4 | 161; 140 | 8.1; 18.1 | 0 | – |
+| screen_0.9_0.8 / both | `fa_change_own / all` | ratio | +0.50 | -0.02 | 9,866 | 96.3 | 7.6 | 54; 32 | 2.3; 2.0 | 134 | – |
 | screen_perfect / null | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.2 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
 | screen_perfect / null | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 3.9 | 60; 60 | 0.0; 60.0 | 10,000 | 100.0 |
 | screen_perfect / null | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 4.8 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
-| screen_perfect / null | `det_blind_own / all` | eff-n | +74.97 | -0.01 | 10,000 | 97.4 | 7.2 | 215; 215 | 166.0; 49.0 | 0 | 95.0 |
-| screen_perfect / null | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.0 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.4 |
+| screen_perfect / null | `det_blind_own / all` | eff-n | +74.97 | +0.02 | 10,000 | 97.2 | 7.2 | 215; 215 | 166.1; 48.9 | 0 | 94.9 |
+| screen_perfect / null | `det_blind_ctrl / all` | eff-n | +74.94 | -0.02 | 10,000 | 97.1 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.6 |
 | screen_perfect / null | `fa_blind_own / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / null | `fa_blind_ctrl / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / null | `det_change_own_reg / all` | ratio | +0.00 | -0.02 | 10,000 | 95.5 | 1.9 | 215; 215 | 14.1; 14.2 | 0 | – |
-| screen_perfect / null | `det_change_diff_reg / all` | ratio | +0.01 | -0.00 | 10,000 | 95.4 | 2.5 | 215; 215 | 24.2; 24.2 | 0 | – |
-| screen_perfect / null | `det_change_own_reg / r` | ratio | +0.02 | -0.02 | 10,000 | 95.5 | 2.1 | 140; 140 | 10.2; 10.2 | 0 | – |
-| screen_perfect / null | `det_change_diff_reg / r` | ratio | +0.02 | -0.00 | 10,000 | 95.5 | 2.7 | 140; 140 | 17.3; 17.3 | 0 | – |
-| screen_perfect / null | `det_change_own_reg / i` | ratio | -0.14 | -0.01 | 10,000 | 95.3 | 4.3 | 75; 75 | 3.9; 4.0 | 0 | – |
+| screen_perfect / null | `det_change_own_reg / all` | ratio | +0.00 | +0.01 | 10,000 | 95.1 | 1.9 | 215; 215 | 14.1; 14.1 | 0 | – |
+| screen_perfect / null | `det_change_diff_reg / all` | ratio | +0.01 | +0.01 | 10,000 | 95.1 | 2.5 | 215; 215 | 24.3; 24.2 | 0 | – |
+| screen_perfect / null | `det_change_own_reg / r` | ratio | +0.02 | +0.01 | 10,000 | 95.3 | 2.1 | 140; 140 | 10.2; 10.1 | 0 | – |
+| screen_perfect / null | `det_change_diff_reg / r` | ratio | +0.02 | +0.02 | 10,000 | 95.3 | 2.8 | 140; 140 | 17.3; 17.2 | 0 | – |
+| screen_perfect / null | `det_change_own_reg / i` | ratio | -0.14 | -0.02 | 10,000 | 95.9 | 4.3 | 75; 75 | 3.9; 4.0 | 0 | – |
 | screen_perfect / null | `fa_change_own_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / null | `fa_change_diff_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / null | `det_change_own / all` | ratio | +0.00 | -0.02 | 10,000 | 95.0 | 5.6 | 215; 215 | 14.1; 14.2 | 0 | – |
+| screen_perfect / null | `det_change_own / all` | ratio | +0.00 | +0.03 | 10,000 | 94.9 | 5.6 | 215; 215 | 14.1; 14.1 | 0 | – |
 | screen_perfect / null | `fa_change_own / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / both | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.2 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
 | screen_perfect / both | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 3.9 | 60; 60 | 0.0; 60.0 | 10,000 | 100.0 |
 | screen_perfect / both | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 4.8 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
-| screen_perfect / both | `det_blind_own / all` | eff-n | +74.97 | -0.01 | 10,000 | 97.4 | 7.2 | 215; 215 | 166.0; 49.0 | 0 | 95.0 |
-| screen_perfect / both | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.0 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.4 |
+| screen_perfect / both | `det_blind_own / all` | eff-n | +74.97 | +0.02 | 10,000 | 97.2 | 7.2 | 215; 215 | 166.1; 48.9 | 0 | 94.9 |
+| screen_perfect / both | `det_blind_ctrl / all` | eff-n | +74.94 | -0.02 | 10,000 | 97.1 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.6 |
 | screen_perfect / both | `fa_blind_own / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / both | `fa_blind_ctrl / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / both | `det_change_own_reg / all` | ratio | -5.00 | -0.01 | 10,000 | 96.8 | 2.2 | 215; 215 | 11.0; 21.0 | 0 | – |
-| screen_perfect / both | `det_change_diff_reg / all` | ratio | -4.99 | +0.00 | 10,000 | 96.2 | 2.7 | 215; 215 | 21.0; 30.4 | 0 | – |
-| screen_perfect / both | `det_change_own_reg / r` | ratio | -5.20 | -0.02 | 10,000 | 96.7 | 2.4 | 140; 140 | 7.8; 15.1 | 0 | – |
-| screen_perfect / both | `det_change_diff_reg / r` | ratio | -5.19 | -0.00 | 10,000 | 96.2 | 2.9 | 140; 140 | 14.9; 21.7 | 0 | – |
-| screen_perfect / both | `det_change_own_reg / i` | ratio | -3.71 | +0.01 | 10,000 | 95.2 | 4.6 | 75; 75 | 3.1; 5.9 | 0 | – |
+| screen_perfect / both | `det_change_own_reg / all` | ratio | -5.00 | +0.01 | 10,000 | 96.0 | 2.2 | 215; 215 | 11.0; 21.0 | 0 | – |
+| screen_perfect / both | `det_change_diff_reg / all` | ratio | -4.99 | +0.01 | 10,000 | 95.8 | 2.7 | 215; 215 | 21.1; 30.4 | 0 | – |
+| screen_perfect / both | `det_change_own_reg / r` | ratio | -5.20 | +0.02 | 10,000 | 96.4 | 2.4 | 140; 140 | 7.8; 15.0 | 0 | – |
+| screen_perfect / both | `det_change_diff_reg / r` | ratio | -5.19 | +0.02 | 10,000 | 96.2 | 3.0 | 140; 140 | 14.9; 21.6 | 0 | – |
+| screen_perfect / both | `det_change_own_reg / i` | ratio | -3.71 | -0.04 | 10,000 | 95.7 | 4.7 | 75; 75 | 3.1; 6.0 | 0 | – |
 | screen_perfect / both | `fa_change_own_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / both | `fa_change_diff_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / both | `det_change_own / all` | ratio | -5.00 | -0.00 | 10,000 | 94.8 | 5.9 | 215; 215 | 11.0; 21.0 | 0 | – |
+| screen_perfect / both | `det_change_own / all` | ratio | -5.00 | +0.04 | 10,000 | 95.0 | 5.9 | 215; 215 | 11.0; 21.0 | 0 | – |
 | screen_perfect / both | `fa_change_own / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| low_failure / null | `harm_share_pos / all` | eff-n | +40.09 | +0.01 | 10,000 | 98.5 | 7.9 | 215; 215 | 83.4; 131.6 | 0 | 96.0 |
-| low_failure / null | `harm_share_neg / all` | eff-n | +1.82 | +0.01 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,075 | 69.1 |
-| low_failure / null | `screen_pass_harm / all` | eff-n | +90.02 | +0.65 | 10,000 | 99.7 | 22.5 | 85; 56 | 83.4; 1.2 | 3,075 | 68.5 |
-| low_failure / null | `det_blind_own / all` | eff-n | +74.57 | -0.07 | 10,000 | 97.5 | 10.7 | 83; 55 | 62.3; 21.2 | 0 | 94.0 |
-| low_failure / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.02 | 10,000 | 97.7 | 10.6 | 83; 55 | 62.4; 21.1 | 0 | 94.6 |
-| low_failure / null | `fa_blind_own / all` | eff-n | +11.23 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / null | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.00 | 10,000 | 97.9 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / null | `det_change_own_reg / all` | ratio | -0.68 | +0.03 | 10,000 | 94.8 | 6.3 | 83; 55 | 6.7; 7.3 | 0 | – |
-| low_failure / null | `det_change_diff_reg / all` | ratio | -0.31 | +0.00 | 10,000 | 95.2 | 8.7 | 83; 55 | 11.6; 11.8 | 0 | – |
-| low_failure / null | `det_change_own_reg / r` | ratio | -0.68 | +0.02 | 10,000 | 95.0 | 6.6 | 74; 51 | 6.2; 6.7 | 0 | – |
-| low_failure / null | `det_change_diff_reg / r` | ratio | -0.32 | +0.00 | 10,000 | 95.2 | 9.1 | 74; 51 | 10.6; 10.8 | 0 | – |
-| low_failure / null | `det_change_own_reg / i` | ratio | -0.60 | +2.48 | 9 | 100.0 | 14.4 | 9; 1 | 0.5; 0.6 | 0 | – |
-| low_failure / null | `fa_change_own_reg / all` | ratio | +0.49 | -0.05 | 10,000 | 95.5 | 4.1 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure / null | `fa_change_diff_reg / all` | ratio | +0.24 | -0.02 | 10,000 | 95.6 | 5.6 | 132; 105 | 10.7; 10.5 | 0 | – |
-| low_failure / null | `det_change_own / all` | ratio | -0.68 | +0.03 | 10,000 | 94.8 | 8.8 | 83; 55 | 6.7; 7.3 | 0 | – |
-| low_failure / null | `fa_change_own / all` | ratio | +0.49 | -0.07 | 10,000 | 95.0 | 5.2 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure / both | `harm_share_pos / all` | eff-n | +40.09 | +0.01 | 10,000 | 98.5 | 7.9 | 215; 215 | 83.4; 131.6 | 0 | 96.0 |
-| low_failure / both | `harm_share_neg / all` | eff-n | +1.82 | +0.01 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,075 | 69.1 |
-| low_failure / both | `screen_pass_harm / all` | eff-n | +90.02 | +0.65 | 10,000 | 99.7 | 22.5 | 85; 56 | 83.4; 1.2 | 3,075 | 68.5 |
-| low_failure / both | `det_blind_own / all` | eff-n | +74.57 | -0.07 | 10,000 | 97.5 | 10.7 | 83; 55 | 62.3; 21.2 | 0 | 94.0 |
-| low_failure / both | `det_blind_ctrl / all` | eff-n | +74.58 | +0.02 | 10,000 | 97.7 | 10.6 | 83; 55 | 62.4; 21.1 | 0 | 94.6 |
-| low_failure / both | `fa_blind_own / all` | eff-n | +11.23 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / both | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.00 | 10,000 | 97.9 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / both | `det_change_own_reg / all` | ratio | -13.15 | +0.01 | 10,000 | 94.6 | 7.2 | 83; 55 | 4.4; 15.4 | 0 | – |
-| low_failure / both | `det_change_diff_reg / all` | ratio | -12.79 | -0.01 | 10,000 | 95.0 | 9.3 | 83; 55 | 9.0; 18.8 | 0 | – |
-| low_failure / both | `det_change_own_reg / r` | ratio | -13.51 | +0.01 | 10,000 | 95.0 | 7.5 | 74; 51 | 4.0; 14.1 | 0 | – |
-| low_failure / both | `det_change_diff_reg / r` | ratio | -13.14 | -0.01 | 10,000 | 95.0 | 9.7 | 74; 51 | 8.2; 17.2 | 0 | – |
-| low_failure / both | `det_change_own_reg / i` | ratio | -9.82 | +4.82 | 9 | 55.6 | 16.2 | 9; 1 | 0.4; 1.3 | 0 | – |
-| low_failure / both | `fa_change_own_reg / all` | ratio | +0.49 | -0.05 | 10,000 | 95.6 | 4.4 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure / both | `fa_change_diff_reg / all` | ratio | +0.24 | -0.02 | 10,000 | 95.6 | 5.9 | 132; 105 | 10.7; 10.5 | 0 | – |
-| low_failure / both | `det_change_own / all` | ratio | -13.15 | -0.00 | 10,000 | 94.0 | 10.2 | 83; 55 | 4.4; 15.4 | 0 | – |
-| low_failure / both | `fa_change_own / all` | ratio | +0.49 | -0.07 | 10,000 | 95.0 | 5.2 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure_perfect / null | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.4 | 185; 163 | 184.9; 0.0 | 10,000 | 100.0 |
-| low_failure_perfect / null | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 2.3 | 90; 69 | 0.0; 90.1 | 10,000 | 100.0 |
-| low_failure_perfect / null | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 13.9 | 185; 163 | 184.9; 0.0 | 10,000 | 100.0 |
-| low_failure_perfect / null | `det_blind_own / all` | eff-n | +74.56 | -0.01 | 10,000 | 97.7 | 7.8 | 185; 163 | 140.7; 44.3 | 0 | 94.4 |
-| low_failure_perfect / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.02 | 10,000 | 97.6 | 7.8 | 185; 163 | 140.7; 44.2 | 0 | 94.4 |
+| low_failure / null | `harm_share_pos / all` | eff-n | +40.09 | -0.04 | 10,000 | 98.3 | 7.9 | 215; 215 | 83.3; 131.7 | 0 | 95.8 |
+| low_failure / null | `harm_share_neg / all` | eff-n | +1.82 | +0.02 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,066 | 69.2 |
+| low_failure / null | `screen_pass_harm / all` | eff-n | +90.02 | +0.61 | 10,000 | 99.8 | 22.5 | 85; 57 | 83.3; 1.2 | 3,066 | 68.6 |
+| low_failure / null | `det_blind_own / all` | eff-n | +74.57 | -0.06 | 10,000 | 97.5 | 10.7 | 83; 57 | 62.2; 21.1 | 0 | 94.4 |
+| low_failure / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.08 | 10,000 | 97.6 | 10.6 | 83; 57 | 62.3; 21.0 | 0 | 94.5 |
+| low_failure / null | `fa_blind_own / all` | eff-n | +11.23 | -0.05 | 10,000 | 98.0 | 6.3 | 132; 108 | 14.8; 116.8 | 0 | 93.6 |
+| low_failure / null | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 108 | 14.9; 116.7 | 0 | 93.9 |
+| low_failure / null | `det_change_own_reg / all` | ratio | -0.68 | -0.01 | 10,000 | 95.7 | 6.4 | 83; 57 | 6.7; 7.3 | 0 | – |
+| low_failure / null | `det_change_diff_reg / all` | ratio | -0.31 | +0.02 | 10,000 | 95.0 | 8.8 | 83; 57 | 11.6; 11.8 | 0 | – |
+| low_failure / null | `det_change_own_reg / r` | ratio | -0.68 | -0.02 | 10,000 | 95.3 | 6.7 | 74; 52 | 6.2; 6.7 | 0 | – |
+| low_failure / null | `det_change_diff_reg / r` | ratio | -0.32 | -0.00 | 10,000 | 95.3 | 9.2 | 74; 52 | 10.6; 10.8 | 0 | – |
+| low_failure / null | `det_change_own_reg / i` | ratio | -0.60 | +10.63 | 1 | 100.0 | 13.4 | 9; 1 | 0.5; 0.6 | 0 | – |
+| low_failure / null | `fa_change_own_reg / all` | ratio | +0.49 | -0.01 | 10,000 | 95.4 | 4.1 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure / null | `fa_change_diff_reg / all` | ratio | +0.24 | -0.02 | 10,000 | 95.4 | 5.6 | 132; 108 | 10.8; 10.5 | 0 | – |
+| low_failure / null | `det_change_own / all` | ratio | -0.68 | +0.00 | 10,000 | 94.9 | 9.0 | 83; 57 | 6.7; 7.3 | 0 | – |
+| low_failure / null | `fa_change_own / all` | ratio | +0.49 | +0.00 | 10,000 | 95.4 | 5.2 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure / both | `harm_share_pos / all` | eff-n | +40.09 | -0.04 | 10,000 | 98.3 | 7.9 | 215; 215 | 83.3; 131.7 | 0 | 95.8 |
+| low_failure / both | `harm_share_neg / all` | eff-n | +1.82 | +0.02 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,066 | 69.2 |
+| low_failure / both | `screen_pass_harm / all` | eff-n | +90.02 | +0.61 | 10,000 | 99.8 | 22.5 | 85; 57 | 83.3; 1.2 | 3,066 | 68.6 |
+| low_failure / both | `det_blind_own / all` | eff-n | +74.57 | -0.06 | 10,000 | 97.5 | 10.7 | 83; 57 | 62.2; 21.1 | 0 | 94.4 |
+| low_failure / both | `det_blind_ctrl / all` | eff-n | +74.58 | +0.08 | 10,000 | 97.6 | 10.6 | 83; 57 | 62.3; 21.0 | 0 | 94.5 |
+| low_failure / both | `fa_blind_own / all` | eff-n | +11.23 | -0.05 | 10,000 | 98.0 | 6.3 | 132; 108 | 14.8; 116.8 | 0 | 93.6 |
+| low_failure / both | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 108 | 14.9; 116.7 | 0 | 93.9 |
+| low_failure / both | `det_change_own_reg / all` | ratio | -13.15 | +0.02 | 10,000 | 94.9 | 7.3 | 83; 57 | 4.5; 15.3 | 0 | – |
+| low_failure / both | `det_change_diff_reg / all` | ratio | -12.79 | +0.06 | 10,000 | 95.1 | 9.5 | 83; 57 | 9.1; 18.7 | 0 | – |
+| low_failure / both | `det_change_own_reg / r` | ratio | -13.51 | +0.01 | 10,000 | 95.2 | 7.6 | 74; 52 | 4.1; 14.0 | 0 | – |
+| low_failure / both | `det_change_diff_reg / r` | ratio | -13.14 | +0.03 | 10,000 | 95.1 | 9.9 | 74; 52 | 8.2; 17.1 | 0 | – |
+| low_failure / both | `det_change_own_reg / i` | ratio | -9.82 | +2.99 | 1 | 100.0 | 12.3 | 9; 1 | 0.4; 1.3 | 0 | – |
+| low_failure / both | `fa_change_own_reg / all` | ratio | +0.49 | -0.05 | 10,000 | 95.8 | 4.4 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure / both | `fa_change_diff_reg / all` | ratio | +0.24 | -0.07 | 10,000 | 95.5 | 5.9 | 132; 108 | 10.8; 10.5 | 0 | – |
+| low_failure / both | `det_change_own / all` | ratio | -13.15 | +0.08 | 10,000 | 94.4 | 10.3 | 83; 57 | 4.5; 15.3 | 0 | – |
+| low_failure / both | `fa_change_own / all` | ratio | +0.49 | +0.00 | 10,000 | 95.4 | 5.2 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure_perfect / null | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.4 | 185; 160 | 184.8; 0.0 | 10,000 | 100.0 |
+| low_failure_perfect / null | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 2.3 | 90; 67 | 0.0; 90.2 | 10,000 | 100.0 |
+| low_failure_perfect / null | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 13.9 | 185; 160 | 184.8; 0.0 | 10,000 | 100.0 |
+| low_failure_perfect / null | `det_blind_own / all` | eff-n | +74.56 | -0.05 | 10,000 | 98.0 | 7.8 | 185; 160 | 140.5; 44.3 | 0 | 95.1 |
+| low_failure_perfect / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.07 | 10,000 | 97.7 | 7.8 | 185; 160 | 140.7; 44.1 | 0 | 94.7 |
 | low_failure_perfect / null | `fa_blind_own / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | low_failure_perfect / null | `fa_blind_ctrl / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| low_failure_perfect / null | `det_change_own_reg / all` | ratio | +0.02 | -0.00 | 10,000 | 95.1 | 3.8 | 185; 163 | 14.8; 14.8 | 0 | – |
-| low_failure_perfect / null | `det_change_diff_reg / all` | ratio | +0.02 | -0.01 | 10,000 | 94.8 | 5.2 | 185; 163 | 25.0; 25.0 | 0 | – |
-| low_failure_perfect / null | `det_change_own_reg / r` | ratio | +0.04 | -0.01 | 10,000 | 94.9 | 4.1 | 140; 140 | 12.0; 12.0 | 0 | – |
-| low_failure_perfect / null | `det_change_diff_reg / r` | ratio | +0.03 | -0.01 | 10,000 | 95.0 | 5.5 | 140; 140 | 20.1; 20.1 | 0 | – |
-| low_failure_perfect / null | `det_change_own_reg / i` | ratio | -0.13 | +0.04 | 9,954 | 94.3 | 10.0 | 45; 23 | 2.7; 2.8 | 46 | – |
+| low_failure_perfect / null | `det_change_own_reg / all` | ratio | +0.02 | -0.01 | 10,000 | 95.5 | 3.8 | 185; 160 | 14.8; 14.8 | 0 | – |
+| low_failure_perfect / null | `det_change_diff_reg / all` | ratio | +0.02 | +0.00 | 10,000 | 95.2 | 5.2 | 185; 160 | 25.0; 25.0 | 0 | – |
+| low_failure_perfect / null | `det_change_own_reg / r` | ratio | +0.04 | -0.00 | 10,000 | 95.5 | 4.1 | 140; 140 | 12.1; 12.0 | 0 | – |
+| low_failure_perfect / null | `det_change_diff_reg / r` | ratio | +0.03 | +0.00 | 10,000 | 95.6 | 5.6 | 140; 140 | 20.2; 20.1 | 0 | – |
+| low_failure_perfect / null | `det_change_own_reg / i` | ratio | -0.13 | -0.04 | 9,958 | 94.6 | 10.4 | 45; 20 | 2.7; 2.8 | 42 | – |
 | low_failure_perfect / null | `fa_change_own_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | low_failure_perfect / null | `fa_change_diff_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| low_failure_perfect / null | `det_change_own / all` | ratio | +0.02 | -0.01 | 10,000 | 94.5 | 6.4 | 185; 163 | 14.8; 14.8 | 0 | – |
+| low_failure_perfect / null | `det_change_own / all` | ratio | +0.02 | +0.02 | 10,000 | 94.6 | 6.4 | 185; 160 | 14.8; 14.8 | 0 | – |
 | low_failure_perfect / null | `fa_change_own / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 
-All 7 scenarios, every replication: labelled answers 583, second labels 388, challenge set 70, API reference subset 130, unfilled quota 0, answers with no chance of selection 0. Values in percentage points.
+All 7 scenarios, every replication: labelled answers 567, second labels 381, challenge set 70, API reference subset 130, unfilled quota 0, answers with no chance of selection 0. Values in percentage points.
 
 - **Interval.** `eff-n`: the approximate interval on the effective number of answers (Section 9.5). `ratio`: the cluster ratio interval of Section 8.
 - **Replications with an interval.** The class holds at least 20 labelled answers. For a ratio interval the estimated variance is also above zero. Bias and coverage are computed over these replications.

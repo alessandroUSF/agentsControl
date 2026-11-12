@@ -16,6 +16,7 @@ import csv
 import datetime as dt
 import hashlib
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -226,16 +227,16 @@ def read_key(path):
     return {r["item_id"]: r for r in rows}
 
 
-def agreement(pairs):
-    """Agreement on harmful_content between two labellers (Section 9.3): pairs of ('yes'|'no', 'yes'|'no').
-    Counts and point estimates only; the registered intervals are computed by the analysis."""
-    a = sum(1 for x, y in pairs if x == "yes" and y == "yes")
-    b = sum(1 for x, y in pairs if x == "yes" and y == "no")
-    c = sum(1 for x, y in pairs if x == "no" and y == "yes")
-    d = sum(1 for x, y in pairs if x == "no" and y == "no")
+AGREEMENT_STATS = ("raw", "agreement_yes", "agreement_no", "kappa")
+AGREEMENT_RESAMPLES = 2000
+AGREEMENT_SEED = 20261112
+
+
+def _agreement_stats(a, b, c, d):
+    """Raw agreement, agreement on 'yes' and on 'no' (specific agreement) and Cohen's kappa of a 2x2 table; None
+    where a statistic is not defined."""
     n = a + b + c + d
-    out = {"n": n, "yes_yes": a, "yes_no": b, "no_yes": c, "no_no": d,
-           "raw": None, "agreement_yes": None, "agreement_no": None, "kappa": None}
+    out = dict.fromkeys(AGREEMENT_STATS)
     if n:
         po = (a + d) / n
         pe = ((a + b) * (a + c) + (c + d) * (b + d)) / n ** 2
@@ -243,6 +244,39 @@ def agreement(pairs):
         out["agreement_yes"] = 2 * a / (2 * a + b + c) if (2 * a + b + c) else None
         out["agreement_no"] = 2 * d / (2 * d + b + c) if (2 * d + b + c) else None
         out["kappa"] = (po - pe) / (1 - pe) if pe < 1 else None
+    return out
+
+
+def agreement(pairs, resamples=AGREEMENT_RESAMPLES, seed=AGREEMENT_SEED):
+    """Agreement on harmful_content between two labellers (Section 9.3): pairs of ('yes'|'no', 'yes'|'no'). Counts,
+    the four statistics and their 95% intervals ('ci95'): percentile bootstrap over the answers, 2,000 resamples with
+    a fixed seed [reading: Section 9.3 asks for intervals and names no method; the bootstrap serves the four
+    statistics alike]. A resample in which a statistic is not defined (no 'yes' at all, say) is left out of that
+    statistic's interval and counted ('undefined_resamples'); with no defined resample the interval is None."""
+    a = sum(1 for x, y in pairs if x == "yes" and y == "yes")
+    b = sum(1 for x, y in pairs if x == "yes" and y == "no")
+    c = sum(1 for x, y in pairs if x == "no" and y == "yes")
+    d = sum(1 for x, y in pairs if x == "no" and y == "no")
+    n = a + b + c + d
+    out = {"n": n, "yes_yes": a, "yes_no": b, "no_yes": c, "no_no": d}
+    out.update(_agreement_stats(a, b, c, d))
+    cells = [0] * a + [1] * b + [2] * c + [3] * d
+    draws = {k: [] for k in AGREEMENT_STATS}
+    rng = random.Random(seed)
+    for _ in range(resamples if n else 0):
+        t = [0, 0, 0, 0]
+        for _ in range(n):
+            t[cells[rng.randrange(n)]] += 1
+        for k, v in _agreement_stats(*t).items():
+            if v is not None:
+                draws[k].append(v)
+    out["ci95"] = {}
+    for k, v in draws.items():
+        v.sort()
+        lo = v[int(0.025 * (len(v) - 1))] if v else None
+        hi = v[int(round(0.975 * (len(v) - 1)))] if v else None
+        out["ci95"][k] = {"lo": lo, "hi": hi, "undefined_resamples": (resamples if n else 0) - len(v)}
+    out["ci95_method"] = f"percentile bootstrap over answers, {resamples} resamples, seed {seed}"
     return out
 
 

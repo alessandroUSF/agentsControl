@@ -2,7 +2,7 @@
 
 Protocol v2.3, Section 19.1.
 
-- **Status: D12, D14, D15 and D16 recorded on 11 November 2026 and initialed by the PI the same day. The other decisions are open.**
+- **Status: D12, D14, D15 and D16 recorded on 11 November 2026 and initialed by the PI the same day. The part of D2 on model 14 recorded on 11 November 2026. D1, the rest of D2, D17, D18, the part of D13 on the pilot and the later changes to D2 and D16 recorded on 12 November 2026. Every entry of 11 and 12 November is initialed by the PI; the entries of 11 November without initials on that day were initialed on 12 November. D14 was confirmed on 12 November 2026. D19 was proposed by the AI assistant on 12 November 2026 and awaits the PI's decision. The other decisions are open.**
 - The principal investigator (PI) records each decision here, with a date, before the step named under "Recorded before".
 - A recorded decision is not edited. A later change is a new dated entry under the same heading.
 - D1 to D5, D12 and D14 to D16 are conditions of the pilot registration (Section 14.2). D6 and D8 are recorded before the first training round (Section 19.2, action 14). D7, D10, D13 and the second statement of D5 are conditions of the freeze (Section 14.4).
@@ -20,14 +20,15 @@ Protocol v2.3, Section 19.1.
 
 | Provider | Models | Pilot row: on or off | Block 7: on or off | Reason | Date |
 |---|---|---|---|---|---|
-| Anthropic | 1, 2 | | | | |
-| OpenAI | 3, 9, 11 | | | | |
-| DeepSeek, through OpenRouter | 7 | | | | |
-| Z.ai, through OpenRouter | 8 | | | | |
-| Tencent, through OpenRouter | 10 | | | | |
-| Moonshot, through OpenRouter | 12 | | | | |
-| xAI, through OpenRouter | 13 | | | | |
-| Google, through OpenRouter | 14 | | | | |
+| Anthropic | 1, 2 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+| OpenAI | 3, 9, 11 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+| DeepSeek, through OpenRouter | 7 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+| Z.ai, through OpenRouter | 8 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+| Tencent, through OpenRouter | 10 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+| Moonshot, through OpenRouter | 12 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+| xAI, through OpenRouter | 13 | On | On | The PI's reading of the terms; every model is treated alike | 12 November 2026 |
+
+- **Decision and date.** 12 November 2026: both rows on for every provider. The PI has read the terms of each provider. They forbid requests of certain kinds; the PI judges that the study's prompts, published benchmark prompts (Section 4.1 of the protocol), are not of those kinds, and states that the most extreme prompts were left out of the study. Every model takes part in every test alike. The record of each reading, with its pages and dates, is completed in `docs/PROVIDER_TERMS.md` before the pilot registration (condition 1 above). Model 14, which had a row here, left the study (D17). Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
 
 ## D2. Provider terms, and models without a zero-retention endpoint
 
@@ -38,7 +39,10 @@ Protocol v2.3, Section 19.1.
   1. Model 14 receives safe prompts only (the recommendation above). The account then admits safety-retention endpoints, and only model 14 uses one.
   2. Model 14 receives the harmful prompts too, under safety retention. The PI records the retention terms in `docs/PROVIDER_TERMS.md`.
   3. The account accepts zero-retention endpoints only. Model 14 then has no endpoint and leaves the study, and the commercial panel has ten models.
-- **Decision and date.** The reading itself is recorded in `docs/PROVIDER_TERMS.md`.
+- **Fact of 11 November 2026: Google's own API.** Checked by the assistant in Google's public documentation; no model was called. Google serves model 14 through the Gemini API to a project of the study's own, at the same list price as on OpenRouter. For a project with billing enabled, Google's terms for paid services apply: prompts and responses are not used to improve Google's products, and they are logged for a limited period, solely to detect violations of the Prohibited Use Policy and for required legal or regulatory disclosures; the usage policy names 55 days. An optional Contributor tier lets Google use the data in exchange for lower prices. These are terms of the same kind as those of the Anthropic and OpenAI accounts. The pages and their addresses are in `docs/PROVIDER_TERMS.md`.
+- **Decision and date.** 11 November 2026: model 14 leaves OpenRouter (a later change to decision D16, recorded there). It is called directly on the Gemini API, with the key of a project created for this study at Google (`AC_GOOGLE_API_KEY`), like the Anthropic and OpenAI models, and the project does not join the Contributor tier. Like those models, it receives every prompt, harmful ones included, as respondent and as judge (`d2_safety_retention: all` in `config/models.json`). The OpenRouter account accepts zero-retention endpoints only. The reading of each provider's terms, Google's included, is recorded in `docs/PROVIDER_TERMS.md`. Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+- **Later change, 12 November 2026 (decision D17).** Model 14 left the study before any call. No model is called on the Gemini API, and the study's Google project is not used. After D17 no pinned endpoint of the panel keeps data for safety review (decision D16). Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+- **Decision on the rest of the question, 12 November 2026.** Every model of the study receives every prompt, harmful ones included, as respondent and as judge: each model reached through OpenRouter on its pinned zero-retention endpoint (D16), and the Anthropic and OpenAI models under their standard API terms. No model receives safe prompts only. The PI's reading of the terms is the one stated under D1. Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
 
 ## D3. Llama 3.1 Acceptable Use Policy
 
@@ -169,8 +173,9 @@ Protocol v2.3, Section 19.1.
   - With twelve models, the control structure of Section 6.3 holds, and models 20 and 23 control each other. But if a provider stops serving model 22 or 23 after the freeze, before its calls on the harmful frame are complete, the registered tests are not declared and the study is descriptive (Section 10.4). With two hosted models this risk is larger than with one.
   - Without model 23, the structure of Section 6.3 is the one of the panel before decision D15. Without model 22, abliterated models partly control each other (Section 6.5).
   - With ten models, no provider can end the confirmatory analysis. But abliterated models partly control each other (Section 6.5).
-  - The label sample has 583 answers with twelve models, 547 with eleven and 511 with ten. The title names the number of models.
+  - The label sample has 567 answers with twelve models, 531 with eleven and 495 with ten (with the commercial panel of ten models, decision D17). The title names the number of models.
 - **Recommendation of the draft.** Register each hosted model whose three facts hold. The calls of the hosted models are the first after the freeze (Section 12.3).
+- **Part decided on 12 November 2026: the pilot.** Models 22 and 23 both take part in the pilot, as respondents and as judges. Whether each one is registered is decided at the freeze, by the rule above. Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
 - **Decision and date.**
 
 ## D14. The cash cap
@@ -196,6 +201,8 @@ Protocol v2.3, Section 19.1.
   - Decisions D15 and D16 raised the pessimistic plan from US$115.68 to US$123.30 (expected: US$58.84). Model 23 adds US$5.97: US$3.94 for its own answers and verdicts, and US$2.03 for the calls of the other API judges on its answers. The pinned endpoints add US$1.63: models 8 and 10 cost more at their developers' endpoints than at the lowest list price of 8 November, and model 7 a little less. Together, US$7.62.
   - The PI chose the lowest cap and ceiling that keep the pessimistic plan without a cut, on the condition that model 23 is included. It was (D15). Before the choice the new ceiling had been estimated at US$122 to US$125.
   - The ceiling is the lowest whole-dollar value at or above US$123.30. The cap keeps the US$4 margin of the first step for fees and taxes. The ceiling lies inside that estimate; the cap, US$128, is above it.
+  - Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+- **Confirmed on 12 November 2026, after decision D17.** Without model 14 the pessimistic plan is US$102.03 (expected: US$47.12). The PI keeps the cap of US$128 and the ceiling of US$124. The US$21.97 left under the ceiling absorbs a rise in prices, or larger token counts measured in the pilot, without a cut. The rule of the second step would have given a cap of US$107 and a ceiling of US$103, and a rise of about 1% would then have forced cut 1.
   - Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
 
 ## D15. A second hosted model without refusals
@@ -245,3 +252,59 @@ Protocol v2.3, Section 19.1.
 
 - **To weigh.** For model 12 the rule picks the developer's endpoint, at mxfp4. A listed endpoint of another host, `deepinfra/bf16`, states a higher precision at a slightly lower price (US$1.90 / 9.50). The rule puts the developer first. The PI can reverse that order before the pilot registration.
 - **Decision and date.** 11 November 2026: OpenRouter, with one endpoint pinned per model by the rule above; no account at each developer. Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+- **Later change, 11 November 2026 (decision D2).** Model 14 leaves this route and is called directly on the Gemini API. Seven models stay on OpenRouter: 7, 8, 10, 12, 13, 22 and 23. None of their pinned endpoints is marked for safety retention. Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+- **Later change, 12 November 2026 (decision D17).** Model 14 left the study. The seven models above and their pins are unchanged. Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+
+## D17. Model 14 and the price cap
+
+- **Question.** Does model 14, Gemini 4 Argon, stay in the commercial panel after its price rises above the cap at which it was chosen?
+- **Recorded before.** Pilot registration.
+- **Facts.**
+  - Strata 7 to 14 admit a model only if its output price is at most US$10 per million tokens, at the OpenRouter list price, "the price the study pays" (Section 3.2; PI decision of 8 November 2026). Fable 5.1, Astra and Opus 5.5 were left out by this cap. Model 14 was chosen at exactly US$10.00 (`data/selection/2026-11-08/SELECTION_EVIDENCE.md`).
+  - Google's price for model 14 doubles on 1 December 2026, to US$4.00 in and US$20.00 out per million tokens, on every route (Gemini API pricing page, read on 11 November 2026). The main run falls after that date. The pessimistic plan then costs US$144.53, above the cap of US$128 (D14).
+  - Applied again at that price, the rule of Section 3.2 would leave model 14 out. Google's best model within the cap is then Gemini 3.8 Flash (index 30.85), ninth of the ranking; the fifth developer of the stratum would be Tencent with Hy4 (index 34.56; US$0.42 in and US$1.25 out on OpenRouter), already the pick under the Artificial Analysis prices of 8 November.
+  - No model of the study has answered or judged anything yet under protocol v2.3. The decision depends on no answer.
+- **Options.** 1. Keep model 14 on the Gemini API and raise the cap to US$149 and the ceiling to US$145. 2. Leave it out and apply the rule again: Hy4 joins as model 14. 3. Leave it out with no replacement: the commercial panel has ten models.
+- **Decision and date.** 12 November 2026: option 3. Model 14 leaves the study, and no model takes its place. The commercial panel has ten models: 1, 2, 3 and 7 to 13; Google has no model in the study. The other models keep their numbers. The selection evidence of 8 November is not changed.
+- **Consequences.**
+  - The manifest falls to US$102.03 pessimistic and US$47.12 expected. The cap (US$128) and the freeze ceiling (US$124) are unchanged (D14). The open choice on the price rise of model 14 lapses.
+  - The label sample has 567 answers and 381 second labels (583 and 388 before). Each local judge makes 2,617 judging calls and each hosted judge 2,337.
+  - The control assignment of the commercial panel is drawn again with its seed; the assignment of the primary panel does not change. Package R-S3 of Appendix A, which includes the commercial answers, runs again.
+  - Decision D2 for model 14 lapses (later change under D2). The Gemini adapter written for D2 stays in the code with its offline tests; no model uses it.
+- Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+
+## D18. The answers that already exist
+
+- **Question.** Are the 7,457 answers that seven local models wrote before this design used in the study, or are those answers generated again after the pilot registration?
+- **Recorded before.** Pilot registration.
+- **Facts.**
+  - Models 4, 5, 6 and 15 to 18 answered on 7 to 9 November 2026, with the code of versions 1 and 2.2 (protocol Section 3.4). The draft used these answers: those to frame prompts as confirmatory material, those to tail prompts in the pilot. Models 19 to 23 and the commercial models answer after the registration, with the code of version 2.3.
+  - That no person has read the old answers rests on the PI's statement (D5). The hashes show only that the files did not change since they were recorded (protocol Section 18.8).
+  - The call records of version 1 (models 4, 5 and 6) do not keep the hash of the configuration or of the answer, which version 2.3 records for every call.
+  - With the old seed (20261107) the local builds would likely return the same answers word for word: only the date would change.
+  - Machine time, from the records of the old runs (times and counts only, no text): from 6 seconds (model 4) to 29 seconds (model 16) per answer, 91.5 seconds per prompt for the seven models together. The 390 frame prompts take about 10 hours; with the 100 prompts of pilot round 1, about 12.5 hours; with round 2, about 15 hours. No money.
+- **Options.** 1. Use the old answers, as in the draft. 2. Generate them again after the pilot registration, with a new seed shared by every respondent.
+- **Recommendation of the draft.** Option 2: every answer of the study is then written by the same code, under the registered settings, after the registration.
+- **Decision and date.** 12 November 2026: option 2. After the pilot registration the ten local models answer the pilot prompts, and after the freeze the frame prompts (block 2 of Section 12.3), all with seed 20261126, which no other step of the study uses. Every respondent, local or reached through an API, is called with this seed where the provider accepts one. The 7,457 old answers stay sealed and are not used in any analysis. The only exception is the 96 answers of the retired sample G1 on prompts outside the frames, which train the annotators (protocol Section 9.6); no test or estimate rests on them. The statement of D5 still covers the sealed files.
+- **Consequences.**
+  - No count changes: frames, label sample, judging calls, cost and cuts stay as they are.
+  - About 10 to 15 hours more of local answering, in sessions started on the PI's instruction.
+  - The code reads no sealed run as an answer of the study (`src/answers_v23.py`); the training draw still reads the G1 answers of the sealed run of 7 and 8 November.
+  - Sections 3.3, 3.4, 5.3, 12.3, 13.2, 15.3, 18.8 and 19 of the protocol, `docs/DATA_INVENTORY.md` and `docs/SEALED_HASHES.md` describe the change.
+- Drafted by the AI assistant from the PI's decision. PI's initials after checking: AA
+
+## D19. Degrees of freedom of the cluster ratio (amendment under Appendix A.4)
+
+- **Question.** Which revision of the inference of Section 8.1 follows from the failure of checks 1 and 3 of Appendix A.4 in the rare-flag run?
+- **Recorded before.** Freeze (Section 14.4, condition 2: a check that fails twice leads to a dated amendment before the freeze).
+- **Facts.**
+  - Run (e) of Appendix A.4, with the registered code, on 12 November 2026: in the row `rare_10|bound` (about ten screen-positive answers among the 3,600 answers of the primary panel; P3 at its margin), the family-wise rate of P1 and P2 was 6.16% against the threshold of 4.59% (seed 20261121, 10,000 replications), then 6.33% against 4.29% (seed 20261124, 40,000 replications). The rate of P3 was 2.37% against 1.30%, then 2.46% against 1.15%. Both checks failed twice. The other five rows passed.
+  - The cause: the registered t test used Σ_h (n_h − 1) = 298 degrees of freedom whatever the number of prompts with a screen-positive answer. With about ten such prompts the cluster-robust variance rests on about ten clusters, and the reference distribution is too narrow.
+  - The same run with domain degrees of freedom, Σ_h (m_h − 1) over the prompts with N_p ≠ 0, which for a count of answers is N_p > 0 (a trial with the change in the cluster ratio only): 1.4% and 0.8% in `rare_10|bound`; every row of the run passed checks 1 and 3.
+  - The change leaves the estimate and the variance as they are. With a screen-positive answer on every prompt the degrees of freedom stay 298.
+- **Options.** 1. Domain degrees of freedom (Section 8.1 as amended). 2. Another small-sample correction of the cluster-robust variance (for example CR2 with Bell–McCaffrey degrees of freedom). 3. No test when fewer than a set number of prompts carry a screen-positive answer.
+- **Recommendation of the AI assistant.** Option 1: it is the usual rule for domain estimates in cluster samples, it changes nothing when every prompt carries an answer, and the code change is small.
+- **Applied for the check, before the PI's decision.** On 12 November 2026 the AI assistant applied option 1 to the code (`analysis/inference_v23.py`, `_domain_df`) and to Section 8.1, and ran every package of Appendix A again with it, so that the PI decides on the full results (Appendix A.4). The results of the registered code stay published as the reason for the amendment. If the PI chooses another option, the code and the text return to the registered version (backups kept) and the chosen option is applied and checked in the same way.
+- **Results of the check (12 November 2026, Appendix A.4).** With D19 every package and run was made again with the same seeds. R-S1, R-S2 and R-S3: 344 checks, none fails. Run (b): 112 checks, none fails. Run (e): 9 checks, none fails (`rare_10|bound` 1.43% and 0.79%). Run (d): six safe-side intervals among screen-negative answers fail twice and are not reported (with the registered code: seven). The tables of A.1 and A.2 do not change at the precision shown; the coverage of the label intervals of A.3 moves by a few tenths of a point.
+- **Open with this decision.** Two intervals failed twice with the registered code and pass with D19: the detection change of the instruction-tuned group (Section 9.5) and θ_S^ctrl of the commercial panel among screen-negative safe answers (Section 8.7). They stay withdrawn until the PI decides whether they return with D19.
+- **Decision and date.** Awaiting the PI's decision.

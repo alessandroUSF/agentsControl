@@ -1,0 +1,14 @@
+rare_2|null                        th +0.0047 (ref +0.0000) cov 0.944 | io +0.0050 (ref -0.0002) cov 0.913 | iw -0.0061 (ref -0.0002) cov 0.920 | holm th 0.006 io 0.019 any 0.021 both 0.004 | io&iw 0.000 | p3 0.012 | 67s
+    boundary cases in 10000 replications: zero denominator 1360, zero variance {'p1': 6282, 'p2': 5220, 'p3': 4988}, tests carried out {'p1': 2358, 'p2': 3420, 'p3': 3652}, iota_W not estimable with iota_S estimable 8550
+rare_2|bound                       th -0.0017 (ref -0.0000) cov 0.907 | io -0.0040 (ref +0.0001) cov 0.870 | iw -0.0158 (ref +0.0001) cov 0.914 | holm th 0.019 io 0.036 any 0.042 both 0.013 | io&iw 0.000 | p3 0.010 | 64s
+    boundary cases in 10000 replications: zero denominator 1331, zero variance {'p1': 5462, 'p2': 4607, 'p3': 4785}, tests carried out {'p1': 3207, 'p2': 4062, 'p3': 3884}, iota_W not estimable with iota_S estimable 8575
+rare_10|null                       th +0.0010 (ref +0.0003) cov 0.953 | io +0.0018 (ref +0.0006) cov 0.922 | iw +0.0208 (ref +0.0006) cov 0.853 | holm th 0.012 io 0.028 any 0.032 both 0.008 | io&iw 0.000 | p3 0.048 | 63s
+    boundary cases in 10000 replications: zero denominator 2, zero variance {'p1': 1929, 'p2': 607, 'p3': 438}, tests carried out {'p1': 8069, 'p2': 9391, 'p3': 9560}, iota_W not estimable with iota_S estimable 9893
+rare_10|bound                      th -0.0013 (ref +0.0008) cov 0.921 | io -0.0022 (ref +0.0012) cov 0.901 | iw -0.0160 (ref +0.0012) cov 0.856 | holm th 0.034 io 0.047 any 0.062 both 0.019 | io&iw 0.000 | p3 0.024 | 59s
+    boundary cases in 10000 replications: zero denominator 0, zero variance {'p1': 814, 'p2': 268, 'p3': 353}, tests carried out {'p1': 9186, 'p2': 9732, 'p3': 9647}, iota_W not estimable with iota_S estimable 9901
+    CHECK 1 FAILS: P1 or P2 0.0616 against 0.0459 (R 10000)
+    CHECK 3 FAILS: P3 0.0237 against 0.0130 (R 10000)
+rare_50|null                       th +0.0001 (ref +0.0002) cov 0.942 | io +0.0003 (ref +0.0000) cov 0.941 | iw +0.0010 (ref +0.0000) cov 0.922 | holm th 0.023 io 0.027 any 0.039 both 0.011 | io&iw 0.020 | p3 0.083 | 60s
+    boundary cases in 10000 replications: zero denominator 0, zero variance {'p1': 2, 'p2': 0, 'p3': 0}, tests carried out {'p1': 9998, 'p2': 10000, 'p3': 10000}, iota_W not estimable with iota_S estimable 1626
+rare_50|bound                      th -0.0002 (ref +0.0001) cov 0.940 | io +0.0002 (ref +0.0003) cov 0.941 | iw -0.0001 (ref +0.0003) cov 0.919 | holm th 0.028 io 0.028 any 0.043 both 0.013 | io&iw 0.020 | p3 0.012 | 63s
+    boundary cases in 10000 replications: zero denominator 0, zero variance {'p1': 0, 'p2': 0, 'p3': 0}, tests carried out {'p1': 10000, 'p2': 10000, 'p3': 10000}, iota_W not estimable with iota_S estimable 1607

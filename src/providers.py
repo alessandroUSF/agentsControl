@@ -14,7 +14,8 @@ which provider answered:
 A request is either a prompt string (one user turn) or a list of {"role", "content"} messages
 (used for the in-context judge presentation, protocol v2.2 Section 8.3). A "system" message is sent
 as Anthropic's top-level system parameter, as a system item on the OpenAI Responses API, and as a
-system message elsewhere.
+system message elsewhere. The Gemini API (decision D2) takes it as systemInstruction and the assistant turn as
+role "model".
 
 Keys (protocol v2.2, Section 10): every remote call uses a dedicated project key whose
 environment variable starts with "AC_". A remote model without such a key fails before any
@@ -37,7 +38,7 @@ import time
 import urllib.error
 import urllib.request
 
-RESEARCH_KEYS = {"anthropic": "AC_ANTHROPIC_API_KEY", "openai": "AC_OPENAI_API_KEY"}
+RESEARCH_KEYS = {"anthropic": "AC_ANTHROPIC_API_KEY", "openai": "AC_OPENAI_API_KEY", "google": "AC_GOOGLE_API_KEY"}
 LOCAL_HOSTS = ("http://localhost", "http://127.0.0.1", "http://[::1]")
 
 
@@ -55,7 +56,7 @@ def key_from_env(name):
 
 
 def is_remote(cfg):
-    if cfg["provider"] in ("anthropic", "openai"):
+    if cfg["provider"] in ("anthropic", "openai", "google"):
         return True
     if cfg["provider"] == "ollama":
         return not cfg.get("base_url", "http://localhost:11434").startswith(LOCAL_HOSTS)
@@ -75,10 +76,15 @@ STRONG_MODERATION_PATTERNS = (re.compile(r'"code"\s*:\s*"?1301"?(?![0-9])'),   #
                               re.compile(r'"flagged"\s*:\s*true'))
 WEAK_MODERATION_PATTERNS = (re.compile(r"\bwas flagged\b"),)
 MODERATION_PATTERNS = STRONG_MODERATION_PATTERNS + WEAK_MODERATION_PATTERNS
+# The last five occur in the Gemini API's errors for a malformed request or a missing precondition (decision D2).
+# Its generateContent method reports blocks inside a normal response, so these name our request or our account,
+# never the content of a prompt.
 PARAM_ERROR_MARKERS = ("max_tokens", "max_output_tokens", "temperature", "top_p", "parameter", "unsupported",
                        "not supported", "invalid value", "model_not_found", "does not exist", "context length",
                        "context_length", "maximum context", "too long", "rate limit", "quota", "billing",
-                       "authentication", "api key", "permission")
+                       "authentication", "api key", "permission",
+                       "invalid json payload", "unknown name", "cannot find field", "invalid_argument",
+                       "failed_precondition")
 NATIVE_BLOCK_REASONS = {"content_filter", "safety", "prohibited_content", "blocklist", "spii", "refusal",
                         "image_safety", "recitation"}
 
@@ -98,6 +104,12 @@ class HTTPStatusError(RuntimeError):
 class ResponseParseError(RuntimeError):
     """The request was sent and a response came back, but it could not be parsed (B4-m2).
     The runner settles it at the reserved amount, because the call may have been billed."""
+
+
+class AccountRestricted(RuntimeError):
+    """The provider says that the study's account is limited or disabled (Section 16.5). This is not an outcome of
+    the request. It has no HTTP status, so the runners treat it as a failure that does not depend on the request
+    (retried, then pending; five pending calls in a row stop the model) and settle it at the reserved amount."""
 
 
 def moderation_marker(msg, strength="any"):
@@ -492,6 +504,142 @@ class OpenAICompatibleProvider(Provider):
         }
 
 
+class GoogleProvider(Provider):
+    """Gemini API (generateContent), called directly with the study's own key (decision D2, 11 November 2026).
+
+    Request. No safetySettings are sent: the adjustable filters keep the API's default, which Google documents as
+    off for Gemini 2.5 and later models; protections that cannot be adjusted still apply. The reasoning effort is
+    sent as thinkingConfig.thinkingLevel; temperature and seed are sent when set (Google documents that its models
+    from Gemini 3.6 Flash on ignore the temperature). 'service_tier' is sent only when the config sets it.
+
+    Response (values documented on 11 November 2026). Thought parts are not kept in the text. Thinking tokens are
+    billed as output, so output_tokens counts them with the visible answer. A prompt that Google blocks
+    (promptFeedback.blockReason) and an answer stopped by a filter (finishReason SAFETY, BLOCKLIST,
+    PROHIBITED_CONTENT, SPII, RECITATION, ESCALATION, LANGUAGE) are provider blocks. MAX_TOKENS and CONTINUATION
+    stop at a token limit and are recorded as 'max_tokens'. PUP_LIMITED_DISABLED says that the account is limited
+    or disabled under Google's Prohibited Use Policy: not an outcome of the request, so AccountRestricted.
+
+    Errors. generateContent reports blocks inside a normal response; its 400s name a malformed request or a missing
+    precondition (INVALID_ARGUMENT, FAILED_PRECONDITION: parameter-error signatures). A 400 in the block form of
+    Google's Interactions API (error code safety, jailbreak, prohibited_content or blocklist, or a message that
+    starts with 'Input blocked:') is still read as a block. Every other HTTP error keeps its status and body, as in
+    the other adapters; an unexplained 400/403 is a suspected block."""
+
+    BASE = "https://generativelanguage.googleapis.com/v1beta"
+    BLOCK_FINISH = frozenset(NATIVE_BLOCK_REASONS | {"escalation", "language"})
+    LIMIT_FINISH = frozenset({"MAX_TOKENS", "CONTINUATION"})
+    ACCOUNT_FINISH = frozenset({"PUP_LIMITED_DISABLED"})
+    HTTP_BLOCK_CODES = frozenset({"safety", "jailbreak", "prohibited_content", "blocklist"})
+
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self.key = key_from_env(RESEARCH_KEYS["google"])
+        self.base = (cfg.get("base_url") or self.BASE).rstrip("/")
+
+    def body(self, request):
+        system, msgs = split_system(as_messages(request))
+        contents = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]}
+                    for m in msgs]
+        gen = {"maxOutputTokens": self.cfg["max_output_tokens"]}
+        if self.cfg.get("temperature") is not None:
+            gen["temperature"] = self.cfg["temperature"]
+        if self.cfg.get("seed") is not None:
+            gen["seed"] = self.cfg["seed"]
+        if self.cfg.get("effort"):
+            gen["thinkingConfig"] = {"thinkingLevel": str(self.cfg["effort"]).upper()}
+        body = {"contents": contents, "generationConfig": gen}
+        if system:
+            body["systemInstruction"] = {"parts": [{"text": system}]}
+        if self.cfg.get("service_tier"):
+            body["service_tier"] = self.cfg["service_tier"]
+        return body
+
+    def http_block(self, status, body):
+        """A 400 in the block form of Google's Interactions API, as a block record; else None."""
+        if status != 400:
+            return None
+        try:
+            err = json.loads(body).get("error")
+        except Exception:
+            return None
+        if not isinstance(err, dict):
+            return None
+        code, msg = str(err.get("code") or "").lower(), str(err.get("message") or "")
+        if code not in self.HTTP_BLOCK_CODES and not msg.startswith("Input blocked:"):
+            return None
+        category = code if code in self.HTTP_BLOCK_CODES else "input_blocked"
+        return {"text": "", "stop_reason": f"provider_block:{status}", "provider_block": True,
+                "block_marker": category, "block_category": category, "served_provider": "google",
+                "model_returned": None, "input_tokens": 0, "output_tokens": 0, "reasoning_tokens": None,
+                "cost_reported": None, "request_id": None, "error_body": body[:2000]}
+
+    def call(self, request):
+        url = f"{self.base}/models/{self.cfg['model']}:generateContent"
+        req = urllib.request.Request(url, data=json.dumps(self.body(request)).encode("utf-8"),
+                                     headers={"Content-Type": "application/json", "x-goog-api-key": self.key})
+        try:
+            with urllib.request.urlopen(req, timeout=900) as resp:
+                raw = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode("utf-8", "replace")[:2000]
+            except Exception:
+                body = ""
+            # classify_rejection raises SuspectedBlock for an unexplained 400/403
+            block = self.http_block(e.code, body) or classify_rejection(e.code, body)
+            if block is not None:
+                return dict(block, served_provider="google")
+            raise HTTPStatusError(e.code, body) from None
+        try:
+            data = json.loads(raw)
+        except Exception as e:
+            raise ResponseParseError(f"{type(e).__name__}: {e}") from e
+        try:
+            return self.parse(data)
+        except AccountRestricted:
+            raise
+        except Exception as e:
+            raise ResponseParseError(f"{type(e).__name__}: {e}") from e
+
+    def parse(self, r):
+        cands = r.get("candidates") or []
+        cand = cands[0] if cands else {}
+        parts = (cand.get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
+        finish = str(cand.get("finishReason") or "")
+        if finish in self.ACCOUNT_FINISH:
+            raise AccountRestricted(f"Gemini API finishReason {finish}: the account is limited or disabled under "
+                                    "Google's Prohibited Use Policy (Section 16.5)")
+        prompt_block = str((r.get("promptFeedback") or {}).get("blockReason") or "")
+        if prompt_block == "BLOCK_REASON_UNSPECIFIED":
+            prompt_block = ""
+        blocked = bool(prompt_block) or finish.lower() in self.BLOCK_FINISH
+        if finish in self.LIMIT_FINISH:
+            stop = "max_tokens"
+        elif finish:
+            stop = finish.lower()
+        else:
+            stop = "prompt_blocked" if prompt_block else "none"
+        u = r.get("usageMetadata") or {}
+        thoughts = u.get("thoughtsTokenCount")
+        return {
+            "text": text,
+            "stop_reason": stop,
+            "native_finish_reason": finish or prompt_block or None,
+            "provider_block": blocked,
+            "block_category": (prompt_block or finish) if blocked else None,
+            "served_provider": "google",
+            "model_returned": str(r.get("modelVersion") or "").removeprefix("models/") or None,
+            "input_tokens": u.get("promptTokenCount") or 0,
+            "cache_read_tokens": u.get("cachedContentTokenCount"),
+            "cache_write_tokens": None,
+            "output_tokens": (u.get("candidatesTokenCount") or 0) + (thoughts or 0),
+            "reasoning_tokens": thoughts,
+            "cost_reported": None,
+            "request_id": r.get("responseId"),
+        }
+
+
 class OllamaProvider(Provider):
     """Native Ollama API on the local GPU (thinking switch, fixed seed, context size)."""
 
@@ -502,7 +650,7 @@ class OllamaProvider(Provider):
         self.base = cfg.get("base_url", "http://localhost:11434").rstrip("/")
 
     def body(self, request):
-        opts = {"num_predict": self.cfg["max_output_tokens"], "seed": self.cfg.get("seed", 20261107)}
+        opts = {"num_predict": self.cfg["max_output_tokens"], "seed": self.cfg.get("seed", 20261126)}
         if self.cfg.get("temperature") is not None:
             opts["temperature"] = self.cfg["temperature"]
         if self.cfg.get("num_ctx"):
@@ -577,7 +725,7 @@ def ollama_vram(model, base="http://localhost:11434"):
     return {"size_vram": None, "size": None}
 
 
-PROVIDERS = {"anthropic": AnthropicProvider, "openai": OpenAIProvider,
+PROVIDERS = {"anthropic": AnthropicProvider, "openai": OpenAIProvider, "google": GoogleProvider,
              "openai_compatible": OpenAICompatibleProvider, "ollama": OllamaProvider}
 
 

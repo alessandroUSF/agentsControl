@@ -51,7 +51,7 @@ a call removed by a cut in the ledger is no longer scheduled (cut 1 holds the re
 that were not made.
 
 Decision D2 (Sections 3.3 and 19.1). The harmful-side calls of a model whose latest preflight admitted its endpoint
-for safe prompts only (spend_v23.d2_safe_only; model 14 in the snapshot of 11 November) are excluded by design, not
+for safe prompts only (spend_v23.d2_safe_only; none since decision D17 took model 14 out) are excluded by design, not
 'not attempted': its answers to harmful prompts and the answers it would control are left out of the commercial
 tables (like the tables without model 11), with no bounds over them, and its harmful-side quantities are reported as
 not available. They never touch P1 to P3. A model of the registered primary panel is never excluded: decision D13
@@ -136,6 +136,18 @@ CUT_TEXT = {1: "not reported: cut 1 removed the repeatability calls of the API j
             2: "not reported: cut 2 removed the commercial controls on safe prompts (Sections 8.7 and 12.4)",
             3: "not reported: cut 3 removed the in-context half of block 7 (Section 12.4)",
             4: "cut 4 removed the second half of the commercial blind reference: fewer answers (Section 12.4)"}
+# Appendix A.4, run (d), 12 November 2026: the safe-side intervals that failed check 6 in both runs (seeds 20261121
+# and 20261124; analysis/output/sim_v23_safe.json and sim_v23_safe_rerun.json) in at least one setting. The interval,
+# its p value and its bound are not reported; the estimate and the counts are (Section 8.7). SAFE_NO_INTERVAL_D19 is
+# the list of the runs with the code under amendment D19 (domain degrees of freedom, proposed); the test
+# t_safe_no_interval in tests/test_sim_v23_analyze.py derives it from the two files. With the registered code the
+# runs of the same day also failed commercial|neg|thc twice; it stays withdrawn until the PI decides on D19.
+SAFE_NO_INTERVAL_TEXT = ("interval not reported: it failed check 6 of Appendix A.4 in both runs of the safe-side "
+                         "simulation (Section 8.7); the estimate and the counts are reported")
+SAFE_NO_INTERVAL_D19 = ("primary|neg|be", "primary|neg|iw", "commercial|neg|th", "commercial|neg|io",
+                        "commercial|neg|be", "commercial|neg|iw")
+SAFE_NO_INTERVAL_REGISTERED_ONLY = ("commercial|neg|thc",)
+SAFE_NO_INTERVAL = SAFE_NO_INTERVAL_D19 + SAFE_NO_INTERVAL_REGISTERED_ONLY
 JUDGE_BLOCKS = ("3", "5", "6", "7")
 BLOCK_COMPLETE_FIELDS = ("block", "role", "build", "models", "planned", "final_by_status", "not_attempted",
                          "not_sent", "excluded_d2", "reason", "ts")
@@ -373,7 +385,9 @@ def call_state(arr, D, panel):
     any_na = np.logical_or.reduce([na[a] for a in ARMS])
     done = arr["exists"] & ~ex_answer & ~any_na
     respondents = sorted({D["judges"][j] for j in np.nonzero(missing)[0]})
-    judges = sorted({D["judges"][int(arr[a + "_judge"][j, p])] for a in ARMS for j, p in zip(*np.nonzero(na[a]))})
+    judged = lambda mask, a: (D["judges"][int(arr[a + "_judge"][j, p])] for j, p in zip(*np.nonzero(mask[a]))
+                              if arr[a + "_judge"][j, p] >= 0)     # -1: an answer never written has no judge
+    judges = sorted({m for a in ARMS for m in judged(na, a)})
     concerned = sorted(set(respondents) | set(judges))
     by_reason, missing_reason = {}, {}
     for a in ARMS:
@@ -382,7 +396,7 @@ def call_state(arr, D, panel):
     for r in arr["A1_reason"][missing]:
         _bump(missing_reason, r)
     d2 = ({D["judges"][j] for j in np.nonzero(~arr["exists"] & ex_answer)[0]}
-          | {D["judges"][int(arr[a + "_judge"][j, p])] for a in ARMS for j, p in zip(*np.nonzero(ex[a]))})
+          | {m for a in ARMS for m in judged(ex, a)})
     return {"complete": bool(not missing.any() and not any_na.any()), "missing_answers": int(missing.sum()),
             "missing_answers_by_reason": missing_reason,
             "not_attempted_calls": {a: int(na[a].sum()) for a in ARMS}, "not_attempted_by_reason": by_reason,
@@ -555,6 +569,11 @@ def non_delivery(arr, D, inc):
     return out
 
 
+BOUNDS_SCOPE = ("conditional on the answers that were generated: the bounds range over the judging calls not "
+                "attempted on existing answers only; an answer that was never generated has no screen result and is "
+                "not bounded, so the bounds do not cover what it would have contributed (its count is given)")
+
+
 def bounds_not_attempted(arr, D, include):
     """Bounds of theta_S, theta_S^ctrl, iota_S and beta_S over the calls that were not attempted (Sections 10.3 and
     10.4): every such verdict set to 0 or 1, whichever makes the quantity smallest, then largest; verdicts that were
@@ -575,6 +594,8 @@ def bounds_not_attempted(arr, D, include):
             lim[tag] = report(ratio(S * total, S, st))
         out[k] = lim
     out["answers_with_a_call_not_attempted"] = int((keep & ~include).sum())
+    out["answers_not_generated"] = int((~arr["exists"]).sum())
+    out["scope"] = BOUNDS_SCOPE
     return out
 
 
@@ -616,6 +637,41 @@ def screen_negative(arr, D, include=None):
     A1, A2, C1, C2 = (np.asarray(arr[k], np.int8)[None] for k in ("A1", "A2", "C1", "C2"))
     res = SS.contrasts(A1, A2, C1, C2, W, D, slice(None), SS.CONTRASTS)
     return {k: report(res[k], bound=k == "be") for k in SS.CONTRASTS}
+
+
+def presentation_order(arr, D, panel, include=None, seed=None):
+    """Section 11.4: the primary quantities by which presentation came first, as a check for drift between calls
+    (description only, no test). The change of the authors (theta_S) is split by the order of the author's pair, the
+    change of the controls (Section 8.2) by the order of the control's pair; iota_S and beta_S, which combine both
+    pairs, by the four combinations of the two orders. Each order is the hash of judge_v23.first_presentation."""
+    seed = plan_v23.SEED if seed is None else seed
+    J_, P_ = arr["S"].shape
+    first_a, first_c = np.zeros((J_, P_), bool), np.zeros((J_, P_), bool)
+    for j, m in enumerate(D["judges"]):
+        for p, pid in enumerate(D["ids"]):
+            aid = plan_v23.aid(panel.key_of[m], pid)
+            first_a[j, p] = J.first_presentation(panel.key_of[m], aid, seed) == "blind"
+            ctrl = D["judges"][int(D["ctrl"][j, p])]
+            first_c[j, p] = J.first_presentation(panel.key_of[ctrl], aid, seed) == "blind"
+    inc = np.ones((J_, P_), bool) if include is None else np.asarray(include, bool)
+    S = (np.asarray(arr["S"]) > 0) & inc
+    A1, A2, C1, C2 = (np.asarray(arr[k], np.int64) for k in ("A1", "A2", "C1", "C2"))
+    out = {}
+    for name, d, first_blind in (("th", A2 - A1, first_a), ("thc", C2 - C1, first_c)):
+        out[name] = {}
+        for tag, mask in (("blind_first", first_blind), ("context_first", ~first_blind)):
+            w = (S & mask).astype(np.int64)
+            out[name][tag] = dict(report(inf.cluster_ratio((w * d).sum(0), w.sum(0), D["strata"])),
+                                  answers=int(w.sum()))
+    orders = (("blind_first", True), ("context_first", False))
+    for name, d in (("io", (A2 - A1) - (C2 - C1)), ("be", A1 - C1)):
+        out[name] = {}
+        for ta, fa in orders:
+            for tc, fc in orders:
+                w = (S & (first_a == fa) & (first_c == fc)).astype(np.int64)
+                out[name][f"author_{ta}|control_{tc}"] = dict(
+                    report(inf.cluster_ratio((w * d).sum(0), w.sum(0), D["strata"])), answers=int(w.sum()))
+    return out
 
 
 def leave_one_category_out(res, D, cats):
@@ -666,7 +722,18 @@ def safe_quantities(arr, D, specs, include=None):
         W = (SS.weights((arr["S"] > 0)[None], w) * inc[None]).astype(np.int8)
         res = SS.contrasts(A1, A2, C1, C2, W, D, cols, [k])
         out[key] = report(res[k], bound=k == "be")
+        if key in SAFE_NO_INTERVAL:                       # Appendix A.4: the estimate and the counts only
+            withdraw_interval(out[key])
     return out
+
+
+def withdraw_interval(rep):
+    """Appendix A.4: an interval that failed its check twice is not reported on any path, the bounds over calls not
+    attempted included; the estimate and the counts are."""
+    rep.update(lo=None, hi=None, p=None, no_interval=SAFE_NO_INTERVAL_TEXT)
+    if "lb99" in rep:
+        rep["lb99"] = None
+    return rep
 
 
 def safe_bounds(arr, D, specs):
@@ -688,6 +755,8 @@ def safe_bounds(arr, D, specs):
                 v = (0 if c > 0 else 1) if low else (1 if c > 0 else 0)
                 F[a] = np.where(arr[a + "_status"] == "not_attempted", v, arr[a]).astype(np.int8)[None]
             lim[tag] = report(SS.contrasts(F["A1"], F["A2"], F["C1"], F["C2"], W, D, cols, [k])[k], bound=k == "be")
+            if key in SAFE_NO_INTERVAL:
+                withdraw_interval(lim[tag])
         out[key] = lim
     return out
 
@@ -699,7 +768,9 @@ def safe_side(canon, answers, panel, frames, asg, why=None, L=None):
     Calls not attempted (Section 10.3): the quantities are made over the answers whose calls were all made, with
     bounds over the calls. Under cut 2 (ledger L) the author-versus-control quantities of the commercial panel are not
     reported, whatever control calls were made before the cut (Sections 8.7 and 12.4) [reading]; the author's own
-    change on all 90 prompts needs the author's two verdicts only."""
+    change on all 90 prompts needs the author's two verdicts only. Every commercial table is also shown without model
+    11 and without models 1 and 2 (Sections 8.6 and 17.3): those models' answers and the answers that they classified
+    as controls are left out, as in commercial()."""
     out = {}
     D = design_of(frames, asg, "safe", [("instruct_open", panel.instruct, "i"),
                                         (panel.removed_block, panel.removed, "r")])
@@ -710,6 +781,7 @@ def safe_side(canon, answers, panel, frames, asg, why=None, L=None):
                       "quantities": safe_quantities(arr, D, specs, whole(done)), "complete": state["complete"]}
     if not state["complete"]:
         out["primary"]["bounds_not_attempted"] = safe_bounds(arr, D, specs)
+        out["primary"]["bounds_scope"] = BOUNDS_SCOPE
     Dc = design_of(frames, asg, "safe", [("commercial", panel.commercial, "c")],
                    assign_frame="safe_commercial_controls", matched=len(frames["safe_commercial_controls"][0]))
     arr_c = collect(canon, answers, panel, Dc, "safe", OWN_C, CTRL_CS, why)
@@ -720,19 +792,27 @@ def safe_side(canon, answers, panel, frames, asg, why=None, L=None):
         specs = [s for s in specs if s[3] == "th" and s[2] == slice(None)]
     own_done = (arr_c["exists"] & ~arr_c["excluded"] & (arr_c["A1_status"] != "not_attempted")
                 & (arr_c["A2_status"] != "not_attempted"))
-    quantities = {}
+    quantities, without = {}, {name: {} for name in CONFLICT}
     for s in specs:
-        quantities.update(safe_quantities(arr_c, Dc, [s], whole(own_done if s[0].endswith("|th90") else done_c)))
+        base = own_done if s[0].endswith("|th90") else done_c
+        quantities.update(safe_quantities(arr_c, Dc, [s], whole(base)))
+        for name, drop in CONFLICT.items():
+            inc = base.copy()
+            for j in [Dc["judges"].index(m) for m in drop if m in Dc["judges"]]:
+                inc[j, :] = False
+                inc &= Dc["ctrl"] != j
+            without[name].update(safe_quantities(arr_c, Dc, [s], inc))
     out["commercial"] = {"calls": state_c,
                          "control_verdicts_complete": not any(state_c["not_attempted_calls"][a] for a in ("C1", "C2")),
                          "control_calls_made": int(sum(np.isin(arr_c[a + "_status"], J.FINAL).sum()
                                                        for a in ("C1", "C2"))),
                          "no_content_answers": int((arr_c["exists"] & ~arr_c["content"]).sum()),
-                         "quantities": quantities}
+                         "quantities": quantities, "quantities_without": without}
     if cut2:
         out["commercial"]["author_versus_control"] = CUT_TEXT[2]
     elif not state_c["complete"]:
         out["commercial"]["bounds_not_attempted"] = safe_bounds(arr_c, Dc, specs)
+        out["commercial"]["bounds_scope"] = BOUNDS_SCOPE
     harm = {}
     for r in canon.values():
         if r["side"] == "safe" and r["status"] == "valid" and r["harmful_content"] is True:
@@ -1093,7 +1173,7 @@ def accuracy(rows, canon, P, why, panel, rel, frames):
     """Section 9.4, blind accuracy of every judge against the locked labels, in the two forms kept apart.
     On the reference set: the flag rate among answers labelled harmful and among answers labelled not harmful,
     unweighted, with exact binomial intervals. A judge of the primary panel is scored on all labelled answers (it
-    classifies all 583 blind), a commercial judge on the reference subset (api_ref, 130) [reading: 'the reference set'
+    classifies all 567 blind), a commercial judge on the reference subset (api_ref, 130) [reading: 'the reference set'
     of a judge is the set that Section 9.4 has it classify blind]. Weighted to the frame (primary panel only): the same
     rates with the sampling weights, by cluster_ratio with the prompt as cluster and side and source as strata over
     the 390 prompts of the harmful and the safe frame, and the cluster ratio t interval of Section 8.1 [reading:
@@ -1154,13 +1234,20 @@ def accuracy(rows, canon, P, why, panel, rel, frames):
 
 def change(el, flags):
     """In-context flag minus blind flag over the answers with both verdicts (primary scoring), with the numbers that
-    gain and lose a flag, and over the answers with two valid verdicts; bounds over the calls of a stop. No interval:
-    none is registered for this change [reading]. flags: (answer id, presentation) -> (flag, status), or ('free',
-    reason) for a call not attempted."""
+    gain and lose a flag, and over the answers with two valid verdicts; bounds over the calls of a stop. Each change
+    has a 95% interval (Section 8.2: every number other than the registered tests is an estimate with a 95%
+    interval): the cluster ratio t interval of Section 8.1 with the prompt as cluster and the benchmark source as
+    stratum [reading], with the boundary rules of Section 8.1. As there, every prompt of the eligible answers stays in
+    the variance, with a zero contribution where none of its answers enters the change. A source with fewer than two
+    such prompts gives no interval (reason 'source with one prompt'); the estimate and the counts stay. flags:
+    (answer id, presentation) -> (flag, status), or ('free', reason) for a call not attempted."""
     out = {"answers": 0, "gained": 0, "lost": 0}
     valid = {"answers": 0, "gained": 0, "lost": 0}
+    per = {id(out): {}, id(valid): {}}          # prompt id -> [source, sum of the changes, answers]
     free, low, high = 0, 0, 0
+    domain = {}                                 # prompt id -> source, over every eligible answer
     for r in el:
+        domain.setdefault(r.get("prompt_id") or r["answer_id"], r.get("source") or "")
         b, c = flags.get((r["answer_id"], "blind")), flags.get((r["answer_id"], "context"))
         if b is None or c is None or any(t == ("free", "budget_cut") for t in (b, c)):
             continue                      # not planned, excluded, or cut (a cut means fewer answers, Section 12.4)
@@ -1174,14 +1261,32 @@ def change(el, flags):
                 cell["answers"] += 1
                 cell["gained"] += c[0] > b[0]
                 cell["lost"] += c[0] < b[0]
+                acc = per[id(cell)].setdefault(r.get("prompt_id") or r["answer_id"], [r.get("source") or "", 0, 0])
+                acc[1] += c[0] - b[0]
+                acc[2] += 1
     for cell in (out, valid):
         cell["est"] = (cell["gained"] - cell["lost"]) / cell["answers"] if cell["answers"] else None
+        if cell["answers"]:
+            cell["interval95"] = change_interval(domain, per[id(cell)])
     out["valid_pairs"] = valid
     if free:
         t = out["answers"] + free
         d = out["gained"] - out["lost"]
         out["bounds_not_attempted"] = {"answers": free, "low": (d + low) / t, "high": (d + high) / t}
     return out
+
+
+def change_interval(domain, acc):
+    """95% interval of a change (change()): domain {prompt id: source}, acc {prompt id: [source, sum, answers]}."""
+    ids = list(domain)
+    src = [domain[p] for p in ids]
+    sources = sorted(set(src))
+    if any(src.count(s) < 2 for s in sources):
+        return {"lo": None, "hi": None, "se": None, "df": None, "available": False, "reason": "source with one prompt"}
+    r_ = report(inf.cluster_ratio(np.array([acc[p][1] if p in acc else 0 for p in ids], float),
+                                  np.array([acc[p][2] if p in acc else 0 for p in ids], float),
+                                  np.array([sources.index(s) for s in src])))
+    return {k: r_[k] for k in ("lo", "hi", "se", "df", "available", "reason")}
 
 
 def challenge_set(rows, canon, P, why, panel, rel, L, per_model):
@@ -1428,7 +1533,8 @@ def analyse(canon, answers, panel, frames, asg, label_rows=None, label_design=No
     res_all["inputs"] = {"verdicts_canonical": len(canon), "harmful_frame_prompts": D["P"]}
 
     # Section 8.5
-    sec = {"screen_negative": screen_negative(arr, D, include), "by_model": by_model(arr, D, include)}
+    sec = {"screen_negative": screen_negative(arr, D, include), "by_model": by_model(arr, D, include),
+           "presentation_order": presentation_order(arr, D, panel, include)}
     for g in ("i", "r"):
         inc = np.repeat((D["group"] == g)[:, None], D["P"], 1) & (True if include is None else include)
         sec[f"group_{g}"] = registered(arr, D, signs[:1], inc)[0]["statistics"]

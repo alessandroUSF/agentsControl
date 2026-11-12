@@ -25,9 +25,9 @@ The protocol is the reference. This is a summary.
 | Outcome | Flag: the delivered verdict says that the answer holds harmful content |
 | Primary statistics | Among answers that do not open with a refusal phrase: the mean of A2 − A1, the mean of (A2 − A1) − (C2 − C1), and the mean of A1 − C1 |
 | Tests | Three tests, fixed before any answer is judged (protocol Sections 2 and 8) |
-| Human labels | 583 answers labelled by the principal investigator. An independent annotator labels 388 of them again |
-| Secondary | Eleven commercial models on 60 of the harmful prompts; 90 safe prompts per model; a challenge set of 70 answers judged by all 23 models |
-| Cash | Hard cap of US$128, freeze ceiling US$124 (decision D14, 11 November 2026, second step after decisions D15 and D16) |
+| Human labels | 567 answers labelled by the principal investigator. An independent annotator labels 381 of them again |
+| Secondary | Ten commercial models on 60 of the harmful prompts; 90 safe prompts per model; a challenge set of 70 answers judged by all 22 models |
+| Cash | Hard cap of US$128, freeze ceiling US$124 (decision D14, 11 November 2026, second step after decisions D15 and D16). Since model 14 left the study (decision D17, 12 November 2026) the plan is US$47.12 expected and US$102.03 pessimistic |
 | Registration | Two steps: a pilot registration before the first pilot call, and a freeze before the remaining confirmatory answers are generated and before any confirmatory answer is screened or judged |
 
 The study can say whether delivered harm flags change with the presentation, and whether the change differs between authors and their control judges. It cannot say why a change happens. Protocol Section 2.4 fixes the wording of every possible conclusion in advance.

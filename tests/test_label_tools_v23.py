@@ -527,8 +527,8 @@ def test_sample_draw():
     lab, g = D["labels"], D["groups"]
     planned = sum(sum(lab["harmful"][k].values()) * len(g[k]) for k in g) + sum(lab["safe"]["primary"].values()) * \
         len(D["primary"]) + sum(lab["safe"]["commercial"].values()) * len(g["commercial"])
-    assert len(rows) == planned == rep["sampler"]["labelled"] == 583, (len(rows), planned)
-    assert sum(r["second"] for r in rows) == 388 and sum(r["h60"] for r in rows) == 70
+    assert len(rows) == planned == rep["sampler"]["labelled"] == 567, (len(rows), planned)
+    assert sum(r["second"] for r in rows) == 381 and sum(r["h60"] for r in rows) == 70
     assert sum(r["api_ref"] for r in rows) == 130
     assert sorted(r["ref_half"] for r in rows if r["api_ref"] and not r["h60"]) == [1] * 30 + [2] * 30
     want = {"answer_id", "model", "model_key", "prompt_id", "source", "side", "screen", "weight", "cell_size",
@@ -537,7 +537,7 @@ def test_sample_draw():
     assert all(set(r) == want for r in rows)
     assert rep["sampler"]["uncovered_answers"] == 0
     assert len(rep["sampler"]["cells"]) == 4 * len(D["group_of"])
-    assert rep["frame_answers"]["expected"] == 12 * 390 + 11 * 150 == rep["frame_answers"]["found"]
+    assert rep["frame_answers"]["expected"] == 12 * 390 + 10 * 150 == rep["frame_answers"]["found"]
     for n, h in man["outputs"].items():
         assert S.sha256_file(out / n) == h, n
     # the screen comes from the stored text: the drawn screen results equal src/screen.py on each answer
@@ -574,7 +574,7 @@ def test_sample_draw():
     # sheets: the template's columns, neutral contiguous ids, empty label fields, nothing that names a model,
     # an answer, a prompt, a screen result or a weight, and an order that does not follow the cells
     keys = {w: S.read_key(out / f"label_key_{w}_v23.csv") for w in ("first", "second")}
-    for w, letter, n in (("first", "A", 583), ("second", "B", 388)):
+    for w, letter, n in (("first", "A", 567), ("second", "B", 381)):
         header, sheet = S.read_csv(out / f"sheet_{w}_labeller.csv")
         assert tuple(header) == S.template_columns()
         assert [x["item_id"] for x in sheet] == S.item_ids(letter, n)
@@ -601,7 +601,7 @@ def test_sample_draw():
         assert S.sha256_file(out / n) == S.sha256_file(out2 / n), n
     assert "refusing to overwrite" in fails(DRAW, args)
     WORLD.update(base=base, out=out, rows=rows, keys=keys, index=index, fr=fr, raw=raw, table=table)
-    SUMMARY["label sample"] = {"labelled": len(rows), "second": 388, "h60": 70, "api_ref": 130}
+    SUMMARY["label sample"] = {"labelled": len(rows), "second": 381, "h60": 70, "api_ref": 130}
 
 
 def test_sample_draw_with_empty_cells():
@@ -620,7 +620,7 @@ def test_sample_draw_with_empty_cells():
     assert rep["frame_answers"]["missing_by_model_and_side"] == {f"{hosted}|harmful": 300, f"{hosted}|safe": 90,
                                                                  "7|safe": 90}
     rows = S.read_jsonl(base / "draw" / "label_sample_v23.jsonl")
-    assert len(rows) == 583 - 25 - 11 - 11 and sum(r["h60"] for r in rows) == 60
+    assert len(rows) == 567 - 25 - 11 - 11 and sum(r["h60"] for r in rows) == 60
     SUMMARY["empty cells"] = short
 
 
@@ -680,6 +680,19 @@ def test_join_and_lock():
     n_dis = sum(1 for x, y in both if x != y)
     assert sum(rep["disagreements"].values()) == n_dis > 0
     assert sum(rep["agreement_by_side"][s]["n"] for s in ("harmful", "safe")) == len(both)
+    for s in ("harmful", "safe"):                    # Section 9.3: the agreement figures with intervals, by side
+        e = rep["agreement_by_side"][s]
+        for k in S.AGREEMENT_STATS:
+            iv = e["ci95"][k]
+            assert e[k] is None or (iv["lo"] is not None and iv["lo"] - 1e-12 <= e[k] <= iv["hi"] + 1e-12), (s, k)
+    known = S.agreement([("yes", "yes")] * 30 + [("no", "no")] * 60 + [("yes", "no")] * 6 + [("no", "yes")] * 4)
+    assert known == S.agreement([("yes", "yes")] * 30 + [("no", "no")] * 60 + [("yes", "no")] * 6
+                                + [("no", "yes")] * 4)                                  # fixed seed
+    assert abs(known["raw"] - 0.9) < 1e-12 and 0.83 < known["ci95"]["raw"]["lo"] < 0.87 < 0.93 < known["ci95"]["raw"]["hi"]
+    assert known["ci95"]["kappa"]["lo"] < known["kappa"] < known["ci95"]["kappa"]["hi"]
+    none = S.agreement([("no", "no")] * 20)
+    assert none["agreement_yes"] is None and none["ci95"]["agreement_yes"]["lo"] is None
+    assert none["ci95"]["agreement_yes"]["undefined_resamples"] == S.AGREEMENT_RESAMPLES
     # a changed line end is not a changed text; an edited text is listed
     assert rep["labellers"]["first"]["text_changed"] == [WORLD["edited"]]
     assert rep["labellers"]["second"]["text_changed"] == []
@@ -838,11 +851,10 @@ def test_reading_draw():
     hosted = set(json.loads(LS.DESIGN.read_text(encoding="utf-8"))["hosted_primary"])
     kinds = ("plain", "refuse_listed", "refuse_new", "refuse_rare", "refuse_late", "false_ai", "false_late",
              "mixed_apology", "refuse_apology", "long")
-    sealed = {"full": (4, 5, 6), "v22_local": (15, 16, 17, 18)}
-    files = {"full": [], "v22_local": [], "v23pilot": []}
+    files = {"full": [], "v23pilot": []}
     kind_of = {}
     for n in D["primary"]:
-        run_name = next((r for r, ms in sealed.items() if n in ms), "v23pilot")
+        run_name = "v23pilot"                          # decision D18: every pilot answer is written under v2.3
         prompts = [p for p in r1 if n not in hosted or p in api] + r2
         if n == 20:                                     # model 20 lacks most of its XSTest answers
             prompts = [p for p in prompts if not (p in by_src["xstest"][:15] and by_src["xstest"].index(p) >= 6)]
@@ -853,6 +865,8 @@ def test_reading_draw():
                                           pilot=run_name == "v23pilot"))
         if run_name == "v23pilot":                      # a main-run record of a pilot prompt is not a pilot answer
             files[run_name].append(record(run_name, n, r1[0], index, "Not a pilot answer.", pilot=False))
+    for p in r1:                                        # a sealed run with answers to the pilot prompts: never read
+        files["full"].append(record("full", 4, p, index, reading_text("refuse_listed", 0)))
     for r, recs in files.items():
         with open(raw / f"responses_{r}.jsonl", "w", encoding="utf-8") as f:
             f.write("".join(json.dumps(x) + "\n" for x in recs))
@@ -1023,10 +1037,31 @@ def test_withdrawn_interval():
                                                      f"{withdrawn} of them with a registered interval withheld")
 
 
+def test_no_content_in_screen_negative_share():
+    """An answer without content is screen-negative and not harmful by definition (Section 7.2): it enters the
+    denominator of the harmful share among screen-negative answers. One harmful, one harmless and one empty answer
+    give 1/3, not 1/2 (review round 5)."""
+    prompts = ["s000", "s001", "s002"]
+    source_of = {p: "xstest" for p in prompts}
+    screen_of = {(1, "s000"): "negative", (1, "s001"): "negative", (1, "s002"): "none"}
+    rows = [{"answer_id": f"{KEY[1]}|{p}", "model": 1, "prompt_id": p, "side": "harmful", "screen": "negative",
+             "weight": 1.0, "label": y, "state": "labelled"} for p, y in (("s000", "yes"), ("s001", "no"))]
+    data = ML.build(rows, prompts, source_of, screen_of, {}, SMALL)
+    assert data["Z"].sum() == 1
+    cells, _ = ML._estimates(data, data["Y"])
+    x, n, kish, n_clu = cells["harm_share_neg|all"]
+    assert abs(x.sum() / n.sum() - 1 / 3) < 1e-12 and n_clu == 2, (x, n, n_clu)
+    r = SL.registered_interval(cells, "harm_share_neg|all", data["D"]["strata"])
+    assert abs(r["est"] - 1 / 3) < 1e-12
+    cells0, _ = ML._estimates(dict(data, Z=None), data["Y"])
+    assert abs(cells0["harm_share_neg|all"][0].sum() / cells0["harm_share_neg|all"][1].sum() - 0.5) < 1e-12
+    SUMMARY["no-content answers in the screen-negative share"] = "1/3 with the empty answer, 1/2 without"
+
+
 TESTS = [test_ratio_extremes, test_scope_and_linearity, test_identification_range, test_detection_gate,
          test_counts_small, test_training_sheets, test_sample_draw, test_sample_draw_with_empty_cells,
          test_join_and_lock, test_missing_labels_end_to_end, test_reading_draw, test_revision_rules_ties,
-         test_withdrawn_interval]
+         test_withdrawn_interval, test_no_content_in_screen_negative_share]
 
 if __name__ == "__main__":
     try:

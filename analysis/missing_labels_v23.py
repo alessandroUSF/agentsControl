@@ -71,8 +71,10 @@ GATED = tuple(k for k in SL.CHECKED if k.startswith("det_change_") and "_reg|" i
 # Appendix A.4, a check that fails twice: the interval is not reported; the estimate and the counts are (Section
 # 9.5). The registered detection change of the instruction-tuned group failed check 5 in low_failure_perfect|null
 # at both runs of 11 November 2026: 94.32% against 94.34% (10,000 replications), then 94.40% against 94.67%
-# (40,000 replications, seed 20261124). It stays in REPORTED and GATED; without an interval it gates no statement
-# (Section 9.3).
+# (40,000 replications, seed 20261124); with ten commercial models (decision D17) it failed both runs again on 12
+# November 2026 (93.98% and 94.28%). It stays in REPORTED and GATED; without an interval it gates no statement
+# (Section 9.3). With the code under amendment D19 (domain degrees of freedom, proposed on 12 November 2026) it passes
+# check 5 in every scenario (94.60% in low_failure_perfect|null); it stays withdrawn until the PI decides on D19.
 NO_INTERVAL = {"det_change_own_reg|i": "interval not reported: it failed check 5 of Appendix A.4 in both runs; "
                                        "the estimate and the counts are (Section 9.5)"}
 STATES = ("labelled", "labelled_once", "unknown")
@@ -113,7 +115,7 @@ def build(rows, prompts, source_of, screen, flags, design=None):
     sources = sorted({source_of[p] for p in prompts})
     D = {"judges": judges, "group": np.array(["i"] * len(inst) + ["r"] * len(rem)), "P": P,
          "strata": np.array([sources.index(source_of[p]) for p in prompts])}
-    S, W, Y = np.zeros((J, P)), np.zeros((J, P)), np.zeros((J, P))
+    S, W, Y, Z = np.zeros((J, P)), np.zeros((J, P)), np.zeros((J, P)), np.zeros((J, P))
     F = {k: np.zeros((J, P)) for k in ("A1", "A2", "C1", "C2")}
     once, unknown = np.zeros((J, P), bool), np.zeros((J, P), bool)
     absent = 0
@@ -125,6 +127,8 @@ def build(rows, prompts, source_of, screen, flags, design=None):
                 continue
             if s not in ("positive", "negative", "none"):
                 raise ValueError(f"screen result {s!r} for ({m}, {p})")
+            if s == "none":
+                Z[jx[m], px[p]] = 1.0         # no content: screen-negative, not harmful by definition (Section 7.2)
             if s == "positive":
                 S[jx[m], px[p]] = 1.0
                 f = flags.get((m, p))
@@ -146,7 +150,7 @@ def build(rows, prompts, source_of, screen, flags, design=None):
         Y[j, i] = 1.0 if r["label"] == "yes" else 0.0
         once[j, i] = r["state"] == "labelled_once"
         unknown[j, i] = r["state"] == "unknown"
-    return dict(D=D, S=S, W=W, Y=Y, once=once, unknown=unknown, judges=judges, prompts=list(prompts),
+    return dict(D=D, S=S, W=W, Y=Y, Z=Z, once=once, unknown=unknown, judges=judges, prompts=list(prompts),
                 absent_answers=absent, **F)
 
 
@@ -154,7 +158,7 @@ def build(rows, prompts, source_of, screen, flags, design=None):
 def _estimates(data, Y, W=None):
     """sim_v23_labels.estimates() on one complete assignment of the labels."""
     return SL.estimates(data["W"] if W is None else W, data["S"], Y, data["A1"], data["A2"], data["C1"],
-                        data["C2"], data["D"])
+                        data["C2"], data["D"], Z=data.get("Z"))
 
 
 def scope_mask(data, stat):

@@ -1,0 +1,24 @@
+safe|inv_3: 24 of 26 intervals checked (R >= 1,000), 16 passed; lowest coverage 0.9148 (commercial|neg|iw) | 64s
+    not checked: primary|all|ic: interval reported in 0 replications
+    CHECK 6 FAILS: primary|neg|io: coverage 0.9465 < 0.9467 (R 40000)
+    CHECK 6 FAILS: primary|neg|be: coverage 0.9453 < 0.9467 (R 40000)
+    CHECK 6 FAILS: primary|neg|iw: coverage 0.9422 < 0.9467 (R 39352)
+    not checked: commercial|all|ic: interval reported in 0 replications
+    CHECK 6 FAILS: commercial|neg|th: coverage 0.9418 < 0.9467 (R 39754)
+    CHECK 6 FAILS: commercial|neg|thc: coverage 0.9442 < 0.9467 (R 39766)
+    CHECK 6 FAILS: commercial|neg|io: coverage 0.9390 < 0.9467 (R 39995)
+    CHECK 6 FAILS: commercial|neg|be: coverage 0.9387 < 0.9467 (R 39994)
+    CHECK 6 FAILS: commercial|neg|iw: coverage 0.9148 < 0.9464 (R 33476)
+safe|inv_10_15: 24 of 26 intervals checked (R >= 1,000), 14 passed; lowest coverage 0.9125 (commercial|neg|iw) | 60s
+    not checked: primary|all|ic: interval reported in 0 replications
+    CHECK 6 FAILS: primary|neg|th: coverage 0.9452 < 0.9467 (R 40000)
+    CHECK 6 FAILS: primary|neg|thc: coverage 0.9461 < 0.9467 (R 40000)
+    CHECK 6 FAILS: primary|neg|io: coverage 0.9447 < 0.9467 (R 40000)
+    CHECK 6 FAILS: primary|neg|iw: coverage 0.9426 < 0.9467 (R 39319)
+    CHECK 6 FAILS: commercial|neg|th90: coverage 0.9461 < 0.9467 (R 40000)
+    not checked: commercial|all|ic: interval reported in 0 replications
+    CHECK 6 FAILS: commercial|neg|th: coverage 0.9360 < 0.9467 (R 39924)
+    CHECK 6 FAILS: commercial|neg|thc: coverage 0.9362 < 0.9467 (R 39942)
+    CHECK 6 FAILS: commercial|neg|io: coverage 0.9382 < 0.9467 (R 39999)
+    CHECK 6 FAILS: commercial|neg|be: coverage 0.9374 < 0.9467 (R 39997)
+    CHECK 6 FAILS: commercial|neg|iw: coverage 0.9125 < 0.9464 (R 33540)

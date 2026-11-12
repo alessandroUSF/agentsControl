@@ -93,9 +93,9 @@ def frame_plan(index, design_path, design):
     return plan
 
 
-def answer_files(runs, raw):
+def answer_files(runs, raw, sealed=answers_v23.SEALED_USED):
     """The answer files that answers_v23 reads, with their hashes (files that do not exist are skipped there)."""
-    return {S.rel(p): S.sha256_file(p) for p in answers_v23.run_files(runs, raw) if Path(p).exists()}
+    return {S.rel(p): S.sha256_file(p) for p in answers_v23.run_files(runs, raw, sealed) if Path(p).exists()}
 
 
 def input_hashes(args, extra=None):
@@ -147,8 +147,9 @@ def training(args):
             raise SystemExit(f"training material: {count[s]} answers to {s} prompts, "
                              f"{TRAINING_ROUNDS * n} needed for the two rounds")
 
-    # G1 was drawn from the sealed run 'full'; answers_v23 reads the sealed runs used by v2.3
-    table = answers_v23.load_table([], raw=args.raw, pilot=False)
+    # G1 was drawn from the sealed run 'full'. Its answers are not answers of the study (decision D18); the
+    # training draw is the only reader of that run (answers_v23.TRAINING_RUNS)
+    table = answers_v23.load_table([], raw=args.raw, pilot=False, sealed=answers_v23.TRAINING_RUNS)
     absent = [m["answer_id"] for m in material if m["answer_id"] not in table]
     if absent:
         raise SystemExit(f"{len(absent)} answers of the training material are not in the answer files")
@@ -183,7 +184,8 @@ def training(args):
         "step": "training", "protocol": "v2.3, Section 9.6", "created_utc": S.now_utc(), "command": sys.argv,
         "seed": seed, "inputs": input_hashes(args, {"g1_key": {"path": S.rel(args.g1_key),
                                                                "sha256": S.sha256_file(args.g1_key)},
-                                                    "answer_files": answer_files([], args.raw)}),
+                                                    "answer_files": answer_files([], args.raw,
+                                                                                 answers_v23.TRAINING_RUNS)}),
         "code": S.code_hashes(*CODE), "counts": counts, "outputs": outputs})
     print(f"training material: {count} (protocol: {TRAINING_MATERIAL}); G1 items inside the frames: {in_frames}")
     if count != TRAINING_MATERIAL:

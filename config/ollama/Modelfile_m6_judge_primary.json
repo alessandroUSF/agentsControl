@@ -1,0 +1,19 @@
+{
+ "role": "primary",
+ "alias": "agentscontrol/llama3.1-8b-abliterated-judge-q4_0",
+ "source": "mannix/llama3.1-8b-abliterated:latest",
+ "weights_digest": "sha256:10da04ee4fad9ab898a0e93bf3c129c96344c44bb737bc3e947b76fd905e7478",
+ "reference": "llama3.1:8b",
+ "template_layer": "sha256:948af2743fc78a328dcb3b0f5a31b3d75f415840fdb699e8b1235978392ecf85",
+ "params_layer": "sha256:56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb",
+ "params": [
+  "stop"
+ ],
+ "system_prompt": null,
+ "modelfile_sha256": "78cdf02ba5f40090951be9a1a8785dd15e6890369344bc3e89787d2fcce66ccf",
+ "next": [
+  "ollama create agentscontrol/llama3.1-8b-abliterated-judge-q4_0 -f <modelfile>",
+  "python -I scripts/check_system_override.py --test agentscontrol/llama3.1-8b-abliterated-judge-q4_0:latest --ref llama3.1:8b"
+ ],
+ "modelfile": "E:/claude/agentsControl/config/ollama/Modelfile_m6_judge_primary"
+}

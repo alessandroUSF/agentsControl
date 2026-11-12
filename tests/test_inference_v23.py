@@ -26,7 +26,9 @@ def data(rng=RNG, j=12, p=P):
 
 
 def direct(x, n, strata=STRATA):
-    """The ratio, its standard error and degrees of freedom written out from Section 8 (no shared code)."""
+    """The ratio, its standard error and degrees of freedom written out from Section 8.1 (no shared code). The
+    variance runs over every prompt of a source; the degrees of freedom count, in each source, the prompts with at
+    least one answer of the statistic, less one (none for a source without such a prompt), and are at least 1."""
     est = x.sum() / n.sum()
     e = x - est * n
     var, df = 0.0, 0
@@ -34,8 +36,8 @@ def direct(x, n, strata=STRATA):
         eh = e[strata == h]
         k = eh.size
         var += k / (k - 1) * ((eh - eh.mean()) ** 2).sum()
-        df += k - 1
-    return est, np.sqrt(var) / n.sum(), df
+        df += max(int((n[strata == h] != 0).sum()) - 1, 0)
+    return est, np.sqrt(var) / n.sum(), max(df, 1)
 
 
 def flags(r):
@@ -53,7 +55,8 @@ def test_regular_case():
     r = inf.cluster_ratio(x, n, STRATA)
     est, se, df = direct(x, n)
     assert flags(r) == (True, False, True)
-    assert np.isclose(r["est"], est, rtol=1e-12) and np.isclose(r["se"], se, rtol=1e-12) and r["df"] == df == P - 2
+    assert np.isclose(r["est"], est, rtol=1e-12) and np.isclose(r["se"], se, rtol=1e-12) and r["df"] == df
+    assert df == int((n > 0).sum()) - 2 and df < P - 2              # a few prompts have no screen-positive answer
     p = inf.p_two_sided(r)
     assert np.isclose(p, 2 * stats.t.sf(abs(est / se), df), rtol=1e-10)
     lo, hi = inf.interval(r)
@@ -77,14 +80,41 @@ def test_zero_denominator():
 
 
 def test_empty_stratum():
-    """No screen-positive answer in one source only: the statistic exists; that source adds no variance, and the
-    degrees of freedom stay those of the design."""
+    """No screen-positive answer in one source only: the statistic exists; that source adds no variance and no
+    degree of freedom (Section 8.1)."""
     x, n = data()
     x[STRATA == 1], n[STRATA == 1] = 0, 0
     r = inf.cluster_ratio(x, n, STRATA)
     est, se, df = direct(x, n)
-    assert flags(r) == (True, False, True) and r["df"] == P - 2
+    assert flags(r) == (True, False, True) and r["df"] == df == int((n[STRATA == 0] > 0).sum()) - 1
     assert np.isclose(r["est"], est) and np.isclose(r["se"], se)
+
+
+def test_domain_degrees_of_freedom():
+    """Section 8.1: the degrees of freedom are sum_h (m_h - 1), m_h the prompts of source h with an answer of the
+    statistic; the variance still runs over every prompt. The p-value, the interval and the bound use them."""
+    rng = np.random.default_rng(23)
+    n = rng.integers(1, 6, P).astype(np.float64)
+    x = rng.binomial(n.astype(int), 0.3) - rng.binomial(n.astype(int), 0.3).astype(np.float64)
+    full = inf.cluster_ratio(x, n, STRATA)
+    assert full["df"] == P - 2 == 298
+    x[:100], n[:100] = 0, 0                                         # 50 prompts of source 0 and 150 of source 1 left
+    r = inf.cluster_ratio(x, n, STRATA)
+    est, se, df = direct(x, n)
+    assert r["df"] == df == 49 + 149 and np.isclose(r["se"], se, rtol=1e-12)
+    t = r["est"] / r["se"]
+    assert np.isclose(inf.p_two_sided(r), 2 * stats.t.sf(abs(t), 198), rtol=1e-12)
+    lo, hi = inf.interval(r)
+    q = stats.t.ppf(0.975, 198)
+    assert np.isclose(lo, r["est"] - q * r["se"]) and np.isclose(hi, r["est"] + q * r["se"])
+    assert np.isclose(inf.lower_bound(r), r["est"] - stats.t.ppf(0.99, 198) * r["se"])
+    x[150:299], n[150:299] = 0, 0                                   # one prompt left in source 1: it adds nothing
+    r = inf.cluster_ratio(x, n, STRATA)
+    assert r["df"] == direct(x, n)[2] == 49
+    X = np.stack([x, x]); N = np.stack([n, n])                     # a leading axis: one value per replication
+    N[1, 100:140], X[1, 100:140] = 0, 0
+    r = inf.cluster_ratio(X, N, STRATA)
+    assert r["df"].tolist() == [49, 9]
 
 
 def test_zero_variance_no_change():
@@ -204,6 +234,11 @@ def test_decomposition_regular():
     c = xc.sum(1) / nc.sum(1)
     assert np.isclose(d["within"]["est"], (w * (xa.sum(1) / na.sum(1) - c)).sum(), rtol=1e-12)
     assert not d["judges_without_control"].any()
+    some = (na.sum(0) > 0) | (nc.sum(0) > 0)                         # the prompts with an own or a control answer
+    want = (some[STRATA == 0]).sum() - 1 + (some[STRATA == 1]).sum() - 1
+    assert d["within"]["df"] == d["composition"]["df"] == want
+    own = na.sum(0) > 0
+    assert d["pooled"]["df"] == pooled["df"] == (own[STRATA == 0]).sum() - 1 + (own[STRATA == 1]).sum() - 1
 
 
 def test_decomposition_judge_without_control():
@@ -272,6 +307,8 @@ def test_judge_normalised():
     r = inf.judge_normalised(xa, na, xc, nc, STRATA)
     want = np.mean(xa.sum(1) / na.sum(1) - xc.sum(1) / nc.sum(1))
     assert flags(r) == (True, False, True) and np.isclose(r["est"], want) and r["judges_used"] == J
+    some = (na + nc).sum(0) > 0
+    assert r["df"] == (some[STRATA == 0]).sum() - 1 + (some[STRATA == 1]).sum() - 1
     nc[1], xc[1] = 0, 0                                              # judge 1 left out and counted
     r = inf.judge_normalised(xa, na, xc, nc, STRATA)
     keep = [0, 2, 3]
@@ -313,6 +350,19 @@ def test_no_constant_added():
     r = inf.cluster_ratio(x, n, STRATA)
     est, se, _ = direct(x, n)
     assert flags(r) == (True, False, True) and r["est"] == est == -0.5 and np.isclose(r["se"], se, rtol=1e-14)
+
+
+def test_domain_df_negative_contribution():
+    """Section 8.1 (D19, proposed): a prompt counts in the domain degrees of freedom when N_p != 0. A denominator that
+    is a difference (the false-alarm change of Section 9.5) can be negative on a prompt that carries answers; such a
+    prompt counts, and its residual is in the variance. Review round 5, diagnostic: two strata of four prompts with
+    N = (2, -1, 0, 0) give 1 + 1 = 2 degrees of freedom; with N_p > 0 they would be 0, floored at 1."""
+    n = np.tile([2., -1., 0., 0.], 2)
+    x = np.tile([1., 0., 0., 0.], 2)
+    r = inf.cluster_ratio(x, n, np.repeat([0, 1], 4))
+    assert int(r["df"]) == 2
+    n2 = np.tile([2., 1., 0., 0.], 2)          # the same with a positive contribution: the same df
+    assert int(inf.cluster_ratio(x, n2, np.repeat([0, 1], 4))["df"]) == 2
 
 
 for name, fn in sorted(globals().items()):

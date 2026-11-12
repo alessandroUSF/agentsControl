@@ -20,8 +20,8 @@ analyze_v23 reads them back. Checked number for number (exact equality):
     repeatability (Section 11.6), against direct counts on the generated verdicts;
   - a synthetic ledger: cuts 1 and 3, abandonments, a provider stop (and one resumed), the closes of blocks 6 and 7
     as the judge runner writes them (counted again from the plan; a close with other counts is marked), a local
-    call left, and decision D2 for model 14: the reasons of Section 10.3, the quantities that the cuts withdraw,
-    the commercial tables without model 14's answers, and P1 to P3 declared unless a hosted call on the harmful
+    call left, and decision D2 for one commercial model: the reasons of Section 10.3, the quantities that the cuts
+    withdraw, the commercial tables without that model's answers, and P1 to P3 declared unless a hosted call on the harmful
     frame is missing outside a cut.
 Nothing under results/ is read or written (the command is given a ledger of its own).
 Run: python -B -I -X utf8 tests/test_sim_v23_analyze.py
@@ -338,6 +338,20 @@ def test_more_secondary_analyses():
     D, panel, truth, sec = W["D"], W["panel"], W["truth"], W["res"]["secondary"]
     arrays = {k: W[k] for k in ("S", "A1", "A2", "C1", "C2")}
     names = ("S", "A1", "A2", "C1", "C2")
+    # Section 11.4: the change of the authors and of the controls by which presentation came first in the pair
+    po, st = sec["presentation_order"], W["res"]["registered"]["statistics"]
+    for k in ("th", "thc"):
+        b, c = po[k]["blind_first"], po[k]["context_first"]
+        assert b["answers"] + c["answers"] == int((W["S"] > 0).sum()) and min(b["answers"], c["answers"]) > 0, k
+        assert abs(b["est"] * b["den"] + c["est"] * c["den"] - st[k]["est"] * st[k]["den"]) < 1e-9, k
+    for k in ("io", "be"):                    # iota_S and beta_S by the four combinations of the two orders
+        cells = po[k]
+        assert len(cells) == 4 and sum(c["answers"] for c in cells.values()) == int((W["S"] > 0).sum()), k
+        assert abs(sum(c["est"] * c["den"] for c in cells.values() if c["den"]) - st[k]["est"] * st[k]["den"]) \
+            < 1e-9, k
+    first = [J.first_presentation(panel.key_of[m], plan_v23.aid(panel.key_of[m], pid), plan_v23.SEED) == "blind"
+             for m in D["judges"] for pid in W["frames"]["harmful"][0]]
+    assert abs(sum(first) / len(first) - 0.5) < 0.05
     for h in (0, 1):
         cols = np.flatnonzero(D["strata"] == h)
         Dh = dict(D, P=len(cols), strata=D["strata"][cols], auth=D["auth"][:, cols], ctrl=D["ctrl"][:, cols])
@@ -463,14 +477,43 @@ def test_commercial_and_safe_equal_simulation():
         Wt = SS.weights(S.astype(bool)[None], w)
         r = SS.contrasts(*(F[a][None] for a in ("A1", "A2", "C1", "C2")), Wt, Ds, cols, [k])[k]
         lo, hi = inf.interval(r)
+        if key in AN.SAFE_NO_INTERVAL:              # Appendix A.4: the estimate only
+            assert same(got[key]["est"], r["est"][0]) and got[key]["lo"] is None and got[key]["hi"] is None, key
+            assert got[key]["p"] is None and got[key]["no_interval"] == AN.SAFE_NO_INTERVAL_TEXT, key
+            continue
         assert same(got[key]["est"], r["est"][0]) and same(got[key]["lo"], lo[0]) and same(got[key]["hi"], hi[0]), key
+        assert "no_interval" not in got[key], key
     Dcs = SS.commercial_design()
     S, F = arrays_from(truth, panel, Dcs, sid, answers, "safe", AN.OWN_C, AN.CTRL_CS)
     got = W["res"]["safe"]["commercial"]["quantities"]
     for key, w, cols, k in SS.specs("commercial", Dcs):
         Wt = SS.weights(S.astype(bool)[None], w)
         r = SS.contrasts(*(F[a][None] for a in ("A1", "A2", "C1", "C2")), Wt, Dcs, cols, [k])[k]
+        if key in AN.SAFE_NO_INTERVAL:
+            assert same(got[key]["est"], r["est"][0]) and got[key]["hi"] is None, key
+            assert got[key].get("lb99", None) is None and got[key]["no_interval"] == AN.SAFE_NO_INTERVAL_TEXT, key
+            continue
         assert same(got[key]["est"], r["est"][0]) and same(got[key]["hi"], inf.interval(r)[1][0]), key
+    # Sections 8.6 and 17.3: the commercial safe tables also without model 11 and without models 1 and 2
+    wo = W["res"]["safe"]["commercial"]["quantities_without"]
+    assert set(wo) == set(AN.CONFLICT)
+    for name, drop in AN.CONFLICT.items():
+        inc = np.ones(S.shape, bool)
+        for m in drop:
+            j = Dcs["judges"].index(m)
+            inc[j, :] = False
+            inc &= Dcs["ctrl"] != j
+        assert 0 < inc.sum() < inc.size
+        for key, w, cols, k in SS.specs("commercial", Dcs):
+            Wt = (SS.weights(S.astype(bool)[None], w) * inc[None]).astype(np.int8)
+            r = SS.contrasts(*(F[a][None] for a in ("A1", "A2", "C1", "C2")), Wt, Dcs, cols, [k])[k]
+            g = wo[name][key]
+            assert same(g["est"], r["est"][0]), (name, key)
+            if key in AN.SAFE_NO_INTERVAL:
+                assert g["hi"] is None and g["no_interval"] == AN.SAFE_NO_INTERVAL_TEXT, (name, key)
+            else:
+                assert same(g["hi"], inf.interval(r)[1][0]), (name, key)
+        assert any(not same(wo[name][k]["est"], got[k]["est"]) for k in got if got[k]["est"] is not None), name
     assert W["res"]["safe"]["harmful_content_true_on_safe_answers"]
 
 
@@ -486,7 +529,13 @@ def test_labels_equal_simulation():
             Wt[idx[r["model"]], pos[r["prompt_id"]]] = r["weight"]
     S = W["S"].astype(np.float64)
     F = [W[k].astype(np.float64) for k in ("A1", "A2", "C1", "C2")]
-    cells, _ = SL.estimates(Wt, S, W["Y"], *F, D)
+    Z = np.zeros(W["S"].shape)                       # answers without content: screen-negative, not harmful (7.2)
+    for m, j in idx.items():
+        for pid, i in pos.items():
+            a = W["answers"].get(plan_v23.aid(W["panel"].key_of[m], pid))
+            Z[j, i] = float(a is not None and a["screen"] == "none")
+    assert Z.sum() > 0
+    cells, _ = SL.estimates(Wt, S, W["Y"], *F, D, Z=Z)
     sup = SL.support(Wt, S, W["Y"], D)
     shares = all(sup["all"][c] >= SL.MIN_SUPPORT for c in ("pos", "neg"))
     assert lab["complete_labels"]
@@ -522,7 +571,9 @@ def test_call_not_attempted():
     assert not reg["declared"] and reg["calls"]["hosted_concerned"] == [22]
     assert all(reg["claims"][p]["state"] == "not declared" for p in ("P1", "P2", "P3"))
     b = reg["bounds_not_attempted"]
-    assert b["answers_with_a_call_not_attempted"] == 1
+    assert b["answers_with_a_call_not_attempted"] == 1 and b["scope"] == AN.BOUNDS_SCOPE
+    assert b["answers_not_generated"] == sum(1 for m in W["D"]["judges"] for pid in W["frames"]["harmful"][0]
+                                             if plan_v23.aid(panel.key_of[m], pid) not in W["answers"])
     assert b["th"]["low"]["est"] <= b["th"]["high"]["est"]
     D = W["D"]
     inc = np.ones(W["S"].shape, np.int8)
@@ -699,7 +750,8 @@ def test_accuracy():
                 lo, hi = inf.interval(r)
                 g = got["weighted"][cls]
                 assert abs(g["est"] - float(r["est"])) < 1e-12 and abs(g["lo"] - float(lo)) < 1e-12, (m, cls)
-                assert abs(g["hi"] - float(hi)) < 1e-12 and g["df"] == 386
+                dom = sum(max(int((N[y][strata == h] > 0).sum()) - 1, 0) for h in np.unique(strata))
+                assert abs(g["hi"] - float(hi)) < 1e-12 and g["df"] == max(dom, 1) and dom < 386   # Section 8.1
             else:
                 assert "weighted" not in got
     assert ineligible > 0 and unknown > 0
@@ -733,6 +785,14 @@ def test_challenge_set_and_comparisons():
         lost = sum(1 for b, c in zip(tb, tc) if c[1] < b[1])
         assert got["change"]["gained"] == g and got["change"]["lost"] == lost
         assert got["change"]["est"] == ((g - lost) / len(el) if el else None)
+        if el:                                         # Section 8.2: the change has a 95% interval (cluster: prompt)
+            per = {}
+            for r, b, c in zip(el, tb, tc):
+                a = per.setdefault(r["prompt_id"], [r["source"], 0, 0])
+                a[1], a[2] = a[1] + c[1] - b[1], a[2] + 1
+            want = ratio_interval_by_hand(per)
+            iv = got["change"]["interval95"]
+            assert (iv["lo"] is None and want is None) or (close(iv["lo"], want[0]) and close(iv["hi"], want[1])),                 (m, iv, want)
         vp = [(b, c) for b, c in zip(tb, tc) if b[0] == c[0] == "valid"]
         assert got["change"]["valid_pairs"]["answers"] == len(vp)
         if not primary:
@@ -906,6 +966,10 @@ def test_ledger_reasons():
     assert set(sc["quantities"]) == set(base["safe"]["commercial"]["quantities"])
     for key_, lim in sc["bounds_not_attempted"].items():
         assert lim["low"]["est"] <= lim["high"]["est"], key_
+        if key_ in AN.SAFE_NO_INTERVAL:                  # Appendix A.4: no interval on the bounds either
+            assert all(lim[t]["lo"] is None and lim[t]["p"] is None and lim[t].get("lb99") is None
+                       and lim[t]["no_interval"] == AN.SAFE_NO_INTERVAL_TEXT for t in ("low", "high")), key_
+    assert set(sc["bounds_not_attempted"]) & set(AN.SAFE_NO_INTERVAL)
     # the abandonment of model 13: fewer answers, with bounds over the calls
     a13 = res["accuracy"]["13"]
     assert a13["not_attempted"] == {"abandoned": 7}
@@ -927,13 +991,16 @@ def test_ledger_reasons():
     print(f"  reasons: {na['totals']['not_attempted']}")
 
 
+D2M = 10          # the example of decision D2 in this test (model 14 until decision D17)
+
+
 def test_decision_d2():
-    """Decision D2 for model 14 (its latest preflight admits its endpoint for safe prompts only): it writes no answer to
+    """Decision D2 for model D2M (its latest preflight admits its endpoint for safe prompts only): it writes no answer to
     the common set and classifies no harmful-side answer. These calls are excluded, not 'not attempted': P1 to P3 stay
     declared, the commercial tables leave out its answers and the answers it would control (no bounds), and its
     harmful-side quantities are not available; its safe side is untouched."""
     panel, key = W["panel"], W["panel"].key_of
-    k14 = key[14]
+    k14 = key[D2M]
     gone = {aid for aid, a in W["answers"].items() if a["model_key"] == k14 and a["side"] == "harmful"}
     answers = {aid: a for aid, a in W["answers"].items() if aid not in gone}
     rows = [r for r in W["locked"] if r["answer_id"] not in gone]       # drawn from the answers that exist
@@ -960,20 +1027,20 @@ def test_decision_d2():
               {"kind": "block_complete", "block": "6", "role": "judge", "build": "primary", "models": None,
                "spent_usd": 0.0, "planned": len(pcalls["6"]), "final_by_status": fin6, "not_attempted": {},
                "not_sent": skipped["6"], "excluded_d2": {k14: ex6},
-               "reason": "answers of model 14 on harmful prompts never made (decision D2)"}]
+               "reason": f"answers of model {D2M} on harmful prompts never made (decision D2)"}]
     holds = spend_v23.load_holds(ROOT / "config" / "stage_holds.json")
     res = AN.analyse(canon, answers, panel, W["frames"], W["asg"], label_rows=rows, label_design=W["ldesign"],
                      flips=FLIPS, seed=SIGN_SEED, ledger=ledger, holds=holds)
     json.dumps(AN.jsonable(res))
     base, reg, com = W["res"], res["registered"], res["commercial"]
     assert reg["declared"] and reg["claims"] == base["registered"]["claims"]
-    assert com["calls"]["complete"] and com["calls"]["excluded_d2"]["models"] == [14]
+    assert com["calls"]["complete"] and com["calls"]["excluded_d2"]["models"] == [D2M]
     assert com["calls"]["excluded_d2"]["answers_not_written"] == len(gone) == 60
     assert "bounds_not_attempted" not in com
     for name in ("all", "without_11", "without_1_2"):
-        assert com["tables"][name]["by_model"]["14"] == {"not_available": AN.D2_TEXT}
-    Dc, S, F = commercial_arrays()                    # the answers of 14 and those it controls are left out
-    j14 = panel.commercial.index(14)
+        assert com["tables"][name]["by_model"][str(D2M)] == {"not_available": AN.D2_TEXT}
+    Dc, S, F = commercial_arrays()                    # the answers of D2M and those it controls are left out
+    j14 = panel.commercial.index(D2M)
     inc = np.ones(S.shape, bool)
     inc[j14, :] = False
     inc &= Dc["ctrl"] != j14
@@ -985,23 +1052,155 @@ def test_decision_d2():
     assert na["totals"] == {"not_attempted": {}, AN.EXCLUDED: excluded, "answers_not_attempted": {},
                             "answers_excluded_d2": 60}
     assert excluded > ex6 > 0 and na["verdicts_outside_plan"] == {}
-    assert na["ledger"]["d2_safe_prompts_only"] == [14]                          # 13's latest preflight is not
+    assert na["ledger"]["d2_safe_prompts_only"] == [D2M]                          # 13's latest preflight is not
     close = na["ledger"]["block_complete"][0]
-    assert close["same_counts"] and close["here"][AN.EXCLUDED] == close[AN.EXCLUDED] == {"14": ex6}
+    assert close["same_counts"] and close["here"][AN.EXCLUDED] == close[AN.EXCLUDED] == {str(D2M): ex6}
     assert na["not_sent"]["6"] == skipped["6"] and skipped["6"].get("missing", 0) > 0   # on answers never made
-    assert res["accuracy"]["14"]["not_available"] == AN.D2_TEXT
-    assert res["accuracy"]["14"]["verdicts_on_safe_side_answers"] > 0
-    assert res["challenge_set"]["by_judge"]["14"]["not_available"] == AN.D2_TEXT
-    assert res["repeatability"]["14"] == {"not_available": AN.D2_TEXT}
-    assert res["common_set_all_models"]["14"] == {"not_available": AN.D2_TEXT}
+    assert res["accuracy"][str(D2M)]["not_available"] == AN.D2_TEXT
+    assert res["accuracy"][str(D2M)]["verdicts_on_safe_side_answers"] > 0
+    assert res["challenge_set"]["by_judge"][str(D2M)]["not_available"] == AN.D2_TEXT
+    assert res["repeatability"][str(D2M)] == {"not_available": AN.D2_TEXT}
+    assert res["common_set_all_models"][str(D2M)] == {"not_available": AN.D2_TEXT}
     jc = res["judge_comparisons"]
-    assert jc["left_out"] == {"14": AN.D2_TEXT} and 14 not in jc["all"]["challenge_set"]["judges"]
-    assert 14 not in jc["all"]["reference_subset"]["judges"]
+    assert jc["left_out"] == {str(D2M): AN.D2_TEXT} and D2M not in jc["all"]["challenge_set"]["judges"]
+    assert D2M not in jc["all"]["reference_subset"]["judges"]
     assert res["safe"] == base["safe"]
     for m in panel.commercial:
-        if m != 14:
+        if m != D2M:
             assert res["accuracy"][str(m)] == base["accuracy"][str(m)]
-    print(f"  model 14 under D2: {excluded} judging calls and 60 answers excluded; P1 to P3 declared")
+    print(f"  model {D2M} under D2: {excluded} judging calls and 60 answers excluded; P1 to P3 declared")
+
+
+def test_safe_no_interval():
+    """Appendix A.4, run (d): analyze_v23.SAFE_NO_INTERVAL_D19 is exactly the set of safe-side intervals that failed
+    check 6 in the first run (seed 20261121, SS.BASE_SEED) and again in the second run (seed 20261124, 40,000
+    replications) of the stored files, in at least one setting. Both runs have the same number of reference clusters.
+    SAFE_NO_INTERVAL adds the intervals that failed twice only with the registered code (kept until the PI decides on
+    amendment D19)."""
+    out = ROOT / "analysis" / "output"
+    first = json.loads((out / "sim_v23_safe.json").read_text(encoding="utf-8"))
+    second = json.loads((out / "sim_v23_safe_rerun.json").read_text(encoding="utf-8"))
+    failed_twice = set()
+    for name, sc in first.items():
+        assert sc["seed"] == SS.BASE_SEED and sc["reps"] == 10000, name
+        sc2 = second[name]
+        assert sc2["seed"] == 20261124 and sc2["reps"] == 40000 and sc2["clusters"] == sc["clusters"], name
+        for k, st in sc["stats"].items():
+            c = st.get("check6") or {}
+            if c.get("made") and not c["passed"]:
+                c2 = sc2["stats"][k]["check6"]
+                assert c2["made"], (name, k)
+                if not c2["passed"]:
+                    failed_twice.add(k)
+    assert failed_twice == set(AN.SAFE_NO_INTERVAL_D19), sorted(failed_twice ^ set(AN.SAFE_NO_INTERVAL_D19))
+    assert set(AN.SAFE_NO_INTERVAL) == failed_twice | set(AN.SAFE_NO_INTERVAL_REGISTERED_ONLY)
+    assert not failed_twice & set(AN.SAFE_NO_INTERVAL_REGISTERED_ONLY)
+    keys = {s[0] for s in SS.specs("primary", dgp.design(frame="safe"))} | {
+        s[0] for s in SS.specs("commercial", SS.commercial_design())}
+    assert set(AN.SAFE_NO_INTERVAL) <= keys
+    print(f"  {len(failed_twice)} safe-side intervals failed check 6 twice: {sorted(failed_twice)}")
+
+
+def test_power_table_quantile():
+    """Section 8.3 (review round 5, mutations): the approximate power of P3 in table A.1 is the normal approximation
+    with the simulated standard error of beta_S and the 99% quantile of Student's t with 298 degrees of freedom; a
+    table made with another quantile does not match."""
+    import json as _json
+    from scipy import stats
+    sys.path.insert(0, str(ROOT / "analysis"))
+    import tables_v23 as TB
+    rows = {r["name"]: r for r in _json.loads((ROOT / "analysis" / "output" / "sim_v23_rs1.json")
+                                              .read_text(encoding="utf-8"))["rows"]}
+    TB.LINES.clear()
+    TB.rs1()                                  # the generator itself, not the stored table (review round 6)
+    text = "\n".join(TB.LINES)
+    TB.LINES.clear()
+    stored = (ROOT / "analysis" / "output" / "tables_v23.md").read_text(encoding="utf-8")
+    block = text.split("**Approximate power of the bound P3 for other margins.**")[1].split("###")[0]
+    assert block.strip() in stored                           # the stored table is the generated one
+    got = {}
+    for line in block.splitlines():
+        c = [x.strip() for x in line.strip().strip("|").split("|")]
+        if len(c) == 11 and c[0] in {n.split("|")[0] for n in rows}:
+            got[c[0]] = c[2:]
+    assert got and TB.APPROX_DF == 298
+    margins = ((0.03, (0, -0.01)), (0.05, (0, -0.01, -0.02)), (0.07, (0, -0.01, -0.02, -0.03)))
+    for z, should_match in ((stats.t.ppf(0.99, 298), True), (stats.norm.ppf(0.95), False)):
+        same_all = True
+        for c, cells in got.items():
+            se = rows[f"{c}|null"]["summary"]["be"]["mean_se"]
+            want = [f"{100 * stats.norm.cdf((m + b) / se - z):.0f}" for m, bs in margins for b in bs]
+            same_all &= want == cells
+        assert same_all == should_match, z
+
+
+def close(a, b):
+    """Equal up to rounding (a formula written out by hand against the production code)."""
+    return a is not None and b is not None and abs(a - b) < 1e-9
+
+
+def ratio_interval_by_hand(per):
+    """Section 8.1 written out, independently of analysis/inference_v23.py: per {prompt: [source, X_p, N_p]}.
+    R = sum X / sum N; e_p = X_p - R N_p centred in each source; V = sum_h n_h/(n_h - 1) sum (e_p - mean_h)^2
+    / (sum N)^2; Student's t with sum_h (m_h - 1) df, m_h the prompts of h with N_p != 0, at least 1. None when a
+    source has one prompt, the denominator is zero or the variance is zero."""
+    from scipy import stats
+    srcs = {}
+    for s, x, n in per.values():
+        srcs.setdefault(s, []).append((x, n))
+    if any(len(v) < 2 for v in srcs.values()):
+        return None
+    tx, tn = sum(x for v in srcs.values() for x, _ in v), sum(n for v in srcs.values() for _, n in v)
+    if tn == 0:
+        return None
+    r = tx / tn
+    var, df = 0.0, 0
+    for v in srcs.values():
+        e = [x - r * n for x, n in v]
+        mu = sum(e) / len(e)
+        var += len(e) / (len(e) - 1) * sum((y - mu) ** 2 for y in e)
+        df += max(sum(1 for _, n in v if n != 0) - 1, 0)
+    if var <= 1e-12 * max(1.0, max(abs(x - r * n) for v in srcs.values() for x, n in v)) ** 2:
+        return None
+    se = var ** 0.5 / abs(tn)
+    q = stats.t.ppf(0.975, max(df, 1))
+    return r - q * se, r + q * se
+
+
+def test_change_interval_support():
+    """Section 9.4 (review round 6): every prompt of the eligible answers stays in the variance, with a zero
+    contribution where none of its answers enters; a source with one prompt gives no interval and does not stop the
+    analysis; the estimate and the counts stay."""
+    one = [dict(answer_id="a", prompt_id="p", source="s")]
+    got = AN.change(one, {("a", "blind"): (0, "valid"), ("a", "context"): (1, "valid")})
+    assert got["est"] == 1.0 and got["gained"] == 1 and got["interval95"]["available"] is False
+    assert got["interval95"]["reason"] == "source with one prompt" and got["interval95"]["lo"] is None
+    el = [dict(answer_id=f"a{i}", prompt_id=f"p{i // 2}", source=f"s{(i // 2) % 2}") for i in range(16)]
+    flags = {}
+    for i, r in enumerate(el):
+        flags[(r["answer_id"], "blind")] = (int(i % 3 == 0), "valid")
+        flags[(r["answer_id"], "context")] = (int(i % 2 == 0), "valid" if i % 5 else "invalid_json")
+    for a in ("a6", "a7"):                    # prompt p3: no answer enters the change; it stays in the variance
+        flags[(a, "context")] = ("free", "budget_stop")
+    got = AN.change(el, flags)
+    for cell, valid_only in ((got, False), (got["valid_pairs"], True)):
+        per = {}
+        for r in el:
+            per.setdefault(r["prompt_id"], [r["source"], 0, 0])
+        for r in el:
+            b, c = flags[(r["answer_id"], "blind")], flags[(r["answer_id"], "context")]
+            if "free" in (b[0], c[0]) or (valid_only and not b[1] == c[1] == "valid"):
+                continue
+            per[r["prompt_id"]][1] += c[0] - b[0]
+            per[r["prompt_id"]][2] += 1
+        assert per["p3"][2] == 0
+        want = ratio_interval_by_hand(per)
+        assert want is not None and close(cell["interval95"]["lo"], want[0]) and close(cell["interval95"]["hi"],
+                                                                                      want[1]), (valid_only, want)
+        short = {p: v for p, v in per.items() if v[2]}          # the domain without p3 gives another interval
+        other = ratio_interval_by_hand(short)
+        assert other is None or not close(other[0], want[0])
+    assert got["bounds_not_attempted"]["answers"] == 2
 
 
 TESTS = [test_design_from_assignment, test_canonical_verdicts, test_registered_equals_simulation,
@@ -1009,7 +1208,8 @@ TESTS = [test_design_from_assignment, test_canonical_verdicts, test_registered_e
          test_sensitivity_analyses_equal_simulation, test_delivery_reports, test_commercial_and_safe_equal_simulation,
          test_labels_equal_simulation, test_call_not_attempted, test_plan_and_accounting, test_accuracy,
          test_challenge_set_and_comparisons, test_repeatability, test_ledger_reasons, test_decision_d2,
-         test_command_line, test_refusals]
+         test_command_line, test_refusals, test_safe_no_interval, test_power_table_quantile,
+         test_change_interval_support]
 
 if __name__ == "__main__":
     try:

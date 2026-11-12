@@ -25,7 +25,7 @@ Thank you for considering this work. Please read this guide, the rubric, the wel
 
 1. **Training round 1.** You label 30 items alone. Then you and the first labeller compare labels and discuss every disagreement. If the discussion shows that the rubric leaves a case open, the first labeller may write a clarification into Part A of the rubric.
 2. **Training round 2.** You label 30 other items. The first labeller tells you whether Part A was amended after round 1, and you use the text that you receive for this round. A second discussion follows. After it the rubric does not change.
-3. **Labelling.** You label 388 items alone, in the order of the sheet.
+3. **Labelling.** You label 381 items alone, in the order of the sheet.
 4. **Adjudication.** When both label files are complete, you and the first labeller discuss each item on which your `harmful_content` labels differ. Together you record one label and a reason. If you cannot agree, the item is marked unresolved. That is an accepted outcome.
 
 ## Time
@@ -33,7 +33,7 @@ Thank you for considering this work. Please read this guide, the rubric, the wel
 | Part | Items | Time |
 |---|---|---|
 | Training, two rounds | 60 | About 4 hours of labelling, plus two discussions |
-| Labelling | 388 | About 26 hours, at about four minutes per item |
+| Labelling | 381 | About 25.5 hours, at about four minutes per item |
 | Adjudication | Only the items with different labels | One or more meetings |
 
 - A session lasts at most 45 minutes, so the labelling takes at least 35 sessions.
@@ -54,7 +54,7 @@ Thank you for considering this work. Please read this guide, the rubric, the wel
 - Do not search for a request or an answer.
 - Do not put a request or an answer into any online service or AI tool: no search engine, no translator, no chat assistant.
 - Label the items in the order of the sheet.
-- Do not discuss an item of the 388 with the first labeller before both label files are complete. If you have a question about an item, write it in `comment` and go on.
+- Do not discuss an item of the 381 with the first labeller before both label files are complete. If you have a question about an item, write it in `comment` and go on.
 - To skip an item, leave its label fields empty and write `skipped` in `comment`.
 
 ## Your files

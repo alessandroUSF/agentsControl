@@ -1,8 +1,8 @@
 """One complete run of the v2.3 pipeline on synthetic data (protocol Section 14.2), offline and at full size.
 
-A synthetic study is written under E:/claude/agentsControl_work/tmp/e2e_v23/study (AC_TEST_TMP moves it):
-  - answers: sealed files 'full' and 'v22_local' for the local models that already have answers (model 18 with a
-    few missing), written directly; the answers of every other model come from the answering runner
+A synthetic study is written under E:/claude/agentsControl_tests/e2e_v23/study (AC_TEST_TMP moves it):
+  - answers: sealed files 'full' and 'v22_local' in miniature, written directly and never read as answers of the
+    study (decision D18); every answer of the study comes from the answering runner
     (src/run_models.py) with a stub provider, block by block, routed models in sessions and the direct models of
     block 4 in batches. Each synthetic answer carries markers of its author and of its true class
     ([AUTH:key][T:H|B|R]: harmful, benign, refusal), which only the stubs read;
@@ -36,7 +36,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests"))
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "src"))
-os.environ.setdefault("AC_TEST_TMP", "E:/claude/agentsControl_work/tmp")
+os.environ.setdefault("AC_TEST_TMP", "E:/claude/agentsControl_tests")
 import test_judges_v23 as T  # noqa: E402  (patches the runner with stubs: provider, identity, zero-retention list)
 import test_runner_offline as RO  # noqa: E402  (the same for the answering runner)
 import answers_v23 as A  # noqa: E402
@@ -137,7 +137,8 @@ def prompts_of(panel, m, pilot_round=None):
 
 def answers_sealed(models, panel):
     """The 7,457 answers of protocol v2.2 in miniature: models 4, 5, 6, 15, 16 and 17 in 'full' and model 18 in
-    'v22_local', each on its frames and on the tails of both pilot rounds; model 18 lacks a few frame answers."""
+    'v22_local', each on its frames and on the tails of both pilot rounds; model 18 lacks a few frame answers.
+    Since decision D18 no code reads them as answers of the study: the run checks that none is used."""
     rows = {"full": [], "v22_local": []}
     for m in models:
         if m["n"] not in (4, 5, 6, 15, 16, 17, 18):
@@ -185,8 +186,8 @@ def rm(argv):
 
 
 def answers_block(block, run, rnd=None):
-    """The answers that the block asks for, through the answering runner: the pilot answers of the models without
-    sealed tails (block 1), the missing answers of the primary panel (block 2), the answers of the commercial models
+    """The answers that the block asks for, through the answering runner: the pilot answers of every model
+    (block 1), the answers of the primary panel (block 2; decision D18), the answers of the commercial models
     (block 4: the routed models in a session, the direct Anthropic and OpenAI models in batches, each collected)."""
     path = R.RAW / f"responses_{run}.jsonl"
     before = len(jsonl_or_empty(path))
@@ -464,7 +465,12 @@ def main():
     c = code in (0, None) and held == {22: [True, True, True], 23: [True, True, True]}
     say("check: D13 availability check, three facts of models 22 and 23:", c, held)
     ok &= c
+    S.MANIFEST = tmp / "manifest.json"         # rule 4 of Section 13.3: the manifest priced again, then the holds
+    RO.write_manifest()
     quiet(S.main, ["freeze", "--tag", "e2e-freeze"])
+    c = bool(T.jsonl(S.LEDGER)) and any(e.get("kind") == "freeze" for e in T.jsonl(S.LEDGER))
+    say("check: freeze recorded after the repriced manifest:", c)
+    ok &= c
 
     # block 2
     ok &= answers_block("2", "b2")
@@ -551,12 +557,26 @@ def checks(tmp, models, panel, judges, keys, labels, small):
     for r in finals.values():
         if r["build"] == "primary":
             per_judge[r["judge"]] += 1
+    # Section 11.4 (review round 6): every challenge answer that a primary judge classifies in context in block 5
+    # has its blind verdict right next to it, whatever pair identifiers the calls declare
+    ch_bad = 0
+    for j, rs in seq.items():                  # seq: the main stream, blocks 3, 5, 6 and 7
+        order = []
+        for r in rs:
+            if r.get("block") == "5" and (not order or order[-1][0] != r["key"]):
+                order.append((r["key"], r["part"], r["answer_id"]))
+        for i, (_, part, aid) in enumerate(order):
+            if part == "challenge_context":
+                near = {(order[k][1], order[k][2]) for k in (i - 1, i + 1) if 0 <= k < len(order)}
+                ch_bad += ("label_blind", aid) not in near
+    say("check: challenge_context calls of block 5 next to their blind verdict:", ch_bad == 0, ch_bad)
+    ok &= ch_bad == 0
     c3 = pub_bad == 0 and pairs_bad == 0
     say("check: public logs without text, labels or reasons; pairs next to each other:", c3, pub_bad, pairs_bad)
     ok &= c3
-    # Section 12.1: 820 per commercial judge, 2,353 per hosted judge, 2,633 per local judge, and up to 2,974
+    # Section 12.1: 820 per commercial judge, 2,337 per hosted judge, 2,617 per local judge, and up to 2,974
     # further control calls shared by the five local refusal-removed judges (6, 18, 19, 20, 21)
-    base = {j: 820 if GROUP_OF[panel.n_of[j]] == "commercial" else 2353 if panel.n_of[j] in (22, 23) else 2633
+    base = {j: 820 if GROUP_OF[panel.n_of[j]] == "commercial" else 2337 if panel.n_of[j] in (22, 23) else 2617
             for j in per_judge}
     extra = {j: per_judge[j] - base[j] for j in per_judge if per_judge[j] > base[j]}
     controls = sum(n for j, n in extra.items() if panel.n_of[j] in (6, 18, 19, 20, 21))
@@ -564,12 +584,16 @@ def checks(tmp, models, panel, judges, keys, labels, small):
     say("check: final calls per judge (primary build):", dict(sorted(per_judge.items())))
     c4 = not over and controls <= 2974 and set(per_judge) == set(judges)
     say("check: every judge has calls, none above the limits of Section 12.1:", c4, over,
-        f"(control calls above 2,633 for the five local refusal-removed judges: {controls} of at most 2,974)")
+        f"(control calls above 2,617 for the five local refusal-removed judges: {controls} of at most 2,974)")
     ok &= c4
     st = collections.Counter(r["status"] for r in finals.values())
     say("check: final statuses:", dict(st))
     # the stub's rates, recovered from blind valid verdicts on harmful answers of other authors
     table = A.load_table(["b2", "b4"], raw=R.RAW, number_of=panel.n_of)
+    c_d18 = not any(a["run"] in A.SEALED_RUNS for a in table.values()) and all(
+        k in table for k in (A.answer_id(T.key(models, n), FR["harmful"][0][0]) for n in (4, 5, 6, 15, 16, 17, 18)))
+    say("check: no answer of a sealed run is used, and the seven models that had answered answer again (D18):", c_d18)
+    ok &= c_d18
     by_g = collections.defaultdict(lambda: [0, 0])
     self_ctx, other_ctx = [0, 0], [0, 0]
     for r in finals.values():

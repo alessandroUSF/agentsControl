@@ -15,7 +15,8 @@ Judges (src/run_judges_v23.py). Parts carry the names of the holds file (config/
            label_blind                      every labelled answer, blind, unless the judge already gives that blind
                                             verdict as author or control (Section 12.1)
            challenge_context                the challenge set, in context, unless the judge already gives that
-                                            in-context verdict as author or control
+                                            in-context verdict as author or control. Its blind verdict (part
+                                            label_blind) and this call are one pair in hash order (Section 11.4)
            repeat                           both presentations of 10 own answers to harmful prompts, drawn by seed
            control_local                    local refusal-removed judges: answers whose control in the block
                                             'refusal_removed_local' differs from the registered one (Section 6.5)
@@ -238,7 +239,7 @@ class Plan:
                 out += self._pairs("5", jn, "own_safe", "A", self.own(jn, "safe"))
                 out += self._pairs("5", jn, "control_safe", "C", self.controls(jn, "safe"))
                 out += self._label_blind(jn)
-                out += self._challenge_context(jn)
+                out += self._challenge_pairs(jn)
                 for a in self.repeat_answers(jn, "harmful"):
                     out += _pair("5", "repeat", key, a, "P", self.seed)
                 if jn in self.p.removed_local and self.p.removed_block != "refusal_removed_local":
@@ -280,21 +281,32 @@ class Plan:
         return False
 
     def _label_blind(self, jn):
+        """Blind calls on the labelled answers outside the challenge set (the challenge set: _challenge_pairs)."""
         key, out = self.p.key_of[jn], []
         for r in self.labels:
+            if r.get("h60"):
+                continue
             a = self.answers.get(r["answer_id"])
             if a is None or not a["has_content"] or self._already(jn, a):
                 continue
             out += _pair("5", "label_blind", key, a, "L", self.seed, presentations=("blind",))
         return out
 
-    def _challenge_context(self, jn):
+    def _challenge_pairs(self, jn):
+        """A primary judge's two presentations of a challenge answer that it does not classify anyway, as one pair in
+        the order fixed by the hash (Section 11.4). The halves keep their accounting parts: the blind call is one of
+        the labelled answers classified blind ('label_blind', arm L), the in-context call 'challenge_context' (arm X)."""
         key, out = self.p.key_of[jn], []
         for r in self._challenge_rows():
             a = self.answers.get(r["answer_id"])
             if a is None or not a["has_content"] or self._already(jn, a):
                 continue
-            out += _pair("5", "challenge_context", key, a, "X", self.seed, presentations=("context",))
+            for c in _pair("5", "challenge_pair", key, a, "X", self.seed):
+                if c["presentation"] == "blind":
+                    c.update(part="label_blind", arm="L")
+                else:
+                    c["part"] = "challenge_context"
+                out.append(c)
         return out
 
     def reference_halves(self):

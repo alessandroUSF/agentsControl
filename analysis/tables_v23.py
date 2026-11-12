@@ -9,6 +9,7 @@ with a zero denominator, a zero estimated variance or an iota_W that could not b
 that no replication provides.
 Usage: python -I analysis/tables_v23.py            print
        python -I analysis/tables_v23.py --write    also write analysis/output/tables_v23.md
+       python -I analysis/tables_v23.py --summary  print the figures that Sections 8.3 and 8.4 quote from table A.1
 """
 import json
 import sys
@@ -19,6 +20,10 @@ from scipy import stats
 OUT = Path(__file__).resolve().parent / "output"
 LINES = []
 
+
+# Approximate power table only (Section 8.3): the degrees of freedom when all 300 prompts of the harmful frame have a
+# screen-positive answer, as in the baseline scenarios; the registered tests use the domain degrees of freedom.
+APPROX_DF = 298
 
 def emit(text=""):
     LINES.append(text)
@@ -105,12 +110,14 @@ def rs1():
     emit("Null rows. Half-widths in percentage points.")
     emit()
     emit("**Approximate power of the bound P3 for other margins.** Normal approximation with the simulated "
-         "standard error of β̂_S; not a simulation of the test.")
+         "standard error of β̂_S and the 99% quantile of Student's t with 298 degrees of freedom (all 300 prompts with "
+         "a screen-positive answer; with fewer, the domain degrees of freedom of Section 8.1 are fewer and the "
+         "quantile slightly larger); not a simulation of the test.")
     emit()
     emit("| Scenario | Standard error of β̂_S | Margin 3: β = 0 | β = −1 | Margin 5: β = 0 | β = −1 | β = −2 "
          "| Margin 7: β = 0 | β = −1 | β = −2 | β = −3 |")
     emit("|---|---|---|---|---|---|---|---|---|---|---|")
-    z = stats.t.ppf(0.99, 298)
+    z = stats.t.ppf(0.99, APPROX_DF)       # a table of approximations only; the tests use the domain df (Section 8.1)
     for c in cases:
         se = rows[f"{c}|null"]["summary"]["be"]["mean_se"]
         cells = [pct(stats.norm.cdf((m + b) / se - z), 0)
@@ -249,7 +256,38 @@ def pilot_power(name="sim_v23_pilot_rs1.json"):
     emit()
 
 
+def summary():
+    """The figures that Sections 8.3 and 8.4 quote, from the rows of R-S1 (the same numbers as table A.1)."""
+    rows = {r["name"]: r for r in load("sim_v23_rs1.json")["rows"]}
+    cases = list(dict.fromkeys(n.split("|")[0] for n in rows))
+
+    def rng(vals, d=1):
+        vals = [v for v in vals if v is not None]
+        return f"{pct(min(vals), d)}% to {pct(max(vals), d)}%"
+
+    z = stats.t.ppf(0.99, APPROX_DF)
+    for c in ("baseline", "low_failure"):
+        se = rows[f"{c}|null"]["summary"]["be"]["mean_se"]
+        cells = {m: [pct(stats.norm.cdf((m + b) / se - z), 0) for b in bs]
+                 for m, bs in ((0.03, (0, -0.01)), (0.05, (0, -0.01, -0.02)), (0.07, (0, -0.01, -0.02, -0.03)))}
+        print(f"8.3 approximate power, {c} (standard error of beta {pct(se, 2)} points): {cells}")
+    nulls = [rows[f"{c}|null"]["summary"] for c in cases]
+    print("8.4 family-wise error, null:", rng(s["registered"]["any"] for s in nulls))
+    print("8.4 error of P3 at beta = -7:", rng(rows[f"{c}|bound"]["summary"]["p3_reject"] for c in cases))
+    print("8.4 coverage, null rows:", rng(s[k]["cover95"] for s in nulls for k in ("th", "io", "iw", "be")))
+    print("8.4 coverage, all rows:", rng(r["summary"][k]["cover95"] for r in rows.values() for k in ("th", "io", "iw", "be")))
+    print("8.4 power of P1, theta = -5:", rng(rows[f"{c}|theta"]["summary"]["registered"]["holm_theta"] for c in cases))
+    print("8.4 power of P2, iota = -5:", rng(rows[f"{c}|iota"]["summary"]["registered"]["holm_iota"] for c in cases))
+    for k in ("th", "io", "be"):
+        v = [s[k]["half_width95"] for s in nulls]
+        print(f"8.4 half-width {k}: {pct(min(v))} to {pct(max(v))} points")
+
+
 if __name__ == "__main__":
+    if "--summary" in sys.argv:
+        sys.stdout.reconfigure(encoding="utf-8")
+        summary()
+        sys.exit(0)
     rs1()
     rs2()
     rs3()

@@ -2,7 +2,7 @@
 
 Protocol v2.3, Sections 3.3, 16.2 to 16.5 and 19.1 (decisions D1 and D2).
 
-- **Status: template. No terms have been read into this file yet.**
+- **Status: template. The PI has not yet read the terms into this file.** Facts copied by the AI assistant from public pages on 12 November 2026, with eleven open questions, are in `docs/PROVIDER_TERMS_FACTS_2026-11-12.md`, for the PI to verify.
 - The principal investigator (PI) reads the terms and fills each block before the pilot registration. An AI assistant can prepare a summary, but the reading and the conclusions are the PI's.
 - Every entry carries the date on which the page was read and its address. Terms change: a page is read again before the freeze, and the date is added.
 - The study describes the in-context presentation to each provider as it is: an answer written earlier, by the same model or by another one, is placed in the assistant turn of a new conversation and the model is asked to classify it (Section 16.3).
@@ -42,6 +42,7 @@ Copy the questions under each account heading.
 - Key variable: `AC_ANTHROPIC_API_KEY`.
 - Main-run answering calls use the batch endpoint. Batch files are deleted after settlement, and each deletion is logged.
 - Pessimistic cost on 11 November 2026: US$23.75.
+- Facts to verify: section 1 of `docs/PROVIDER_TERMS_FACTS_2026-11-12.md` (questions Q2, Q3, Q9 and Q10 there).
 
 (Fill the nine points here.)
 
@@ -51,15 +52,38 @@ Copy the questions under each account heading.
 - Every call sets `store=false`. Main-run answering calls use the batch endpoint. Batch files are deleted after settlement, and each deletion is logged.
 - Model 11 is also the reviewer of the design (Section 17.3).
 - Pessimistic cost on 11 November 2026: US$23.33.
+- Facts to verify: section 2 of `docs/PROVIDER_TERMS_FACTS_2026-11-12.md` (questions Q4 and Q9 there). Several OpenAI policy pages refused automated reading; they are marked as search excerpts.
 
 (Fill the nine points here.)
 
-## OpenRouter research account (models 7, 8, 10, 12, 13, 14, 22 and 23)
+## Google research account (model 14, decision D2; not used since decision D17)
+
+- **Not used.** Model 14 left the study on 12 November 2026, before any call (decision D17). No model of the study is called at Google, and this account receives no call. The block below is kept as the record of decision D2.
+
+- Key variable: `AC_GOOGLE_API_KEY`, the key of a Google AI Studio project created for this study, with billing enabled. The project does not join the Contributor tier.
+- Calls go to the Gemini API (`generateContent`), one at a time; no batch interface. No safety settings are sent, so the adjustable filters keep the API's default.
+- Pessimistic cost on 11 November 2026, at the November price: US$21.23. At the price from 1 December 2026: US$42.46. This rise led to decision D17.
+
+Facts copied by the assistant on 11 November 2026 from Google's public pages, for the PI to verify:
+
+| Point | What the page says | Page |
+|---|---|---|
+| Use of the data | For paid services, Google does not use prompts or responses to improve its products | https://ai.google.dev/gemini-api/terms |
+| Retention | For paid services, prompts and responses are logged for a limited period, solely to detect violations of the Prohibited Use Policy and for required legal or regulatory disclosures. The usage policy names 55 days | https://ai.google.dev/gemini-api/terms and https://ai.google.dev/gemini-api/docs/usage-policies |
+| Contributor tier | Optional. In exchange for lower prices, Google may use the data to improve its products | https://ai.google.dev/gemini-api/docs/logs-policy |
+| Safety settings | The adjustable filters are off by default for Gemini 2.5 and later models. Built-in protections against core harms, such as content that endangers child safety, cannot be adjusted | https://aistudio.google.com/docs/safety-settings |
+| How blocks are reported | `generateContent` returns a block inside a normal response: `promptFeedback.blockReason` for a blocked prompt, `finishReason` for a stopped answer. The finish reason `PUP_LIMITED_DISABLED` means that the account is limited or disabled under the Prohibited Use Policy | https://aistudio.google.com/docs/api/generate-content |
+| Price | US$2.00 in and US$10.00 out per million tokens through 30 November 2026; US$4.00 and US$20.00 from 1 December 2026. Thinking tokens are billed as output | https://aistudio.google.com/docs/pricing |
+| Spending limit | Prepaid credit: calls stop when the balance reaches zero, after a billing delay of about ten minutes, so a small overrun is possible. Prepaid credit expires after twelve months. A monthly spend cap can be set per project; Google calls it experimental | https://aistudio.google.com/docs/billing |
+
+(Fill the nine points here.)
+
+## OpenRouter research account (models 7, 8, 10, 12, 13, 22 and 23)
 
 - Key variable: `AC_OPENROUTER_API_KEY`.
 - Calls are limited to OpenRouter's zero-retention endpoints, one pinned endpoint per model, with no fallback to other endpoints (`zdr`, `provider_order`, `allow_fallbacks`; decision D16).
-- OpenRouter's zero-retention list also admits endpoints that keep data for a limited time for safety review (`safety_retention`), unless the account accepts zero-retention endpoints only. Record the account setting under point 5.
-- Pessimistic cost on 11 November 2026, at the prices of the pinned endpoints: US$76.22.
+- OpenRouter's zero-retention list also admits endpoints that keep data for a limited time for safety review (`safety_retention`), unless the account accepts zero-retention endpoints only. In the snapshot of 11 November 2026 only the endpoints of model 14 were so marked. Model 14 has left the study (decision D17), and the account is set to accept zero-retention endpoints only. Record the setting under point 5.
+- Pessimistic cost at the prices of the pinned endpoints of 11 November 2026: US$54.99 on 11 November; US$54.95 since decision D17 (12 November), as model 14 no longer judges the answers of these models.
 - Besides OpenRouter's own terms, the terms of each upstream provider apply. Fill points 2, 3, 5 and 6 for each line of the table.
 
 The third column is the endpoint snapshot of 11 November 2026 (`data/selection/2026-11-11/`), copied by the assistant for the PI to verify.
@@ -71,12 +95,12 @@ The third column is the endpoint snapshot of 11 November 2026 (`data/selection/2
 | 10 | Tencent | `tencent/fp8`; on the list, no safety retention | | |
 | 12 | Moonshot | `moonshotai/mxfp4`; on the list, no safety retention | | |
 | 13 | xAI | `xai/zdr`; on the list, no safety retention | | |
-| 14 | Google | `google-vertex/global`; on the list, **with safety retention**, like every listed endpoint of this model | | |
 | 22 | Mistral lineage, uncensored fine-tune (Dolphin line, Venice) | `venice/fp16`; on the list, no safety retention; the only listed endpoint | | |
 | 23 | Mistral lineage, uncensored fine-tune (Cydonia line, TheDrummer) | `parasail/bf16`; on the list, no safety retention; the only listed endpoint | | |
 
 - A model without a zero-retention endpoint receives safe prompts only, unless the PI records here the decision to run it under stated retention terms (Section 3.3).
 - If model 22 or 23 cannot be run, the study follows the rule of Section 10.4 and the matching control assignment of Section 6.5.
+- Facts to verify: section 3 (OpenRouter) and sections 4 to 10 (the seven upstream providers) of `docs/PROVIDER_TERMS_FACTS_2026-11-12.md` (questions Q1, Q5, Q6, Q7, Q9 and Q10 there).
 
 (Fill the nine points here.)
 
@@ -84,6 +108,7 @@ The third column is the endpoint snapshot of 11 November 2026 (`data/selection/2
 
 - Models 4, 6 and 20 are bound by the Llama 3.1 Community License and its Acceptable Use Policy (Section 16.6, decision D3).
 - Optional: the licences of the other local models, with the date read.
+- Facts to verify: section 11 of `docs/PROVIDER_TERMS_FACTS_2026-11-12.md` (question Q8 there).
 
 | Model | Licence | Date read | Anything that limits this use |
 |---|---|---|---|

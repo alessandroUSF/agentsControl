@@ -14,11 +14,18 @@ after the pilot puts the pessimistic total above the freeze ceiling; blocks of t
 The panel is the registered one: once decision D13 is recorded ('registered_hosted' in config/panel_v23.json), the
 hosted models it leaves out are left out here too (Section 10.4); before that, both hosted models are in.
 
+The repricing after the pilot (Section 13.3, rule 4) gives a repricing file (load_repricing): a price snapshot taken
+on the day and the token assumptions measured in the pilot. With it, every price comes from that snapshot (the
+endpoint prices of the pinned models too, never those of 11 November) and every scenario parameter it names replaces
+the registered one; the holds (scripts/holds_v23.py) are made from the same file.
+
 Usage: python -I scripts/manifest_v23.py            print the manifest of the registered panel
        python -I scripts/manifest_v23.py --write    also write analysis/output/manifest_v23.json
        python -I scripts/manifest_v23.py --without 22      (or 23, or 22,23) the manifest of a panel without these
                                                            hosted models, whatever D13 says; printed, never written
+       python -I scripts/manifest_v23.py --repricing FILE [--write]   the manifest repriced after the pilot
 """
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -42,6 +49,12 @@ RUBRIC_GROWTH = {"expected": 800, "pessimistic": 1000}
 for _name, _tokens in RUBRIC_GROWTH.items():
     SCENARIOS[_name]["judge_in"] += _tokens
     SCENARIOS[_name]["prefix"] += _tokens
+# Parameters of a scenario that a repricing file may set (absolute values, not increments): those of
+# scripts/cost_model.py (judge prompt, cached prefix, visible and reasoning output of a judge, multipliers of the
+# respondents' reasoning and visible answer, retry share, cache hits) and the respondents' prompt tokens, visible
+# output by kind of prompt and reasoning tokens by model key.
+SCENARIO_KEYS = ("judge_in", "prefix", "judge_vis", "judge_reason", "resp_mult", "vis_mult", "retry", "cache_hits",
+                 "resp_in", "resp_out", "reasoning_by_key")
 CUTS = {1: "repeatability of the API judges is not measured",
         2: "no author-versus-control comparison on safe prompts for the commercial judges",
         3: "no in-context verdicts of the commercial judges on the challenge set (blind verdicts remain)",
@@ -83,21 +96,69 @@ def registered_without(design):
     return tuple(n for n in design["hosted_primary"] if n not in reg)
 
 
-def pinned_prices(prices):
+def pinned_prices(prices, snapshot=None):
     """Decision D16: a model reached through OpenRouter is priced at the endpoint it is pinned to
-    ('provider_order' of config/models.json), from the endpoint snapshot of 11 November 2026."""
+    ('provider_order' of config/models.json), from the endpoint snapshot of 11 November 2026, or from the snapshot
+    of a repricing (snapshot: its folder)."""
     out = dict(prices)
+    snap = Path(snapshot) if snapshot else SNAP11
     for m in cm.api_models():
         order = m.get("provider_order")
         if not order:
             continue
-        f = SNAP11 / ("or_endpoints_" + m["model"].replace("/", "_") + ".json")
-        e = next(x for x in json.loads(f.read_text(encoding="utf-8"))["data"]["endpoints"] if x["tag"] == order[0])
+        f = snap / ("or_endpoints_" + m["model"].replace("/", "_") + ".json")
+        if not f.exists():
+            raise ValueError(f"the price snapshot {snap} has no endpoint list for {m['model']} ({f.name})")
+        e = next((x for x in json.loads(f.read_text(encoding="utf-8"))["data"]["endpoints"] if x["tag"] == order[0]),
+                 None)
+        if e is None:
+            raise ValueError(f"{f.name}: no endpoint {order[0]!r}, the one {m['key']} is pinned to")
         p = e["pricing"]
         out[m["model"]] = {"in": float(p["prompt"]) * 1e6, "out": float(p["completion"]) * 1e6,
                            "cache": float(p.get("input_cache_read") or p["prompt"]) * 1e6,
                            "write": float(p.get("input_cache_write") or p["prompt"]) * 1e6}
     return out
+
+
+def _sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def load_repricing(path):
+    """Rule 4 of Section 13.3: the repricing after the pilot. The file (JSON):
+      {"prices_snapshot": folder (relative to the repository, or absolute) with or_v1_models.json (the OpenRouter
+                          model list) and, for every pinned model, or_endpoints_<model id, '/' as '_'>.json, taken on
+                          the day of the repricing,
+       "assumptions": {"expected": {...}, "pessimistic": {...}}: the scenario parameters measured in the pilot
+                          (SCENARIO_KEYS, absolute values); a parameter not named keeps its registered value,
+       "source": free text, e.g. the pilot report and round the values come from}
+    Returns {"meta": {file, sha256, snapshot, snapshot files with their sha256}, "prices", "scenarios"}. An unknown
+    parameter or scenario, or a snapshot without the list or an endpoint file, is refused."""
+    path = Path(path)
+    rp = json.loads(path.read_text(encoding="utf-8"))
+    snap = Path(rp["prices_snapshot"])
+    snap = snap if snap.is_absolute() else ROOT / snap
+    listing = snap / "or_v1_models.json"
+    if not listing.exists():
+        raise ValueError(f"the price snapshot {snap} has no or_v1_models.json")
+    scen = json.loads(json.dumps(SCENARIOS))
+    for name, over in (rp.get("assumptions") or {}).items():
+        if name not in scen:
+            raise ValueError(f"unknown scenario {name!r} in {path.name}")
+        bad = set(over) - set(SCENARIO_KEYS)
+        if bad:
+            raise ValueError(f"unknown parameters {sorted(bad)} for scenario {name!r} in {path.name}")
+        scen[name].update(over)
+    prices = pinned_prices(cm.load_prices(listing), snap)
+    used = [listing] + sorted(snap.glob("or_endpoints_*.json"))
+    try:
+        snap_name = str(snap.relative_to(ROOT)).replace("\\", "/")
+    except ValueError:
+        snap_name = str(snap)
+    meta = {"file": path.name, "sha256": _sha(path), "snapshot": snap_name, "source": rp.get("source"),
+            "snapshot_files": {p.name: _sha(p) for p in used},
+            "assumptions": rp.get("assumptions") or {}}
+    return {"meta": meta, "prices": prices, "scenarios": scen}
 
 
 def counts(d):
@@ -132,8 +193,12 @@ def counts(d):
     return {"commercial": com, "hosted": ven, "resp": resp, "labelled": labelled, "pilot_rounds": rounds}
 
 
-def build(prices=None, design=None, without=()):
-    prices = pinned_prices(prices or cm.load_prices())
+def build(prices=None, design=None, without=(), repricing=None):
+    """repricing: load_repricing() of the repricing file; its prices and scenarios replace the registered ones."""
+    if repricing:
+        prices, scen = repricing["prices"], repricing["scenarios"]
+    else:
+        prices, scen = pinned_prices(prices or cm.load_prices()), SCENARIOS
     d = design or json.loads(DESIGN.read_text(encoding="utf-8"))
     d = design_without(d, without) if without else d
     k = counts(d)
@@ -146,10 +211,10 @@ def build(prices=None, design=None, without=()):
 
     def add(block_id, who, label, calls, models, cut, cost_rows):
         b = {"id": block_id, "who": who, "label": label, "calls_per_model": calls, "models": len(models), "cut": cut}
-        for name in SCENARIOS:
+        for name in scen:
             b[name] = round(sum(c for _, c in cost_rows[name]), 4)
             for key, c in cost_rows[name]:
-                per_model.setdefault(key, {n: 0.0 for n in SCENARIOS})[name] += c
+                per_model.setdefault(key, {n: 0.0 for n in scen})[name] += c
         blocks.append(b)
 
     def resp_rows(sc, rounds, zero):
@@ -161,24 +226,25 @@ def build(prices=None, design=None, without=()):
         return [(key, c) for key, _, _, _, c in rows if key in keep]
 
     add("resp.main", "respondents", "answers to the frame prompts", None, api, 0,
-        {n: resp_rows(sc, 0, False) for n, sc in SCENARIOS.items()})
+        {n: resp_rows(sc, 0, False) for n, sc in scen.items()})
     for r in range(1, k["pilot_rounds"] + 1):
         add(f"resp.pilot{r}", "respondents", f"respondent pilot, round {r}" + (" (reserved)" if r > 1 else ""),
             d["calls"]["pilot_prompts_per_api_respondent"], api, 0,
-            {n: resp_rows(sc, 1, True) for n, sc in SCENARIOS.items()})
+            {n: resp_rows(sc, 1, True) for n, sc in scen.items()})
     for who, keys in (("commercial", com), ("hosted", hosted)):
         for i, (label, calls, cut) in enumerate(k[who]):
             if calls:
                 add(f"judge.{who}.{i + 1}", f"{who} judges", label, calls, keys, cut,
-                    {n: cm.judges(prices, sc, {label: calls}, batch=False, only=keys)[1] for n, sc in SCENARIOS.items()})
-    totals = {n: round(sum(b[n] for b in blocks), 2) for n in SCENARIOS}
+                    {n: cm.judges(prices, sc, {label: calls}, batch=False, only=keys)[1] for n, sc in scen.items()})
+    totals = {n: round(sum(b[n] for b in blocks), 2) for n in scen}
     by_provider = {}
     for key, c in per_model.items():
-        p = by_provider.setdefault(provider[key], {n: 0.0 for n in SCENARIOS})
-        for n in SCENARIOS:
+        p = by_provider.setdefault(provider[key], {n: 0.0 for n in scen})
+        for n in scen:
             p[n] += c[n]
     calls = {who: sum(c for _, c, _ in k[who]) for who in ("commercial", "hosted")}
     return {"primary_panel": d["primary_panel"], "left_out": sorted(without),
+            "repricing": repricing["meta"] if repricing else None,
             "blocks": blocks, "totals": totals, "cap_usd": d["budget"]["cap_usd"],
             "freeze_ceiling_usd": d["budget"]["freeze_ceiling_usd"], "judge_calls_per_model": calls,
             "labelled_answers": k["labelled"],
@@ -222,7 +288,11 @@ if __name__ == "__main__":
         left_out = tuple(int(x) for x in sys.argv[sys.argv.index("--without") + 1].split(",") if x)
     else:
         left_out = registered_without(json.loads(DESIGN.read_text(encoding="utf-8")))
-    manifest = build(without=left_out)
+    rep = load_repricing(sys.argv[sys.argv.index("--repricing") + 1]) if "--repricing" in sys.argv else None
+    manifest = build(without=left_out, repricing=rep)
+    if rep:
+        print(f"repriced: snapshot {rep['meta']['snapshot']}, file {rep['meta']['file']} "
+              f"(sha256 {rep['meta']['sha256'][:12]}), assumptions {rep['meta']['assumptions'] or 'registered'}")
     show(manifest)
     if "--write" in sys.argv:
         if what_if:

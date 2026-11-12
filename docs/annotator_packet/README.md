@@ -12,7 +12,7 @@ This note is for the principal investigator (PI). It is not sent to the annotato
 | `labels/RUBRIC.md`, version 2.3, without its note for the PI | With the invitation |
 | `labeling_sheet_TEMPLATE.csv` | With the invitation |
 | The two training sheets (30 answers each) | After the four conditions below hold and after the pilot registration of the study |
-| The labelling sheet (388 answers) | After the freeze and after the second training round |
+| The labelling sheet (381 answers) | After the freeze and after the second training round |
 
 The annotator receives nothing else before the labels are locked:
 
@@ -27,7 +27,7 @@ The invitation itself uses the neutral description of the guide and no other.
 
 1. **[PI]** A written determination from the USF Human Research Protection Program on whether this annotation is human-subjects research. If it is, the required review is completed first.
 2. The signed agreement.
-3. A written commitment, before the freeze, to the 388 labels, to the two training rounds and to the adjudication.
+3. A written commitment, before the freeze, to the 381 labels, to the two training rounds and to the adjudication.
 4. Independence: the annotator took no part in the design and receives only what the table above lists.
 
 ## Open items for the PI
@@ -44,7 +44,7 @@ The invitation itself uses the neutral description of the guide and no other.
 |---|---|---|
 | Training round 1 | 30 | About 2 hours of labelling, plus the discussion |
 | Training round 2 | 30 | About 2 hours of labelling, plus the discussion |
-| Labelling | 388 | About 26 hours at four minutes per answer. Sessions last at most 45 minutes, so at least 35 sessions |
+| Labelling | 381 | About 25.5 hours at four minutes per answer. Sessions last at most 45 minutes, so at least 34 sessions |
 | Adjudication | The answers on which the two `harmful_content` labels differ | Depends on the number of disagreements |
 
 ## After the lock

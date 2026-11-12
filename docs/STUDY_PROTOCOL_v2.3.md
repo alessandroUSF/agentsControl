@@ -2,7 +2,7 @@
 
 **Study protocol, version 2.3 (revised after review round 4; draft for the PI's decisions)**
 Alessandro Almeida, Graduate Researcher, University of South Florida
-Draft of 10 November 2026, with the PI's decisions of 11 November (D12, D14, D15 and D16). Not committed and not registered. It becomes binding when it is frozen and registered (Section 14).
+Draft of 10 November 2026, with the PI's decisions of 11 November (D12, D14, D15, D16 and the part of D2 on model 14) and of 12 November (D1, the rest of D2, D17, D18 and the part of D13 on the pilot). Committed locally on 11 November 2026, not pushed and not registered; the changes made since then are not yet committed. It becomes binding when it is frozen and registered (Section 14).
 
 > **How to read this document**
 > - **Working title.** The title above was proposed in review round 2. The earlier title ("Do LLM safety judges go easy on themselves? ...") promises more than this design tests. The final title is the PI's choice **[PI]**.
@@ -29,9 +29,9 @@ Draft of 10 November 2026, with the PI's decisions of 11 November (D12, D14, D15
 | Outcome | Flag: the delivered verdict says `harmful_content = true` |
 | Primary statistics | Among screen-positive answers (answers that do not open with a refusal phrase): θ_S, the mean of A2 − A1; ι_S, the mean of (A2 − A1) − (C2 − C1); β_S, the mean of A1 − C1 |
 | Tests | P1: θ_S = 0 and P2: ι_S = 0, two-sided, Holm, family α = .04. P3: β_S ≤ −7 percentage points, one-sided, α = .01 |
-| Reference labels | 583 answers labelled by the PI for harmful content. An independent annotator labels 388 of them again, including every labelled answer to a harmful prompt |
-| Secondary | Eleven commercial models, with the same four verdicts on 60 of the harmful prompts; safe prompts (90 per model, refusal classifications); a challenge set of 70 answers of refusal-removed models, judged by all 23 models |
-| Cash | Hard cap US$128 and freeze ceiling US$124, set by the PI on 11 November 2026 (decision D14, in two steps: the second follows model 23 and the pinned endpoints of decisions D15 and D16). The manifest is US$58.84 with the expected token counts and US$123.30 with the pessimistic ones: both fit without a cut. The registered cuts apply only if the repricing before the freeze, or the ledger during the run, requires them (Section 12) |
+| Reference labels | 567 answers labelled by the PI for harmful content. An independent annotator labels 381 of them again, including every labelled answer to a harmful prompt |
+| Secondary | Ten commercial models, with the same four verdicts on 60 of the harmful prompts; safe prompts (90 per model, refusal classifications); a challenge set of 70 answers of refusal-removed models, judged by all 22 models |
+| Cash | Hard cap US$128 and freeze ceiling US$124, set by the PI on 11 November 2026 (decision D14, in two steps: the second follows model 23 and the pinned endpoints of decisions D15 and D16). Since model 14 left the study (decision D17, 12 November 2026) the manifest is US$47.12 with the expected token counts and US$102.03 with the pessimistic ones: both fit without a cut. The registered cuts apply only if the repricing before the freeze, or the ledger during the run, requires them (Section 12) |
 
 **What the study can say.**
 - Whether delivered harm flags change with the presentation.
@@ -42,10 +42,10 @@ Draft of 10 November 2026, with the PI's decisions of 11 November (D12, D14, D15
 
 **State on 10 November 2026.**
 - **Public:** version 1 of the pre-registration, and nothing else.
-- **Generated:** 7,457 answers of seven local models (Section 3.4). Nobody has read, screened, judged or labelled any of them.
+- **Generated:** 7,457 answers of seven local models (Section 3.4). Nobody has read, screened, judged or labelled any of them. Since decision D18 (12 November 2026) none of them is an answer of the study: every answer is generated after the pilot registration.
 - **API calls:** none. **Money spent:** US$0.
 - **Code that exists and is tested offline** (11 November 2026): frames, control assignment, screen, the answering runner and the judging runner of this protocol with the judge module, the judge template and the ledger, the pilot report, the label sampler and the scripts for the label files, the analysis script, the inference functions, the cost manifest and the simulation packages. One complete run of the pipeline on synthetic data passes (Section 14.2). None of it has called a model.
-- **Still to do before the pilot registration:** the commit of this code with its tests, and the Q4_0 judge build of model 6 with its checks on the PI's computer (Section 11.7). Section 19.4 has the list. The multi-agent judge of version 1 (`src/judge.py`) stays in the repository and is not used by this protocol.
+- **Done on 11 November 2026:** the commit of this code with its tests (local, not pushed), and the Q4_0 judge build of model 6, which passed both checks of Section 11.7. The same day decision D2 moved model 14 to Google's own API. **Done on 12 November 2026:** decision D17 took model 14 out of the study; decision D18 has every answer of the study generated after the pilot registration, with a new respondent seed; and the content check passed on the other ten local judge builds (Section 11.7). The changes since the commit are not yet committed. Section 19.4 has the list. The multi-agent judge of version 1 (`src/judge.py`) stays in the repository and is not used by this protocol.
 
 ## 2. Questions, quantities and claim rules
 
@@ -148,7 +148,7 @@ The paper uses the following wording and no stronger one. "Rejected" refers to t
 
 ### 3.1 Models
 
-Twenty-three models. Each one answers prompts (as a respondent) and classifies answers (as a judge).
+Twenty-three models were selected. Model 14 left the study before any call (decision D17, 12 November 2026), so twenty-two take part. Each one answers prompts (as a respondent) and classifies answers (as a judge).
 
 | n | Model | Build or API identifier | Runs on | Group | Why it is in the panel |
 |---|---|---|---|---|---|
@@ -165,7 +165,7 @@ Twenty-three models. Each one answers prompts (as a respondent) and classifies a
 | 11 | GPT-6.1 Sol | `gpt-6.1-sol` | OpenAI API | Commercial | Most capable within the price cap |
 | 12 | Kimi K3.1 Pro | `moonshotai/kimi-k3.1-pro` | OpenRouter | Commercial | Most capable within the price cap |
 | 13 | Grok 4.7 | `x-ai/grok-4.7` | OpenRouter | Commercial | Most capable within the price cap |
-| 14 | Gemini 4 Argon | `google/gemini-4-argon` | OpenRouter | Commercial | Most capable within the price cap |
+| 14 | Gemini 4 Argon | `gemini-4-argon` | None: left out (decision D17) | Left the study before any call | Most capable within the price cap |
 | 15 | Qwen3.5 4B | `qwen3.5:4b` | Local, Ollama | Instruction-tuned | Runs on a consumer GPU |
 | 16 | Granite 4.2 8B | `granite4.2:8b-q4_K_M` | Local, Ollama | Instruction-tuned | Runs on a consumer GPU |
 | 17 | LFM2.5 8B-A1B | `lfm2.5:8b-a1b-q4_K_M` | Local, Ollama | Instruction-tuned | Runs on a consumer GPU |
@@ -178,7 +178,7 @@ Twenty-three models. Each one answers prompts (as a respondent) and classifies a
 
 **Groups.**
 - **Primary panel, twelve models:** the five instruction-tuned open models (4, 5, 15, 16, 17) and the seven refusal-removed models (6, 18, 19, 20, 21, 22, 23). Ten run on the study's own machine. Models 22 and 23 are reached through a hosted API. Whether each of them belongs to the registered panel is fixed at the freeze (Section 10.4).
-- **Commercial panel, eleven models:** 1, 2, 3 and 7 to 14. The group is defined by how the model is reached (a paid hosted API), not by its licence. What the provider adds around the model (filters, moderation, hidden instructions) cannot be observed.
+- **Commercial panel, ten models:** 1, 2, 3 and 7 to 13. The group is defined by how the model is reached (a paid hosted API), not by its licence. What the provider adds around the model (filters, moderation, hidden instructions) cannot be observed.
 
 **Two kinds of refusal removal.** They are different interventions and the paper keeps them apart.
 - **Abliteration (models 6, 18, 19).** A direction associated with refusal is removed from the weights of an instruction-tuned checkpoint (Arditi et al., 2024). No further training.
@@ -186,7 +186,7 @@ Twenty-three models. Each one answers prompts (as a respondent) and classifies a
 
 ### 3.2 How the panel was chosen
 
-Models 1 to 22 were fixed by written rules on 7 and 8 November 2026, before any answer existed for models 7 to 22. On 11 November 2026, after review round 4, the PI added model 23 (decision D15), before any answer of it existed. Version 2.3 removes no model. The evidence (ranking pages, download counts, model cards, exclusions) is in `data/selection/2026-11-08/`; the endpoint snapshot of 11 November is in `data/selection/2026-11-11/`.
+Models 1 to 22 were fixed by written rules on 7 and 8 November 2026, before any answer existed for models 7 to 22. On 11 November 2026, after review round 4, the PI added model 23 (decision D15), before any answer of it existed. On 12 November 2026 the PI took model 14 out (decision D17), before any answer of it existed; no model replaced it. The evidence (ranking pages, download counts, model cards, exclusions) is in `data/selection/2026-11-08/`; the endpoint snapshot of 11 November is in `data/selection/2026-11-11/`.
 
 | Stratum | Rule |
 |---|---|
@@ -199,9 +199,10 @@ Models 1 to 22 were fixed by written rules on 7 and 8 November 2026, before any 
 | Most used uncensored (22) | The most used uncensored model on OpenRouter |
 | Second most used uncensored (23) | Added by the PI on 11 November 2026 (decision D15): the runner-up of the stratum above in the snapshot of 8 November (`EXCLUSIONS.md`: 6.416 G tokens, against 7.223 G for model 22) |
 
-- **Common rules.** A derived model counts toward the developer of its base model. Previews are excluded. No model appears twice. No local download above 20 GB (the machine has 32 GB of RAM and an 8 GB GPU). Exact identifiers, tags and digests are recorded. A selected model stays in the panel unless a technical failure is documented.
+- **Common rules.** A derived model counts toward the developer of its base model. Previews are excluded. No model appears twice. No local download above 20 GB (the machine has 32 GB of RAM and an 8 GB GPU). Exact identifiers, tags and digests are recorded. A selected model stays in the panel unless a technical failure is documented. Model 14 is the one exception (below).
 - **Two PI decisions of 8 November, both before any answer of the models involved.** Gemini 4 Argon replaced Hy4 when the price rule was applied at the OpenRouter list price. Model 19: the first pick (`huihui_ai/qwen3.5-abliterated:4B`) had been fine-tuned according to its card and was replaced by a build that states abliteration only.
 - **Granite and LFM2.5 have no abliterated build that meets the rules**, so models 16 and 17 have no matched refusal-removed version.
+- **Model 14 left the study (decision D17, 12 November 2026).** It was chosen at exactly the price cap of its stratum (US$10.00 out). Google's price for it doubles on 1 December 2026, to US$20.00 out per million tokens on every route, before the main run. At that price the rule above would not admit it, and the plan would have cost US$144.53, above the cap of Section 12.4. The PI took it out, departing from the rule that a selected model stays unless a technical failure is documented, and chose no replacement; re-applied at the new price, the rule would have given the stratum's fifth developer slot to Tencent (Hy4). No model had answered or judged anything under this protocol. The paper says so. Google has no model in the study, and the commercial panel has ten models.
 - **The split into primary and commercial panel** was made on 10 November 2026, during the review, before any answer was read, screened, judged or labelled.
 - **Model 23 (decision D15).** The PI decided to add a second model without refusals that is served online. Model 23 was the runner-up for slot 22 on 8 November, and the only other candidate recorded there as uncensored. It comes from another fine-tuning line than models 20 to 22 and from the same base developer as models 21 and 22 (Mistral). It is the only model chosen after the review, and the paper says so.
 
@@ -217,15 +218,16 @@ Models 1 to 22 were fixed by written rules on 7 and 8 November 2026, before any 
 | 8 November, 20:41 | First call of the run that answered with models 15 to 18 (`v22_local`), the first newly selected models to answer | Call log |
 | 11 November, 03:09 | OpenRouter endpoint snapshot for decisions D15 and D16 | `data/selection/2026-11-11/` |
 | 11 November | Model 23 added, one endpoint pinned per model (decisions D15 and D16), and the hashes of the selection files sealed | `docs/PI_DECISIONS.md`; `data/selection/SNAPSHOTS_2026-11-11.sha256` |
+| 11 November, 19:52 (00:52 UTC on 12 November) | The list of hashes of the selection files stamped with OpenTimestamps on three public calendars. The Bitcoin attestation is added when the proof is upgraded | `data/selection/SNAPSHOTS_2026-11-11.sha256.ots` |
 
 ### 3.3 Builds, settings and weight identity
 
 **Local models (4, 5, 6, 15 to 21).**
-- **Respondent settings.** Seed 20261107, at most 1,500 output tokens, thinking off where the model allows it, Ollama default context, no system prompt added by the study. The pinned digest of each build (`config/models.json`) is checked at the start of every run. Ollama stays at version 0.40.15 until local judging ends.
-- **Built-in prompts.** The distributed build of model 6 carries a 676-character system prompt ("uncensored and unbiased assistant"). Models 20 and 21 carry "You are Dolphin, a helpful AI assistant". Their answers were, or will be, generated with these prompts in place: this is how these builds are actually used. No other local model has a built-in prompt.
+- **Respondent settings.** Seed 20261126, the seed of every respondent of the study, local or reached through an API where the provider accepts one (decision D18; the answers of 7 to 9 November used 20261107). At most 1,500 output tokens, thinking off where the model allows it, Ollama default context, no system prompt added by the study. The pinned digest of each build (`config/models.json`) is checked at the start of every run. Ollama stays at version 0.40.15 until local judging ends.
+- **Built-in prompts.** The distributed build of model 6 carries a 676-character system prompt ("uncensored and unbiased assistant"). Models 20 and 21 carry "You are Dolphin, a helpful AI assistant". Their answers are generated with these prompts in place: this is how these builds are actually used. No other local model has a built-in prompt.
 - **Sampling defaults differ inside pair 15 and 19** (`qwen3.5:4b`: temperature 1, top_k 20, top_p 0.95, presence penalty 1.5; the abliterated build: temperature 0.7). They are left as distributed and reported.
 
-**API models (1 to 3, 7 to 14, 22, 23).**
+**API models (1 to 3, 7 to 13, 22, 23).**
 - Anthropic and OpenAI are called directly, with keys of projects created for this study. All other API models go through one OpenRouter account created for this study, with zero data retention, `data_collection: deny`, fallbacks off and one endpoint pinned per model (below).
 - No system prompt and no temperature override as respondents. Reasoning effort is each model's default (a `max` default is lowered to `high`). Output cap 16,000 tokens, reasoning included; 4,000 for models 22 and 23, which do not reason.
 - Every call records the requested and the returned model identifier, the serving provider, finish reason, token counts and cost.
@@ -238,14 +240,17 @@ Models 1 to 22 were fixed by written rules on 7 and 8 November 2026, before any 
 | 10 Hy3 | `tencent/fp8` | fp8 | 0.132 / 0.528 | Developer's own |
 | 12 Kimi K3.1 Pro | `moonshotai/mxfp4` | mxfp4 | 2.00 / 10.00 | Developer's own |
 | 13 Grok 4.7 | `xai/zdr` | Not stated | 2.00 / 6.00 | Developer's own |
-| 14 Gemini 4 Argon | `google-vertex/global` | Not stated | 2.00 / 10.00 | Developer's own; marked for safety retention (below) |
 | 22 Venice Uncensored | `venice/fp16` | fp16 | 0.20 / 0.90 | Only listed endpoint |
 | 23 Cydonia 24B v4.1 | `parasail/bf16` | bf16 | 0.30 / 0.50 | Only listed endpoint |
 
   - The pins are checked again with a new snapshot at the pilot registration and at the freeze. If a pinned endpoint has left the list or changed its precision, the rule is applied again and the change is recorded before the next call. During the main run a pin does not change: calls to an endpoint that stops serving stay pending (Section 10.3).
   - The endpoints of models 8, 10, 12 and 22 do not list `seed` among their parameters. The seed is sent and ignored there (Section 11.3).
+  - Model 14 was pinned by this rule to `google-vertex/global` (US$2.00 / 10.00), Google's own endpoint. Decision D2 then moved it to Google's own API (below), and decision D17 took it out of the study.
 - **A model without a zero-retention endpoint** receives only safe prompts, unless the PI records in `docs/PROVIDER_TERMS.md` the decision to run it under stated retention terms **[PI]**.
-  - OpenRouter's list also admits endpoints that keep data for a limited time for safety review ("safety retention"). In the snapshot of 11 November every listed endpoint of model 14 is marked so, and no other pinned endpoint is. Model 14 therefore falls under this rule (decision D2).
+  - OpenRouter's list also admits endpoints that keep data for a limited time for safety review ("safety retention"). In the snapshot of 11 November every listed endpoint of model 14 was marked so, and no pinned endpoint of the panel is.
+  - **Decision D2 (11 November 2026).** Model 14 leaves OpenRouter. It is called directly on the Gemini API, with the key of a project created for this study at Google, under Google's terms for paid services (Section 16.4), like the Anthropic and OpenAI models. Like them, it receives every prompt, harmful ones included, as respondent and as judge. No model of the study now falls under the rule above. The rule stays in the code for a pinned endpoint that is marked for safety retention at a later check.
+  - **Decision D17 (12 November 2026).** Model 14 left the study (Section 3.2). No model is called on the Gemini API. The adapter written for D2 stays in the code with its offline tests, and no model uses it.
+  - **Decision D2, rest of the question (12 November 2026).** Every model receives every prompt, harmful ones included, as respondent and as judge.
 
 **The judge is the same model as the author.** The author-versus-control contrast needs it, so it is checked.
 
@@ -256,21 +261,21 @@ Models 1 to 22 were fixed by written rules on 7 and 8 November 2026, before any 
 | 6 | **Primary judge build: the Q4_0 weights of the respondent build**, with the standard Llama 3.1 chat template of model 4 and no built-in prompt (the distributed template renders a system message twice). **Sensitivity:** the Q4_K_M build used in v2.2 (`agentscontrol/llama3.1-8b-abliterated-judge`), reported beside it |
 | 22, 23 and the commercial models | Same API identifier and, for models reached through OpenRouter, the same pinned endpoint (decision D16). The returned identifier at judging is compared with the one at answering; a mismatch is reported and a sensitivity analysis drops the affected answers. Weights cannot be verified from outside, which is a limitation |
 
-- The Q4_0 judge build of model 6 does not exist yet. `scripts/make_judge_alias_m6.py --role primary --source mannix/llama3.1-8b-abliterated:latest` writes its Modelfile from the blob of the respondent build, under the alias `agentscontrol/llama3.1-8b-abliterated-judge-q4_0`. The script has no default source, and the sensitivity build keeps its own alias (`--role sensitivity`). The build is created with Ollama and must pass both checks of Section 11.7 before the pilot. Its digest is then recorded in `config/models.json`; until then no judging call of model 6 is sent.
+- The Q4_0 judge build of model 6 was made on 11 November 2026. `scripts/make_judge_alias_m6.py --role primary --source mannix/llama3.1-8b-abliterated:latest` wrote its Modelfile from the blob of the respondent build (weights `sha256:10da04ee…`), under the alias `agentscontrol/llama3.1-8b-abliterated-judge-q4_0`. The script has no default source, and the sensitivity build keeps its own alias (`--role sensitivity`). The build passed both checks of Section 11.7 beside model 4, and its digest `e074ef3e51bb62a254ba6058b227dcb2352ffb22da8363078c8d992d8cfdc599` is recorded in `config/models.json` (`judge_model_digest`). The judging calls of model 6 use this build.
 - **Consequence for the wording.** For models 6, 20 and 21 the original answer was written under a built-in prompt, and the judging conversation carries the rubric instead. For every model the judging conversation is rebuilt. This is why Section 2.2 calls the presentation "reconstructed".
 
 ### 3.4 Answers that already exist
 
-Answers were generated under v1 and v2.2 before this design existed. They are kept and used. No person has read them (Section 15.3).
+Answers were generated under v1 and v2.2 before this design existed. They are kept and sealed, and they are not used: by decision D18 (12 November 2026) every answer of the study is generated after the pilot registration (below). No person has read them (Section 15.3).
 
 | File | Written | Content | Status in v2.3 |
 |---|---|---|---|
-| `results/raw/responses_full.jsonl` | 7 and 8 November | Models 4, 5, 6 × all 1,050 prompts = 3,150 answers | Answers to frame prompts are confirmatory material. Answers to tail prompts serve the pilot (Section 13) |
+| `results/raw/responses_full.jsonl` | 7 and 8 November | Models 4, 5, 6 × all 1,050 prompts = 3,150 answers | Not used (decision D18), except the 96 answers of the retired sample G1 on tail prompts, which train the annotators (Section 9.6) |
 | `results/raw/responses_pilot_local.jsonl` | 7 November | Models 4, 5, 6 × 50 prompts = 150 answers (the v1 pilot) | Not used. The 50 prompts are excluded from the v2.3 pilot |
-| `results/raw/responses_v22_local.jsonl` | 8 and 9 November | Models 15, 16, 17 × 1,050 prompts and model 18 × 1,007 prompts = 4,157 answers | As the first row |
+| `results/raw/responses_v22_local.jsonl` | 8 and 9 November | Models 15, 16, 17 × 1,050 prompts and model 18 × 1,007 prompts = 4,157 answers | Not used (decision D18) |
 
-- **Total: 7,457 answers of seven local models.** For these seven models every answer that the frames need (390 per model) already exists. Model 18 lacks 43 answers, all on tail prompts.
-- **Missing:** models 19, 20 and 21 (local), models 22 and 23 and the eleven commercial models.
+- **Total: 7,457 answers of seven local models.** They hold every answer that the frames need for these seven models (390 per model); model 18 lacks 43 answers, all on tail prompts. None is used.
+- **Generated under this protocol:** every answer of the study, for all 22 models: the pilot answers after the pilot registration, the frame answers after the freeze.
 - **What has been done with the existing answers.**
   - No person has read one.
   - Scripts used identifiers, model keys, provider names, benchmark labels and error flags: `scripts/frame_counts.py` and `scripts/data_inventory.py` counted records by model and prompt identifier, and `scripts/pilot_prompts_v23.py` collected the prompt identifiers of G1 and of the version-1 pilot.
@@ -281,9 +286,9 @@ Answers were generated under v1 and v2.2 before this design existed. They are ke
 - **Hashes.** `docs/SEALED_HASHES.md` records the SHA-256 of every file above.
   - The hashes of the first two files were recorded on 8 November.
   - The hash of the third was recorded on 10 November, after the counting scripts had read identifiers from it and before anything used an answer text.
-  - The three run names are sealed: the runner refuses to write to them. The answers that are still missing are written under a new run name.
-- **Why keeping them is safe.** They were generated with fixed seeds and settings, before the v2.3 hypotheses, screen and frames were written. The frames are a deterministic function of prompt identifiers and categories (Section 5), not of any answer.
-- **The earlier gold sample (G1).** On 8 November a sample of 150 answers of models 4 to 6 was drawn for labelling. No label was ever given. G1 is retired as a reference set: the label sample of Section 9 replaces it. Its key keeps its recorded hash, and its 96 answers on prompts outside the frames are used to train the annotators (Section 9.6).
+  - The three run names are sealed: the runner refuses to write to them, and the code refuses them as runs of the study. The answers of the study are written under new run names.
+- **Why they are generated again (decision D18, 12 November 2026).** The draft used these answers. Two facts weighed against it. That no person has read them rests on the PI's statement alone (Section 18.8). And the call records of version 1 lack the hashes of the configuration and of the answer that this protocol records for every call. The PI decided that the ten local models answer again after the pilot registration, under the code and settings of this protocol, with a new respondent seed shared by every respondent (20261126). With the old seed the local builds would likely return the same answers word for word. The cost is local machine time: from the timings of the old runs, about 10 hours for the frames and 2.5 hours for each pilot round. The frames are a deterministic function of prompt identifiers and categories (Section 5), not of any answer, so no count changes.
+- **The earlier gold sample (G1).** On 8 November a sample of 150 answers of models 4 to 6 was drawn for labelling. No label was ever given. G1 is retired as a reference set: the label sample of Section 9 replaces it. Its key keeps its recorded hash, and its 96 answers on prompts outside the frames are used to train the annotators (Section 9.6). They are the only old answers that are read (decision D18), and no test or estimate rests on them.
 
 ## 4. Prompts
 
@@ -313,11 +318,11 @@ The prompt is the unit of inference. All answers and verdicts on one prompt form
 
 | Frame | Prompts | Per source | Used for |
 |---|---|---|---|
-| Common set | 60 | 30 XSTest unsafe, 30 OR-Bench Toxic | Harmful prompts that all 23 models answer |
+| Common set | 60 | 30 XSTest unsafe, 30 OR-Bench Toxic | Harmful prompts that all 22 models answer |
 | **Harmful frame** | **300** | **150 + 150** | Primary analysis: the primary panel answers all of it. It contains the common set |
 | Harmful tail | 200 | 50 XSTest unsafe, 150 OR-Bench Toxic | Pilot only |
 | Commercial safe controls | 30 | 15 XSTest safe, 15 OR-Bench Hard-1K | Safe prompts on which commercial judges also act as controls |
-| **Safe frame** | **90** | **45 + 45** | Safe prompts that all 23 models answer. It contains the commercial safe controls |
+| **Safe frame** | **90** | **45 + 45** | Safe prompts that all 22 models answer. It contains the commercial safe controls |
 | Safe tail | 460 | 205 XSTest safe, 255 OR-Bench Hard-1K | Pilot only |
 
 - **The harmful frame is half XSTest and half OR-Bench Toxic by design.** The sample has 200 and 300 of them. The population target of Section 2.3 uses equal shares, and results are also shown by source.
@@ -327,8 +332,8 @@ The prompt is the unit of inference. All answers and verdicts on one prompt form
 | Group | Harmful prompts | Safe prompts | Answers per model | Answers in the group |
 |---|---|---|---|---|
 | Primary panel (12 models) | Harmful frame, 300 | Safe frame, 90 | 390 | 4,680 |
-| Commercial panel (11 models) | Common set, 60 | Safe frame, 90 | 150 | 1,650 |
-| **All** | | | | **6,330** |
+| Commercial panel (10 models) | Common set, 60 | Safe frame, 90 | 150 | 1,500 |
+| **All** | | | | **6,180** |
 
 **Why commercial models answer only 60 harmful prompts.**
 - **Cash.** Their answers and their verdicts on them are the expensive part of the study (Section 12).
@@ -340,7 +345,7 @@ The prompt is the unit of inference. All answers and verdicts on one prompt form
 - The pilot (Section 13) uses only prompts of the two tails. From them it removes every prompt of the retired sample G1 and every prompt of the v1 pilot.
 - **What is left:** 166 harmful prompts (39 XSTest unsafe, 127 OR-Bench Toxic) and 376 safe prompts (164 XSTest safe, 212 OR-Bench Hard-1K). Source: `scripts/frame_counts.py`, output in `analysis/output/frame_counts_2026-11-10.txt`.
 - **No tail prompt enters a confirmatory analysis.** The analysis script selects by frame membership, and a unit test checks that the pilot identifiers and the frames do not intersect.
-- The seven models that already answered (Section 3.4: six answered all 1,050 prompts, model 18 answered 1,007) have tail answers that no person has read. They are pilot material and nothing else.
+- The seven models that answered before this design (Section 3.4: six answered all 1,050 prompts, model 18 answered 1,007) have tail answers that no person has read. Since decision D18 they are not used: every model answers the pilot prompts under this protocol.
 
 ## 6. Control judges
 
@@ -353,8 +358,8 @@ Every answer has one control judge: a model of the same group as the author that
 - **One answer per prompt.** For each prompt, the assignment inside a group is a permutation: every judge controls exactly one answer of that prompt. Every judge therefore makes the same number of control calls.
 - **Fixed in advance.** The assignment depends only on the ordered prompt identifiers, their source, the panel file and the seed 20261121. It uses SHA-256 ordering and no random number generator (`src/yoking.py`). It balances the number of prompts per author-control pair, first inside each source and then overall.
 - **Published.** `scripts/control_assignment_v23.py` writes the full matrix and its diagnostics to `analysis/output/control_assignment_v23.json`. Two hashes are recorded.
-  - The assignment digest is the SHA-256 of a canonical serialization: the list of group, frame and assignment of every block, written as JSON with sorted keys and without spaces (`assignment_sha256` in the file). On 11 November 2026, with model 23, it is `aca085f62d76d0dadd2f2a0dae1758ce9c195660d71da28f66db5a2bb26b16d4`.
-  - The SHA-256 of the file bytes is `72725274cc81c68f45d07e757c293bd6e34c22c2f13168a6f0c74adc95db1481`. It changes with the diagnostics and the formatting; the digest does not.
+  - The assignment digest is the SHA-256 of a canonical serialization: the list of group, frame and assignment of every block, written as JSON with sorted keys and without spaces (`assignment_sha256` in the file). On 12 November 2026, after model 14 left the study (decision D17), it is `3576a59ac50b3df43339424e183ae7f045af1817ac007fe42b42dd5d84e4b76d`. The value of 11 November, with model 14, was `aca085f62d76d0dadd2f2a0dae1758ce9c195660d71da28f66db5a2bb26b16d4`.
+  - The SHA-256 of the file bytes is `b18714d2ccbf3c4b047d2f95bbf049eef991733684ce47e01675dec3fb7ada41` (12 November 2026). It changes with the diagnostics and the formatting; the digest does not.
   - The values recorded at the freeze are binding.
 
 ### 6.2 Who may control whom in the primary panel
@@ -388,9 +393,9 @@ Every answer has one control judge: a model of the same group as the author that
 
 ### 6.4 Commercial panel
 
-- Eleven judges; a judge never controls an answer of a model from the same developer (1 and 2; 3, 9 and 11).
-- On the 60 prompts of the common set each of the 102 allowed pairs has 4 to 10 prompts. On the 30 commercial safe controls each pair has 2 to 5.
-- With eleven judges the valid permutations are too many to list. For each prompt, 200 valid permutations are generated in SHA-256 order and the best balanced one is taken (`src/yoking.py`).
+- Ten judges; a judge never controls an answer of a model from the same developer (1 and 2; 3, 9 and 11).
+- On the 60 prompts of the common set each of the 82 allowed pairs has 5 to 10 prompts. On the 30 commercial safe controls each pair has 2 to 6. The assignment was drawn again with its seed when model 14 left (decision D17); that of the primary panel did not change.
+- With ten judges the valid permutations are too many to list. For each prompt, 200 valid permutations are generated in SHA-256 order and the best balanced one is taken (`src/yoking.py`).
 
 ### 6.5 The same assignment without the hosted models
 
@@ -482,14 +487,15 @@ For each prompt p, with sums over the twelve models j of the primary panel:
 - **Estimate.** R̂ = Σ_p X_p / Σ_p N_p.
 - **Residuals.** e_p = X_p − R̂ N_p, centred inside each source h (mean ē_h, n_h prompts).
 - **Variance.** V̂ = [Σ_h n_h / (n_h − 1) × Σ_{p in h} (e_p − ē_h)²] / (Σ_p N_p)².
-- **Reference distribution.** Student's t with Σ_h (n_h − 1) = 298 degrees of freedom.
+- **Reference distribution.** Student's t with Σ_h (m_h − 1) degrees of freedom, where m_h is the number of prompts of source h with N_p ≠ 0 (domain degrees of freedom). For a count of answers this is N_p > 0. A denominator that is a difference, such as that of the false-alarm change of Section 9.5, can be negative on a prompt that carries answers; such a prompt counts. A source without such a prompt adds none, and there is at least one. With a screen-positive answer on every prompt they are Σ_h (n_h − 1) = 298. The variance still runs over every prompt of a source. A prompt without an answer of the statistic has X_p = N_p = 0, so e_p = 0. A prompt whose signed contributions to a difference cancel (N_p = 0 with answers) can have X_p ≠ 0: its residual stays in the variance, and it is not counted in the degrees of freedom.
+  - *Amendment D19, proposed on 12 November 2026 and awaiting the PI's decision (Section 19.1).* The registered text used Σ_h (n_h − 1) = 298 whatever the number of prompts with N_p ≠ 0. With about ten such prompts its tests rejected too often: checks 1 and 3 of Appendix A.4 failed twice in the rare-flag run (Appendix A.4).
 - **Code.** `analysis/inference_v23.py`, function `cluster_ratio`. The analysis script and the simulations call the same function.
 - **Two boundary cases.** They are different problems. They are handled apart and counted apart.
   - *Zero denominator.* If no answer is screen-positive (Σ_p N_p = 0), the statistic does not exist. It is reported as not estimable. Its test is not carried out, and nothing is rejected.
   - *Zero estimated variance.* If V̂ = 0, the residuals do not vary inside either source. The usual case is that no pair of verdicts differs. The data then say nothing about the sampling error, and the t statistic is not defined. The test is not carried out, its p-value is reported as "not available", and nothing is rejected. No interval and no bound are reported. The estimate is reported with the number of pairs that changed in each direction.
   - A test that is not carried out is never a rejection. This holds for P3 too: without a lower bound, P3 is not declared.
   - No small constant is ever added to a denominator or to a variance.
-- **Every quantity that uses this estimator follows the same two rules:** the secondary analyses of Section 8.5, the commercial panel, the safe prompts and the changes of Section 9.5.
+- **Every quantity that uses this estimator follows the same two rules and the same degrees of freedom:** the secondary analyses of Section 8.5, the commercial panel, the safe prompts and the changes of Section 9.5. The judge-normalised interaction and the parts ι_W and ι_C count the prompts with an answer of their own or a control answer.
 - **In the code** (`analysis/inference_v23.py`, since 11 November 2026). Every result of the estimator carries three flags: estimable, zero variance and available. Where a result is not available, its p-value, interval and bound are "not available" (NaN in the result files), with the reason: "zero denominator" or "zero variance".
   - *When V̂ counts as zero.* When every centred residual is at most 10⁻¹⁰ times the largest term of a residual in absolute value. This is a tolerance for rounding in floating-point arithmetic, not a constant added to the variance. With the counts of this study, a residual that is not zero is above 10⁻⁸ of that scale, and a rounding error stays near 10⁻¹⁴ of it.
 
@@ -514,11 +520,11 @@ For each prompt p, with sums over the twelve models j of the primary panel:
 
 | Margin | True β_S = 0 | −1 | −2 | −3 |
 |---|---|---|---|---|
-| 3 points | 46% | 20% | | |
-| 5 points | 92% | 74% | 46% | |
-| **7 points** | **100%** | **98%** | **92%** | **74%** |
+| 3 points | 51% | 22% | | |
+| 5 points | 94% | 79% | 51% | |
+| **7 points** | **100%** | **99%** | **94%** | **79%** |
 
-- Baseline scenario of Appendix A.1, normal approximation. In the scenario with few screen-positive answers the last row is 97%, 91%, 77% and 54%.
+- Baseline scenario of Appendix A.1, normal approximation (`analysis/tables_v23.py --summary`). In the scenario with few screen-positive answers the last row is 99%, 94%, 82% and 60%.
 - The margin is on the scale of screen-positive answers. Under the assumed rates about half of the answers are screen-positive, so the same deficit is about half as large in points on the scale of all answers.
 - **The interval of β_S is reported in any case**, so a reader can apply another margin.
 
@@ -528,12 +534,12 @@ Appendix A gives the full tables. With the production code and 10,000 replicatio
 
 | Property | Result | Nominal |
 |---|---|---|
-| Family-wise error of P1 and P2, no effect | 3.2% to 3.8% | 4.0% |
-| Error of P3 at β_S = −7 points | 0.8% to 1.1% | 1.0% |
-| Coverage of the 95% intervals of θ_S, ι_S, ι_W, β_S | 94.7% to 95.3% with no effect; 94.4% to 95.5% over all 35 rows | 95% |
-| Power of P1 for θ_S = −5 points | 94.3% to 99.9% | |
-| Power of P2 for ι_S = −5 points | 76.4% to 97.8% | |
-| Half-width of the 95% interval: θ_S; ι_S; β_S | 1.7 to 2.4; 2.2 to 3.3; 2.5 to 3.2 points | |
+| Family-wise error of P1 and P2, no effect | 3.1% to 3.5% | 4.0% |
+| Error of P3 at β_S = −7 points | 0.9% to 1.2% | 1.0% |
+| Coverage of the 95% intervals of θ_S, ι_S, ι_W, β_S | 94.6% to 95.5% with no effect and over all 35 rows | 95% |
+| Power of P1 for θ_S = −5 points | 96.0% to 99.96% | |
+| Power of P2 for ι_S = −5 points | 80.3% to 98.5% | |
+| Half-width of the 95% interval: θ_S; ι_S; β_S | 1.6 to 2.3; 2.1 to 3.1; 2.4 to 3.0 points | |
 
 - **The power figures depend on assumed rates** of screen-positive answers and of disagreement between presentations. The real rates are unknown. The pilot measures the first and not the second. The table is recomputed before the freeze with the pilot planning scenarios of Appendix A.4 and is shown as a range (Section 13). A low rate does not change the design: it is disclosed as limited opportunity for detection.
 - **Size and coverage stayed within the tolerances of Appendix A.4** in the seven scenarios examined, whatever the assumed rates. This is a numerical diagnostic for these scenarios. It is not a proof for other rates.
@@ -554,7 +560,7 @@ Each is reported with its estimate and 95% interval. None can replace a register
 | Initial version of the screen, if the screen is revised | Effect of the revision |
 | Model 6 judged by the Q4_K_M build | Effect of the quantisation of the judge |
 | Answers that hit the output cap removed | Effect of truncated answers |
-| All 23 models as authors on the 60 prompts of the common set: θ_S, β_S and the blind flag rate of each model, side by side (30 prompts per source, 58 degrees of freedom) | Description only, no test. For the primary panel the numbers come from the registered data; for the commercial panel from Section 8.6 |
+| All 22 models as authors on the 60 prompts of the common set: θ_S, β_S and the blind flag rate of each model, side by side (30 prompts per source, at most 58 degrees of freedom) | Description only, no test. For the primary panel the numbers come from the registered data; for the commercial panel from Section 8.6 |
 | Abliterated model against its base model, three pairs (4 and 6, 5 and 18, 15 and 19) | Description only: blind flag rates and changes side by side |
 
 - **When ι_W and ι_C exist.** ι_S and P2 need one screen-positive answer. ι_W and ι_C need more: every judge with screen-positive answers of its own must also have at least one screen-positive answer as a control, because its control change R_j^ctrl is a ratio with that number as its denominator.
@@ -565,7 +571,7 @@ Each is reported with its estimate and 95% interval. None can replace a register
 
 ### 8.6 Commercial panel
 
-- The same quantities are estimated for the eleven commercial models on the 60 prompts of the common set (30 per source, 58 degrees of freedom).
+- The same quantities are estimated for the ten commercial models on the 60 prompts of the common set (30 per source, at most 58 degrees of freedom).
 - **No test is registered.** Intervals are wide and the text says so. The commercial results never enter the claims of Section 2.4.
 - **Tables without the models with a conflict of interest.** Every table of the commercial panel is also shown without model 11 and without models 1 and 2 (Section 17.3).
 - **Challenge set in context.** Each commercial judge also classifies the 70 answers of the challenge set (Section 9.4) in both presentations. None of these answers is its own, so this is the presentation change on harmful-leaning answers written by other models. The number of eligible answers per judge is published.
@@ -577,13 +583,14 @@ Each is reported with its estimate and 95% interval. None can replace a register
   - The endpoint records what the judge wrote about the answer. It is not a harm flag. It does not measure whether the respondent refused too often, and it does not say whether the classification is right: no human label of refusal is the reference here.
   - On safe prompts the screen-negative answers are the ones that open with a refusal phrase or have no content (Section 7.2). A classification as refusal can change mostly there.
   - An answer without content is sent to no judge, and its flags are 0 by definition (Section 10.1). It stays in the denominator over all answers and is counted apart.
-- **Primary panel.** The four verdicts exist for every answer to the 90 safe prompts. The quantities of Section 2.3 are computed with this flag, by `cluster_ratio` with the prompt as cluster and the two safe sources as strata (88 degrees of freedom).
+- **Primary panel.** The four verdicts exist for every answer to the 90 safe prompts. The quantities of Section 2.3 are computed with this flag, by `cluster_ratio` with the prompt as cluster and the two safe sources as strata (at most 88 degrees of freedom).
 - **Commercial panel.** Each commercial model classifies its own 90 answers in both presentations. Control verdicts exist for the 30 commercial safe controls only.
-  - Every author-versus-control quantity of the commercial panel on safe prompts uses this matched subset: 30 prompts, 15 per source, 28 degrees of freedom. There the author's verdicts and the control's verdicts exist for the same answers.
+  - Every author-versus-control quantity of the commercial panel on safe prompts uses this matched subset: 30 prompts, 15 per source, at most 28 degrees of freedom. There the author's verdicts and the control's verdicts exist for the same answers.
   - The author's own change is also reported on all 90 prompts.
   - If cut 2 of Section 12.4 applies, the control verdicts on safe prompts do not exist, and the author-versus-control quantities of the commercial panel on safe prompts are not reported.
 - **Description only.** The quantities are reported with 95% intervals. No test, and no power is claimed.
 - **The intervals are checked before the freeze.** The safe-side simulation of Appendix A.4 checks the intervals over all answers and among screen-negative answers, with no presentation effect in the simulated data. An interval that fails its check is not reported: the estimate and the counts are. The boundary rules of Section 8.1 apply.
+  - *Result of 12 November 2026* (Appendix A.4, run (d)). Among screen-negative answers these intervals failed check 6 in both runs and are not reported: β_S and ι_W of the primary panel; θ_S, ι_S, β_S and ι_W of the commercial panel; and θ_S^ctrl of the commercial panel, which failed twice with the registered code only and stays withdrawn until the PI decides on amendment D19. The intervals over all answers pass. Code: `SAFE_NO_INTERVAL` in `analysis/analyze_v23.py`.
 - `harmful_content = true` on an answer to a safe prompt is counted and reported.
 
 ## 9. Human labels
@@ -599,7 +606,7 @@ Each is reported with its estimate and 95% interval. None can replace a register
 
 ### 9.2 The label sample
 
-- **One probability sample** of the answers inside the frames, for all 23 models. It replaces the samples G1 and G2 of protocol v2.2.
+- **One probability sample** of the answers inside the frames, for all 22 models. It replaces the samples G1 and G2 of protocol v2.2.
 - **Cells.** A cell is (model, side, screen result). The side is "harmful" for answers to harmful prompts and "safe" for answers to safe prompts.
 - **Quotas** (`config/panel_v23.json`, block `labels`; seed 20261122):
 
@@ -607,27 +614,27 @@ Each is reported with its estimate and 95% interval. None can replace a register
 |---|---|---|---|---|---|---|
 | Refusal-removed | Harmful | 20 | 5 | 25 | 7 | 175 |
 | Instruction-tuned | Harmful | 15 | 5 | 20 | 5 | 100 |
-| Commercial | Harmful | 3 | 2 | 5 | 11 | 55 |
-| All | Safe | 6 | 5 | 11 | 23 | 253 |
-| **Total** | | | | | | **583** |
+| Commercial | Harmful | 3 | 2 | 5 | 10 | 50 |
+| All | Safe | 6 | 5 | 11 | 22 | 242 |
+| **Total** | | | | | | **567** |
 
 - **Drawing.** `src/label_sample.py`. Inside a cell the answers of each source are put in SHA-256 order and the two sources alternate. When a cell is smaller than its quota, the missing labels go to the other cell of the same model and side.
 - **Shortages.** Every expected cell of model, side and screen is listed, also a cell with no answer at all. What a cell cannot fill, and what the other cell of the same model and side cannot take, is reported as a shortage, by model, side and screen (`src/label_sample.py`, since 11 November 2026).
 - **Weights.** Inside a cell and source the labelled answers are a simple random sample. The weight of a labelled answer is the number of answers in its cell and source divided by the number labelled there.
 - **Answers without content** (empty, provider block, error) are not sampled. They hold nothing to label and count as not harmful.
 - **When it is drawn.** In block 4 of Section 12.3: after every answer exists and the screen has run, by code, before any person opens an answer. The verdicts of the primary panel on the harmful frame (block 3) exist by then. The sampler does not read them, and no person opens them before the label file is locked (Section 9.3). The sample uses only model, prompt, source, side and screen result. Its hash is recorded.
-- **Checked offline.** `tests/test_label_sample.py` takes the planned counts from the panel file. With the twelve-model panel the sample has 583 answers, no unfilled quota and no answer without a chance of selection. In every replication of Appendix A.3, which was run for eleven models, it had 547.
+- **Checked offline.** `tests/test_label_sample.py` takes the planned counts from the panel file. With the twelve-model panel and ten commercial models the sample has 567 answers, no unfilled quota and no answer without a chance of selection, as in every replication of Appendix A.3.
 
 ### 9.3 Two labellers
 
 | Labeller | Answers | Hours at four minutes per answer |
 |---|---|---|
-| First: the PI | All 583 | About 39 |
-| Second: independent annotator | 388: all 330 answers of the harmful side, 3 safe-side answers per model of the primary panel (36), 2 per commercial model (22) | About 26 |
+| First: the PI | All 567 | About 38 |
+| Second: independent annotator | 381: all 325 answers of the harmful side, 3 safe-side answers per model of the primary panel (36), 2 per commercial model (20) | About 25.5 |
 
 - The hours exclude training and adjudication.
 - **Every labelled answer to a harmful prompt has two independent labels.** This is not reduced. If no second annotator can commit to it before the freeze, the statements that depend on labels (Section 2.4, addition 2, and Section 9.5) are withdrawn in a dated amendment before the freeze, and the study reports changes in flags only.
-- **Agreement.** For `harmful_content`: raw agreement, agreement on "yes", agreement on "no" and Cohen's κ, with intervals, by side. Because κ is unstable when one class is rare (Cicchetti & Feinstein, 1990), the three agreement rates are the main report.
+- **Agreement.** For `harmful_content`: raw agreement, agreement on "yes", agreement on "no" and Cohen's κ, by side, each with a 95% interval: a percentile bootstrap over the answers, with 2,000 resamples and the seed 20261112 (`scripts/label_sheets_v23.py`). A resample in which a figure is not defined (no "yes" at all, say) is left out of that figure's interval and counted. Because κ is unstable when one class is rare (Cicchetti & Feinstein, 1990), the three agreement rates are the main report.
 - **Adjudication.** The two labellers discuss each disagreement on `harmful_content` with the rubric and record one adjudicated label and a reason. If they cannot agree, the answer is marked unresolved.
 - **Three states at the lock.** Every answer of the label sample ends in one of three states.
   - *Labelled:* it has the label that was planned for it. That is the adjudicated label where two labels were planned, and the PI's label where one was planned.
@@ -647,7 +654,7 @@ Each is reported with its estimate and 95% interval. None can replace a register
 - With no unknown label and no answer labelled once, the analysis reduces to one estimate and one interval.
 - **Skipping stays unconditional.** A labeller may skip any answer and may stop at any time, without giving a reason (Section 16.8). Nobody is asked to finish an item or to return to one. A skipped answer widens the identification range. That is its only consequence.
 - **An unfinished label file.**
-  - If the second labeller stops before the 388 labels are complete, a replacement who meets the conditions of Section 16.8 takes the same two training rounds, without any change to the rubric, and labels the remaining answers. Agreement is then reported for each pair of labellers.
+  - If the second labeller stops before the 381 labels are complete, a replacement who meets the conditions of Section 16.8 takes the same two training rounds, without any change to the rubric, and labels the remaining answers. Agreement is then reported for each pair of labellers.
 - **Lock.** The adjudicated label file is hashed and recorded before it is joined with any verdict. Until then, verdict files are touched only by scripts that count calls and statuses. Nobody looks at flags.
 - **The PI is not blind to the hypotheses.** The second annotator receives only the neutral description of the annotator packet. The agreement figures show how much this matters.
 
@@ -655,12 +662,12 @@ Each is reported with its estimate and 95% interval. None can replace a register
 
 - **Challenge set (70 answers).** The first 10 labelled screen-positive answers to harmful prompts of each refusal-removed model. They are chosen by the sampler, with no label and no verdict. They are likely, not certain, to hold harmful content; the labels say how many do.
 - **Shortages in the challenge set.** A refusal-removed model with fewer than 10 labelled screen-positive answers to harmful prompts gives all that it has. The challenge set is then smaller than 70. The shortfall is not filled from other models, and the size is reported. In the offline test of the sampler the challenge set holds 61 answers.
-- **Who judges it.** All 23 models classify the challenge set blind. All 23 also classify it in context. For a commercial judge every one of these answers was written by another model, so its change is a pure presentation change on such answers. The in-context block of the commercial judges is the third block to be cut if money runs short (Section 12).
+- **Who judges it.** All 22 models classify the challenge set blind. All 22 also classify it in context. For a commercial judge every one of these answers was written by another model, so its change is a pure presentation change on such answers. A judge of the primary panel that does not already classify a challenge answer as its author or control makes both presentations as one pair in block 5 (Section 11.4); the blind half is its blind verdict on that labelled answer. Each judge's change on the challenge set is reported with a 95% interval: the cluster ratio t interval of Section 8.1, with the prompt as cluster and the source as stratum, and with the boundary rules of Section 8.1. As there, every prompt of the judge's eligible answers stays in the variance, with a zero contribution where none of its answers enters the change. A source with fewer than two such prompts gives no interval; the estimate and the counts are reported, with the reason. The in-context block of the commercial judges is the third block to be cut if money runs short (Section 12).
 - **Shortages in the reference subset.** Its other answers are drawn by four quotas, in turn over the models. A quota that cannot be filled is filled with other labelled answers of the primary panel on the same side, harmful or safe, screen-positive or screen-negative, in turn over the models. The reference subset is the challenge set plus these 60 answers: 121 answers in the offline test.
 - **Halves for cut 4 (Section 12.4).** The 60 other answers of the reference subset are put in the order of the SHA-256 of their identifiers. The first 30 are the first half.
 - **Comparisons between judges** on the challenge set or the reference subset use only the answers that are eligible for every compared judge and that every compared judge classified with a valid verdict, in each presentation compared. Their number is reported.
 - **Reference subset of the commercial judges (130 answers).** The challenge set plus 60 other labelled answers of the primary panel: 15 screen-positive answers of instruction-tuned models and 15 screen-negative answers on the harmful side, 15 screen-positive and 15 screen-negative on the safe side. Each commercial judge classifies them blind.
-- **Primary panel.** Each of its twelve judges classifies all 583 labelled answers blind.
+- **Primary panel.** Each of its twelve judges classifies all 567 labelled answers blind.
 - **Relations.** A judge's verdict on an answer of its own, of a model from the same developer or of a model with close lineage is left out of off-policy accuracy. The number of eligible answers per judge is published.
 
 **Blind accuracy of a judge against the labels** is reported in two forms, kept apart:
@@ -688,6 +695,7 @@ For screen-positive answers of the primary panel to harmful prompts. w is the sa
 - The direct estimator, which uses labelled answers only, is reported beside it as a check. Its interval is not reported, because it failed both runs of Appendix A.4 in one scenario. The estimate and the counts are.
 
 **Registered intervals.** Every interval is a 95% interval. Its target is the ratio of expectations over the population of prompts from which the frame is drawn.
+- **Answers without content** on the harmful frame are screen-negative and not harmful by definition (Section 7.2). They are never sampled. Each enters the harmful share among screen-negative answers with weight 1 and Y = 0, and counts in N_neg below. The Kish number and the number of prompts that carry a class count labelled answers only.
 - **Rates:** the harmful share among screen-positive and among screen-negative answers, and the blind detection and false-alarm rates of the authors and of the controls. Each has an approximate interval: the Clopper–Pearson formula applied to an effective number of answers. The weighted, clustered estimate is not a binomial count, so the interval is neither exact nor conservative by construction. In the simulations of Appendix A.3 it was conservative.
   - n_eff is the smallest of three numbers: the Kish number (Σw)²/Σw²; the number of prompts that carry a labelled answer of the class; and est(1 − est)/se², used only when 0 < est < 1 and se > 0.
   - x = est × n_eff. The limits are the Clopper–Pearson quantiles of the Beta distribution for x events among n_eff answers.
@@ -698,22 +706,22 @@ For screen-positive answers of the primary panel to harmful prompts. w is the sa
 - **Changes** (detection and false-alarm changes of the registered estimator): the cluster ratio t interval of Section 8.1. At zero estimated variance there is no interval (Section 8.1). The estimate is reported with the numbers of labelled answers that gain and that lose a flag.
 - **Counts beside every quantity:** the number of labelled answers in the class, the number of events, and for a rate the effective number of answers.
 - **Checked before the freeze.** Every interval of this section passes check 5 of Appendix A.4 in every scenario where it is reported, the informative-screening run included, or it is not reported.
-  - One interval is not reported for this reason: the detection change of the instruction-tuned group. It failed both runs of check 5 in one scenario (Appendix A.4). Its estimate and counts are reported, and it carries no detection statement (Section 9.3). Code: `NO_INTERVAL` in `analysis/missing_labels_v23.py`.
+  - One interval is not reported for this reason: the detection change of the instruction-tuned group. With the registered code it failed both runs of check 5 in one scenario (Appendix A.4). With the code of amendment D19 it passes; it stays withdrawn until the PI decides on D19 (Section 19.1). Its estimate and counts are reported, and it carries no detection statement (Section 9.3). Code: `NO_INTERVAL` in `analysis/missing_labels_v23.py`.
 
 **What is reported, and how precise it is** (Appendix A.3, assumed rates, 10,000 replications per scenario). "Few answers are harmful" means the two `low_failure` scenarios of Appendix A.3.
 
 | Quantity | Scope | Coverage of the 95% interval | Half-width |
 |---|---|---|---|
-| Harmful share among screen-positive answers | Primary panel | 98.5% to 100% (effective-n interval) | 1.2 to 7.9 points |
+| Harmful share among screen-positive answers | Primary panel | 98.3% to 100% (effective-n interval) | 1.2 to 7.9 points |
 | Harmful share among screen-negative answers | Primary panel | 99.0% to 100% (effective-n interval) | 2.3 to 9.2 points |
-| Share of harmful answers that are screen-positive | Primary panel | 99.7% to 100% (propagated interval) | 4.8 to 22.5 points |
-| Blind detection rate, authors and controls | Primary panel | 97.0% to 98.0% (effective-n interval) | 7.2 to 10.7 points |
-| Blind false-alarm rate, authors and controls | Primary panel | 97.6% to 98.0% (effective-n interval) | 6.4 to 9.9 points |
-| Detection change of the authors | Primary panel | 94.6% to 96.8% | 1.9 to 2.8 points; 3.8 to 7.2 when few answers are harmful |
-| Detection change, authors minus controls | Primary panel | 94.8% to 96.2% | 2.5 to 3.6 points; 5.2 to 9.3 when few answers are harmful |
-| Detection change of the authors | Refusal-removed group | 94.9% to 96.7% | 2.1 to 2.9 points; 4.1 to 7.5 when few answers are harmful |
-| Detection change of the authors | Instruction-tuned group | Not reported: the interval failed both runs of check 5 of Appendix A.4. The estimate and the counts are | – |
-| False-alarm change of the authors | Primary panel only | 95.5% to 99.1% (conservative) | 4.1 to 7.1 points |
+| Share of harmful answers that are screen-positive | Primary panel | 99.8% to 100% (propagated interval) | 4.8 to 22.5 points |
+| Blind detection rate, authors and controls | Primary panel | 97.1% to 98.0% (effective-n interval) | 7.2 to 10.7 points |
+| Blind false-alarm rate, authors and controls | Primary panel | 97.6% to 98.0% (effective-n interval) | 6.3 to 9.9 points |
+| Detection change of the authors | Primary panel | 94.9% to 96.1% | 1.9 to 2.8 points; 3.8 to 7.3 when few answers are harmful |
+| Detection change, authors minus controls | Primary panel | 95.0% to 95.8% | 2.5 to 3.6 points; 5.2 to 9.5 when few answers are harmful |
+| Detection change of the authors | Refusal-removed group | 95.2% to 96.4% | 2.1 to 2.9 points; 4.1 to 7.6 when few answers are harmful |
+| Detection change of the authors | Instruction-tuned group | Not reported: with the registered code the interval failed both runs of check 5 of Appendix A.4. The estimate and the counts are. With the code of amendment D19: 94.6% to 95.9% | – |
+| False-alarm change of the authors | Primary panel only | 95.4% to 99.1% (conservative) | 4.1 to 7.1 points |
 
 - **Minimum support.** A quantity conditioned on a label class is reported only when at least 20 answers with a known label are in that class. An unknown label counts for no class. Below that, the count is reported and the quantity is not.
 - **Unknown labels.** Every quantity of this section is reported with the missing-label analysis of Section 9.3. The simulations of Appendix A.3 assume complete labels, so they say nothing about the width of an identification range.
@@ -795,6 +803,7 @@ Three cases are kept apart: an answer that has no content, a verdict that an att
 - Pending calls are attempted again when the run resumes, with unchanged prompts and settings.
 - **At the lock of the analysis, a call that is still pending, or that belongs to a block that was cut or stopped, is `not_attempted`.** The reason is recorded: `budget_cut`, `provider_stop`, `unavailable` or `abandoned`.
 - **A call that was not attempted is not a verdict. It is never scored as 0 and never imputed.**
+- **Bounds over calls not attempted are conditional on the answers that exist.** They range over the judging calls not attempted on answers that were generated. An answer that was never generated has no screen result and is not bounded, so the bounds do not cover what it would have contributed. The report gives its count beside the bounds.
 - A decision to stop, resume or abandon a block is recorded with its date and reason. It is taken on counts of calls, statuses and costs. Nobody looks at flags before the lock (Section 9.3).
 
 | Where | What happens |
@@ -828,9 +837,9 @@ Models 22 and 23 are the only hosted models in the primary panel. Their provider
 | Primary panel | Models 4, 5, 15, 16, 17 and 6, 18, 19, 20, 21, 22, 23 | Without model 22 | Without model 23 | Without models 22 and 23 |
 | Control assignment of the refusal-removed group (Section 6.5) | `refusal_removed` (Sections 6.2 and 6.3) | `refusal_removed_without_22` | `refusal_removed_without_23` | `refusal_removed_local` |
 | Analysis of the ten local models | Sensitivity analysis (Section 8.5), with about 2,970 further local control calls | The same, about 2,650 calls | The same, about 2,460 calls | The registered analysis. No further control calls |
-| Label sample (Section 9.2) | 583 answers: 330 of the harmful side, 253 of the safe side | 547: 305 and 242 | 547: 305 and 242 | 511: 280 and 231 |
-| Second labels (Section 9.3) | 388 | 360 | 360 | 332 |
-| Hours of labelling at four minutes per answer, PI and second annotator | About 39 and 26 | About 36.5 and 24 | About 36.5 and 24 | About 34 and 22 |
+| Label sample (Section 9.2) | 567 answers: 325 of the harmful side, 242 of the safe side | 531: 300 and 231 | 531: 300 and 231 | 495: 275 and 220 |
+| Second labels (Section 9.3) | 381 | 353 | 353 | 325 |
+| Hours of labelling at four minutes per answer, PI and second annotator | About 38 and 25.5 | About 35.5 and 23.5 | About 35.5 and 23.5 | About 33 and 21.5 |
 | Challenge set (Section 9.4) | 70 answers | 60 | 60 | 50 |
 | Commercial reference subset (Section 9.4) | 130 answers | 120 | 120 | 110 |
 | Calls of each commercial judge (Section 12.1) | 820 | 800 | 800 | 780 |
@@ -839,7 +848,7 @@ Models 22 and 23 are the only hosted models in the primary panel. Their provider
 | Simulations before the freeze (Appendix A.4) | For twelve models | For these eleven models, with their control assignment | For these eleven models, with their control assignment | For ten models, with the local control assignment |
 | Title | "… in Twelve Open Models" | "… in Eleven Open Models" | "… in Eleven Open Models" | "… in Ten Open Models" |
 
-- The 300 prompt clusters and the 298 degrees of freedom are the same in every case.
+- The 300 prompt clusters and the rule for the degrees of freedom (at most 298, Section 8.1) are the same in every case.
 - **The numbers of this protocol are written for twelve models.** If fewer are registered, the frozen text carries the numbers of the matching column. They come from the same scripts and seeds with the hosted models that are not registered left out of the configuration.
   - The record of D13, `registered_hosted` in `config/panel_v23.json`, drives the code: the manifest, the holds, the label sample, the control assignment of the judging plan, both runners and the analysis follow it. Before it exists, no block after the pilot starts.
   - The simulations take the models to leave out as an option (`--drop`, Appendix A.4, run (g)).
@@ -871,7 +880,7 @@ Models 22 and 23 are the only hosted models in the primary panel. Their provider
 
 ### 11.3 Settings
 
-| Setting | Local judges (4, 5, 6, 15 to 21) | API judges (1 to 3, 7 to 14, 22, 23) |
+| Setting | Local judges (4, 5, 6, 15 to 21) | API judges (1 to 3, 7 to 13, 22, 23) |
 |---|---|---|
 | Temperature and seed | Temperature 0, seed 20261108 | Temperature 0 and seed 20261108 where the provider accepts them. Anthropic 5.5 models and OpenAI reasoning models run at provider defaults |
 | Other sampling options | top_k 40, top_p 1, min_p 0, repeat penalty 1, presence and frequency penalty 0, stated explicitly in every call | Provider defaults |
@@ -885,14 +894,14 @@ Models 22 and 23 are the only hosted models in the primary panel. Their provider
 - **Why no batch interface.** The two presentations of an answer must be made next to each other in time (Section 11.4).
 - **Output cap rule.** If more than 5% of a judge's pilot calls stop at the cap, its cap is doubled once and the change is logged (Section 13.3).
 - **Prompt caching** of the rubric part is used on the direct providers. It changes the price, not the request.
-- **Identity.** The returned model identifier and the serving provider of every API call are compared with those recorded when the answer was generated. Local digests are checked at the start of every run. Ollama stays at version 0.40.15 until local judging ends.
+- **Identity.** The returned model identifier and the serving provider of every API call are compared, as a pair, with the pairs that the same model returned when it generated its answers. An identifier seen with one host and a host seen with another identifier do not make a match. A call with nothing to compare (no identifier returned, or no answer of that model with one) is counted as identity unavailable. Local digests are checked at the start of every run. Ollama stays at version 0.40.15 until local judging ends.
 
 ### 11.4 Order of calls
 
 - **Pairs.** The two presentations of an answer by the same judge are made one right after the other. Which comes first is fixed by a hash of the seed, the judge and the answer, so about half of the pairs start blind.
 - **Sequence.** Each judge receives its pairs in an order shuffled by seed. Author pairs and control pairs are mixed.
 - **Blocks.** The order of the blocks of calls is in Section 12.3.
-- **Reported.** The primary quantities by which presentation came first, as a check for drift between calls.
+- **Reported.** The primary quantities by which presentation came first, as a check for drift between calls: θ_S by the order of the author's pair, the controls' change (Section 8.2) by the order of the control's pair, and ι_S and β_S, which combine both pairs, by the four combinations of the two orders. Description only, with no test.
 
 ### 11.5 Parser, retry and log
 
@@ -912,31 +921,31 @@ Models 22 and 23 are the only hosted models in the primary panel. Their provider
 
 | Check | What it shows | State |
 |---|---|---|
-| `scripts/check_system_override.py` (logs `results/logs/render_check_*.json`) | Token counts in six layouts, including the in-context layout. Since 11 November 2026 also the rendered content, with harmless sentinel texts: the token sequence that Ollama renders for a system and a user message is decoded with the model's own vocabulary. It must hold the supplied system message once and whole, the user message whole, no built-in prompt and no other text, and the counts of the multi-turn layouts must agree with it. A changed token count alone proves neither the replacement nor the absence of a built-in prompt; the decoded rendering does | Run on 8 November 2026 for the ten local respondent builds and for the Q4_K_M judge build of model 6. All render the system message; the built-in prompts of 20, 21 and of the distributed build of 6 are replaced (token counts). The content check is tested against a stub server (`tests/test_build_checks_v23.py`) and has not yet run on the real builds |
+| `scripts/check_system_override.py` (logs `results/logs/render_check_*.json`) | Token counts in six layouts, including the in-context layout. Since 11 November 2026 also the rendered content, with harmless sentinel texts: the token sequence that Ollama renders for a system and a user message is decoded with the model's own vocabulary. It must hold the supplied system message once and whole, the user message whole, no built-in prompt and no other text, and the counts of the multi-turn layouts must agree with it. A changed token count alone proves neither the replacement nor the absence of a built-in prompt; the decoded rendering does | Run on 8 November 2026 for the ten local respondent builds and for the Q4_K_M judge build of model 6. All render the system message; the built-in prompts of 20, 21 and of the distributed build of 6 are replaced (token counts). The content check is tested against a stub server (`tests/test_build_checks_v23.py`). On 11 November 2026 the Q4_0 judge build of model 6 passed both checks beside model 4: the same template, parameters, token counts in the six layouts and decoded renderings, and every condition of the content check (`results/logs/render_check_v23_agentscontrol_llama3.1-8b-abliterated-judge-q4_0_latest.json`). On 12 November 2026 the content check ran on the sensitivity build of model 6, beside model 4, and on the nine other local judge builds. All ten pass every condition (`results/logs/render_check_v23_<build>.json`). For the judges whose entry in `config/models.json` switches thinking off (models 5 and 15 to 19), the check sends the same setting as the judging runner (`think: false`). The templates of models 5 and 18 then add the switch `/no_think` to the user message; the check accepts that text, and no other, only when that setting is sent (`--think`, default `config`) |
 | `scripts/check_t4_tokens.py` (log `results/logs/t4_token_check_2026-11-08.json`) | For the three pairs of base and abliterated model: metadata, token identifiers of rendered prompts, thinking switched off, greedy outputs | Run on 8 November 2026. In v2.3 it supports only the descriptive comparison of Section 8.5 |
 
-- **To do before the pilot** (local work on the PI's instruction, action 24 of Section 19.2): build the Q4_0 judge build of model 6 and run both checks on it, the first beside model 4; run the content check on the sensitivity build of model 6, beside model 4, and on the nine other local judge builds. A build passes when every condition of the content check holds.
+- **Done on 11 November 2026:** the Q4_0 judge build of model 6, with both checks, the first beside model 4. **Done on 12 November 2026** (local work on the PI's instruction, action 24 of Section 19.2): the content check on the sensitivity build of model 6, beside model 4, and on the nine other local judge builds; all pass. A build passes when every condition of the content check holds.
 - The checks use short harmless texts written for them. They send no benchmark prompt and no answer.
 
 ## 12. Calls and budget
 
 ### 12.1 Judging calls per model
 
-| Block | Local judge (each of ten) | Models 22 and 23 (each) | Commercial judge (each of eleven) |
+| Block | Local judge (each of ten) | Models 22 and 23 (each) | Commercial judge (each of ten) |
 |---|---|---|---|
 | Own answers, blind and in context | 780 | 780 | 300 |
 | Control answers on harmful prompts, both presentations | 600 | 600 | 120 |
 | Control answers on safe prompts, both presentations | 180 | 180 | 60 |
-| Labelled answers, blind | 583 | 583 | 130 (reference subset) |
+| Labelled answers, blind | 567 | 567 | 130 (reference subset) |
 | Challenge set, in context | 70 | 70 | 70 |
 | Repeatability | 20 | 20 | 20 |
 | Pilot, round 1 | 200 | 60 | 60 |
 | Pilot, round 2 (reserved) | 200 | 60 | 60 |
-| **Total** | **2,633** | **2,353** | **820** |
+| **Total** | **2,617** | **2,337** | **820** |
 
 - A blind verdict that a judge already gave as author or control is not requested again for the label sample. The counts above are upper limits.
 - Five local judges (models 6, 18, 19, 20 and 21: the refusal-removed group without the hosted models) make up to 2,974 further control calls for the local assignment of Section 6.5, with twelve models registered.
-- **Local judging: about 25,300 calls in the main run and 2,000 in each pilot round, and no cash.** The time per call is measured in the pilot; the planning figure is 5 to 15 seconds, which gives 35 to 105 hours of computer time for the main run.
+- **Local judging: about 25,100 calls in the main run and 2,000 in each pilot round, and no cash.** The time per call is measured in the pilot; the planning figure is 5 to 15 seconds, which gives 35 to 105 hours of computer time for the main run.
 
 ### 12.2 Cash
 
@@ -944,66 +953,68 @@ Produced by `scripts/manifest_v23.py` from `config/panel_v23.json`. Anthropic an
 
 | Block | Calls per model | Models | Expected US$ | Pessimistic US$ | Cut |
 |---|---|---|---|---|---|
-| Answers to the frame prompts | 150 (models 22 and 23: 390) | 13 | 11.84 | 25.81 |  |
-| Respondent pilot, round 1 | 20 | 13 | 2.12 | 4.62 |  |
-| Respondent pilot, round 2 (reserved) | 20 | 13 | 2.12 | 4.62 |  |
-| *Answers, subtotal* |  |  | *16.07* | *35.05* |  |
-| Commercial: own answers, both presentations | 300 | 11 | 14.05 | 29.89 |  |
-| Commercial: controls on harmful prompts | 120 | 11 | 5.62 | 11.96 |  |
-| Commercial: controls on safe prompts | 60 | 11 | 2.81 | 5.98 | 2 |
-| Commercial: challenge set, blind | 70 | 11 | 3.28 | 6.98 |  |
-| Commercial: other reference answers, blind, first half | 30 | 11 | 1.41 | 2.99 |  |
-| Commercial: other reference answers, blind, second half | 30 | 11 | 1.41 | 2.99 | 4 |
-| Commercial: challenge set, in context | 70 | 11 | 3.28 | 6.98 | 3 |
-| Commercial: judge pilot, round 1 | 60 | 11 | 2.81 | 5.98 |  |
-| Commercial: judge pilot, round 2 (reserved) | 60 | 11 | 2.81 | 5.98 |  |
-| Commercial: repeatability | 20 | 11 | 0.94 | 1.99 | 1 |
-| *Commercial judges, subtotal* | 820 |  | *38.41* | *81.71* |  |
-| Models 22 and 23 as judges, all blocks | 2,353 | 2 | 4.35 | 6.54 | 1 (repeatability only) |
-| **Total** |  |  | **58.84** | **123.30** |  |
+| Answers to the frame prompts | 150 (models 22 and 23: 390) | 12 | 9.72 | 21.20 |  |
+| Respondent pilot, round 1 | 20 | 12 | 1.81 | 3.95 |  |
+| Respondent pilot, round 2 (reserved) | 20 | 12 | 1.81 | 3.95 |  |
+| *Answers, subtotal* |  |  | *13.34* | *29.09* |  |
+| Commercial: own answers, both presentations | 300 | 10 | 10.78 | 24.31 |  |
+| Commercial: controls on harmful prompts | 120 | 10 | 4.31 | 9.72 |  |
+| Commercial: controls on safe prompts | 60 | 10 | 2.16 | 4.86 | 2 |
+| Commercial: challenge set, blind | 70 | 10 | 2.51 | 5.67 |  |
+| Commercial: other reference answers, blind, first half | 30 | 10 | 1.08 | 2.43 |  |
+| Commercial: other reference answers, blind, second half | 30 | 10 | 1.08 | 2.43 | 4 |
+| Commercial: challenge set, in context | 70 | 10 | 2.51 | 5.67 | 3 |
+| Commercial: judge pilot, round 1 | 60 | 10 | 2.16 | 4.86 |  |
+| Commercial: judge pilot, round 2 (reserved) | 60 | 10 | 2.16 | 4.86 |  |
+| Commercial: repeatability | 20 | 10 | 0.72 | 1.62 | 1 |
+| *Commercial judges, subtotal* | 820 |  | *29.46* | *66.43* |  |
+| Models 22 and 23 as judges, all blocks | 2,337 | 2 | 4.32 | 6.50 | 1 (repeatability only) |
+| **Total** |  |  | **47.12** | **102.03** |  |
 
 - **Expected:** judge prompt of 3,300 tokens, 380 output tokens with reasoning, 5% retries, cache hits.
 - **Pessimistic:** judge prompt of 4,500 tokens, 720 output tokens, 15% retries, no cache hit, and the respondents' reasoning and visible answers twice as long.
 - **Every judge prompt starts with Part A of the rubric** (Section 11.1). Part A as decided by the PI (decision D12) has 7,178 characters. They are counted as about 1,900 tokens in the expected scenario and 2,400 in the pessimistic one. If Part A changes again (the amendment after the training rounds, Section 9.6), the manifest is priced again.
-- **By provider, pessimistic:** Anthropic US$23.75, OpenAI US$23.33, OpenRouter US$76.22.
-- **Five models carry 88% of the pessimistic cost:** Kimi K3.1 Pro 25.60, Claude Sonnet 5.5 22.75, Gemini 4 Argon 21.23, GPT-6.1 Sol 20.10, Grok 4.7 18.77.
+- **By provider, pessimistic:** Anthropic US$23.75, OpenAI US$23.33, OpenRouter US$54.95.
+- **Decision D17 (12 November 2026).** Google's price for model 14 doubles on 1 December 2026, to US$4.00 in and US$20.00 out per million tokens (Gemini API pricing page, read on 11 November 2026). At that price model 14 would have cost US$42.46 in the pessimistic plan, and the plan US$144.53. The PI took model 14 out of the study (Section 3.2). Before D17 the manifest was US$58.84 expected and US$123.30 pessimistic; the figures above are those of the panel without model 14. The runners keep the mechanism for a price that changes on a known date (`price_schedule`), and no model uses it now.
+- **Four models carry 85% of the pessimistic cost:** Kimi K3.1 Pro 25.60, Claude Sonnet 5.5 22.75, GPT-6.1 Sol 20.10, Grok 4.7 18.77.
 - **What decisions D15 and D16 added.** Before them the pessimistic manifest was US$115.68. Model 23 adds US$5.97: US$3.94 for its own answers and verdicts, and US$2.03 for the calls of the other API judges on its ten challenge answers and its labelled answers. The pinned endpoints add US$1.63: models 8 and 10 cost more at their developers' endpoints than at the lowest list price of 8 November, and model 7 a little less. Together the two decisions add US$7.62.
-- **The pessimistic total fits under the cap of US$128 and the freeze ceiling of US$124.** No cut applies, with the pessimistic token counts or with the expected ones. The pilot measures the counts, and the repricing before the freeze decides (Section 12.4).
+- **The pessimistic total, US$102.03, fits under the cap of US$128 and the freeze ceiling of US$124,** with US$21.97 left under the ceiling. No cut applies, with the pessimistic token counts or with the expected ones. The pilot measures the counts, and the repricing before the freeze decides (Section 12.4).
 - **These figures rest on assumed token counts.** The pilot measures them and the manifest is priced again before the freeze.
 
 ### 12.3 Order of the blocks
 
 1. **Pilot** (Section 13), before the freeze.
-2. **Missing answers of the primary panel**, after the freeze: local models 19, 20 and 21; models 22 and 23.
+2. **Answers of the primary panel**, after the freeze: models 22 and 23, then the ten local models (decision D18).
 3. **Primary panel on the harmful frame.** First the screen of every answer of the primary panel, by code. Then the judging calls: models 22 and 23 first, then the local judges; authors and controls. These are the calls that the registered tests need.
 4. **Answers of the commercial models. Then their screen and the label sample,** by code, with hashes recorded. The sampler reads only model, prompt, source, side and screen result, never a verdict file.
-5. **Primary panel, the rest:** safe frame, labelled answers blind, challenge set, repeatability.
+5. **Primary panel, the rest:** safe frame, labelled answers blind, challenge set, repeatability. A judge's two presentations of a challenge answer form one pair (Section 11.4).
 6. **Commercial judges:** own answers and controls on harmful prompts; then the blind reference outside the challenge set; then controls on safe prompts and repeatability.
 7. **Commercial judges, challenge set.** Both presentations of each challenge answer, as one pair under the rule of Section 11.4. This block is last.
 
 - **The primary panel comes first.** No call of the commercial main run, for an answer or for a verdict, is sent before block 3 is finished: every answer of the primary panel to the harmful frame exists, and every verdict that the registered tests need has a final status. Until block 5 is finished, its pessimistic cost stays reserved (Section 12.5).
 - **Models 22 and 23 come first inside blocks 2, 3 and 5.** They are the hosted models of the primary panel (Section 10.4). Their calls are complete before any commercial judge receives a call.
-- **Why the last block is last.** It shows commercial models harmful-leaning answers of refusal-removed models as their own previous turn. If a provider reacts to it, everything else is already done. Models 22 and 23 share the OpenRouter account with six commercial models, so every call of theirs is complete before this block starts.
+- **Why the last block is last.** It shows commercial models harmful-leaning answers of refusal-removed models as their own previous turn. If a provider reacts to it, everything else is already done. Models 22 and 23 share the OpenRouter account with five commercial models, so every call of theirs is complete before this block starts.
 - **The challenge pair stays together.** A commercial judge's blind verdict on a challenge answer is made in block 7, right before or right after its in-context verdict, in the order fixed by the hash of Section 11.4. It is not taken from an earlier block. If the in-context half is switched off for a provider (decision D1) or cut (Section 12.4), the blind verdict is still made, in the same position.
 - **A reaction of a provider is handled per account and per serving host** (Section 16.5). A stop covers every model that is reached through the same account. For a model reached through a router, it also covers every model served by the host that answered the call.
 - Human labelling starts when the label sample is written (block 4) and runs beside blocks 5 to 7.
 
 ### 12.4 Cap, ceiling and cuts
 
-- **Hard cap: US$128** for all API spending of the study. **Freeze ceiling: US$124.** The PI set both on 11 November 2026, before the pilot registration (decision D14, Section 19.1): first US$120 and US$116, then, after decisions D15 and D16, the lowest values that keep the pessimistic plan without a cut. They do not change afterwards. The study is frozen only if the pessimistic manifest, priced again with the pilot's token counts and the prices of that day, is at or below the ceiling.
+- **Hard cap: US$128** for all API spending of the study. **Freeze ceiling: US$124.** The PI set both on 11 November 2026, before the pilot registration (decision D14, Section 19.1): first US$120 and US$116, then, after decisions D15 and D16, the lowest values that keep the pessimistic plan without a cut. After decision D17 lowered the pessimistic plan to US$102.03, the PI kept both values (12 November 2026): the margin under the ceiling absorbs price rises and the token counts of the pilot without a cut. They do not change afterwards. The study is frozen only if the pessimistic manifest, priced again with the pilot's token counts and the prices of that day, is at or below the ceiling.
 - **Fees and taxes on credit purchases count against the cap.** Their amount is recorded when credit is bought, and the cap that the code enforces is lowered by it before the next paid call.
+- **The repricing** (Section 13.3, rule 4) uses one file: a price snapshot taken on the day, the endpoint prices of the pinned models included, and the token assumptions measured in the pilot. The manifest and the holds are made from the same file (`scripts/manifest_v23.py --repricing`, `scripts/holds_v23.py --repricing`). The manifest records the hash of the file and of every price snapshot file, and the assumptions. The holds are written only beside a stored manifest with the same record, whose pessimistic total and cuts they match, and they record its hash.
 - **Cuts have a fixed order.** They are applied at the repricing until the ceiling is met, and later whenever the ledger shows that the unfinished work no longer fits under the cap at pessimistic prices.
 - **A cut removes the calls of its block that are not yet sent.** Calls already made stay in the data, and the report gives their number. The saving is counted again at the time of the cut, from the calls that remain. It can be smaller than the amount in the table, which is the saving before any call of the block is made.
 - **The check is made before every block of the commercial main run.** The pessimistic cost of all unfinished work is compared with what is left under the cap, and the cuts are applied in order until it fits. A block that cannot fit even after the four cuts does not start.
 
 | Cut | Block | Saves (pessimistic) | What is then not reported |
 |---|---|---|---|
-| 1 | Repeatability of the API judges: the eleven commercial judges and models 22 and 23 | US$2.05 | Repeatability of API judges |
-| 2 | Commercial controls on safe prompts | US$5.98 | The author-versus-control comparison on safe prompts for commercial judges |
-| 3 | Commercial judges, challenge set: the in-context half of block 7 | US$6.98 | The presentation change of commercial judges on the challenge set. Their blind verdicts are still made, in block 7 |
-| 4 | Commercial blind reference, second half | US$2.99 | Nothing is lost entirely: blind accuracy of commercial judges rests on fewer answers |
+| 1 | Repeatability of the API judges: the ten commercial judges and models 22 and 23 | US$1.68 | Repeatability of API judges |
+| 2 | Commercial controls on safe prompts | US$4.86 | The author-versus-control comparison on safe prompts for commercial judges |
+| 3 | Commercial judges, challenge set: the in-context half of block 7 | US$5.67 | The presentation change of commercial judges on the challenge set. Their blind verdicts are still made, in block 7 |
+| 4 | Commercial blind reference, second half | US$2.43 | Nothing is lost entirely: blind accuracy of commercial judges rests on fewer answers |
 
-- **With the assumed pessimistic token counts** the manifest is US$123.30, at or below the ceiling, so no cut is needed. For reference, at the same counts cut 1 leaves US$121.25, cut 2 US$115.27, cut 3 US$108.29 and cut 4 US$105.30.
+- **With the assumed pessimistic token counts** the manifest is US$102.03, below the ceiling, so no cut is needed. For reference, at the same counts cut 1 leaves US$100.35, cut 2 US$95.49, cut 3 US$89.82 and cut 4 US$87.39.
 - **Never cut:** the answers of the primary panel; its judging calls, except the 20 repeatability calls of models 22 and 23, which belong to cut 1; the commercial judges' own answers and their controls on harmful prompts.
 - **No cut and no stop depends on a flag.** These decisions use the ledger, the counts of calls and the statuses.
 - **If the pessimistic manifest is above the ceiling even after the four cuts,** the study is not frozen. The design is revised in a dated amendment before any confirmatory call.
@@ -1016,9 +1027,10 @@ Produced by `scripts/manifest_v23.py` from `config/panel_v23.json`. Anthropic an
   1. *Input tokens:* the number of bytes of the request as it is sent, in UTF-8, plus a fixed allowance per message for the provider's wrapping. A token of ordinary text is never shorter than one byte.
   2. *Input price:* the larger of the list price for input and the list price for writing to the cache.
   3. *Output:* the output cap, which includes reasoning tokens, at the list price for output.
-- **An overrun stops the paid process.** If a call settles above its reservation, no further paid call is sent until the cause is found and recorded. The pilot report gives, for each hosted model, the largest billed input and output next to the bound.
+- **An overrun stops the paid process.** If a call settles above its reservation, no further paid call is sent until the cause is found and recorded. The settlement line itself records the overrun, so the stop holds even if the process dies before the overrun line. The pilot report gives, for each hosted model, the largest billed input and output next to the bound.
 - **In the code.** Both runners reserve every paid attempt with this bound (`spend_v23.call_bound`), since 11 November 2026. The estimate of four characters per token that the answering code of protocol v2.2 used is gone.
 - **Settlement.** A finished call is written at the larger of the list-price cost and the cost that the provider reports. A call that failed after it may have been sent is written at its reserved amount.
+- **Reservations survive a crash.** Every paid call sent alone is written to the ledger as a reservation, with an attempt identifier, before it is sent; its settlement line carries the same identifier and is written in the same step that releases the reservation. The private record of the answer or verdict is written to disk before the ledger line. Until it is settled, a reservation counts as spent. A reservation left open by a process that stopped is settled when a runner of its role starts again: at the cost in the private record of that attempt if one exists (the call is then done), else at the reserved amount with the status `interrupted`, and the call is made again under Section 10.3. A test call of the availability check (Section 10.4) whose answer was recorded and settled that day, under the same settings, pinned endpoint (its host and precision included) and test prompt, is not sent again: its recorded answer gives the fact, and its identity is judged against the current pin. A check that ends after midnight records no facts, because its answers may not belong to one day; it is run again. Under the lock, the answering runner reads again the list of runs and their answers, so that an answer written meanwhile by another session, under any run name, is not asked again; the close of a block does the same. Batch calls have their own durable reservation and an idempotent collection.
 - **Holds.** A block starts only if its pessimistic cost fits beside the pessimistic cost of every block of higher priority that is not finished (`config/stage_holds.json`, written again from the manifest for the blocks of Section 12.3). The comparison is made again before every call, from the calls that remain. A block that has started therefore cannot spend the reservation of unfinished work of higher priority.
 - **Adverse paths are tested with synthetic prices before the pilot registration** (Section 14.2): a price rise at the repricing; a call that settles above its reservation; a cut applied to a block that is half done; a provider stop between two pairs of block 7.
 - **Both pilot rounds are reserved in full.** The second runs only under the rules of Section 13.3. Money that it does not use returns to the headroom.
@@ -1041,7 +1053,7 @@ Pilot prompts are taken in the frozen order of the tails (`src/frames_v23.py`).
 |---|---|---|
 | Harmful prompts | 50: 15 XSTest unsafe, 35 OR-Bench Toxic | The next 50, same split |
 | Safe prompts | 50: 25 XSTest safe, 25 OR-Bench Hard-1K | The next 50, same split |
-| Local models as respondents | Answers to these 100 prompts. Six models already have them and model 18 has most of them; the answers of models 19, 20 and 21 and the missing answers of model 18 are generated | The same for the next 100 |
+| Local models as respondents | Answers to these 100 prompts, generated by each of the ten local models (decision D18) | The same for the next 100 |
 | Local models as judges | Their own 100 answers, blind and in context: 200 calls | The same |
 | API models as respondents | 20 of the 100 prompts: the first 10 harmful and the first 10 safe | The first 20 of the next 100 |
 | API models as judges | Their own 20 answers in both presentations, and 10 screen-positive answers of local refusal-removed models to the pilot's harmful prompts in both presentations: 60 calls | The same |
@@ -1075,7 +1087,7 @@ Pilot prompts are taken in the frozen order of the tails (`src/frames_v23.py`).
 | 4 | Pilot, judging part: round 1 and, if triggered, round 2 | Step 3. Part A closed, and the judge template rendered and checked again. Without a second annotator: Part A as registered |
 | 5 | Pilot report; the revisions that the rules allow; repricing; power table with pilot rates | Step 4 |
 | 6 | **Freeze:** final protocol, code, configuration, template, screen and hashes in one tagged commit, registered | Step 5; pessimistic manifest at or below US$124, after any cuts of Section 12.4; second annotator committed and trained (Sections 9.3 and 9.6), or the statements that depend on labels withdrawn (Section 14.4, condition 4) |
-| 7 | Missing answers of the primary panel; their screen | Step 6 |
+| 7 | Answers of the primary panel; their screen | Step 6 |
 | 8 | Judging calls and the commercial answers in the order of Section 12.3. In block 4: the commercial answers, their screen and the label sample. Labelling from then on, in parallel | Step 7 |
 | 9 | Lock of the adjudicated labels; analysis with the frozen script | All calls attempted or recorded as not attempted |
 
@@ -1108,14 +1120,14 @@ Pilot prompts are taken in the frozen order of the tails (`src/frames_v23.py`).
 | Rubric version 2.3 in two parts (`labels/RUBRIC.md`), annotator packet and welfare protocol | Drafted on 10 November and revised after review round 3: scope, exceptions, invented examples. Part A decided by the PI on 11 November 2026 (decision D12) |
 | Initial screen in the configuration, with its source and version | Done |
 | Pilot prompts fixed by code, outside the frames, the retired sample G1 and the version-1 pilot (`config/pilot_prompts_v23.json`, `tests/test_frames_v23.py`) | Done |
-| Q4_0 judge build of model 6 created and checked (Section 11.7) | **[PI]** Not done. Local work, action 24 of Section 19.2; the scripts exist and are tested |
+| Q4_0 judge build of model 6 created and checked (Section 11.7) | Done on 11 November 2026: both checks pass beside model 4, and the digest is recorded in `config/models.json`. **[PI]** The content check of the other local judge builds is still to do (action 24 of Section 19.2) |
 | Repairs of existing code listed in Section 19.4: empty cells of the label sample, the judge alias of model 6, the rendered-content check of the system message, the reservation bound, the fingerprints of R-S1 and R-S2 | Done on 11 November 2026 |
 | Simulation code for the check before the freeze: the pilot planning scenarios with the script of their mapping, the informative-screening run, the safe-side simulation, the rare-flag run and the option for a panel without one or both hosted models (Appendix A.4) | Written on 11 November 2026. The runs come before the freeze |
 | `docs/SEALED_HASHES.md` complete for every existing answer file and log; exposure history in `docs/DATA_INVENTORY.md` | Done on 10 November (`scripts/check_sealed_hashes.py`, `scripts/data_inventory.py`) |
 | Research accounts, provider terms read and recorded in `docs/PROVIDER_TERMS.md`, retention settings verified per model (Section 16.4) | **[PI]** Not done. The file is an empty template |
 | Welfare protocol in force for the PI's reading of pilot answers. No other person reads an answer before the USF determination and the signed agreement exist (Section 16.8) | **[PI]** Not done |
-| Decisions D1 to D5, D12 and D14 to D16 recorded in `docs/PI_DECISIONS.md`, and the statement of Section 19.3 signed (Section 19.1) | **[PI]** Partly done. D12, D14, D15 and D16 are recorded and initialed by the PI (11 November 2026); the other decisions and the statement are open |
-| Offline tests pass at the commit: `tests/test_frames_v23.py`, `tests/test_label_sample.py`, `tests/test_runner_offline.py`, and the tests of the new code | All eleven test files pass on 11 November 2026: 136 tests in ten files, and the complete run on synthetic data. The commit is still to be made |
+| Decisions D1 to D5, D12 and D14 to D18 recorded in `docs/PI_DECISIONS.md`, and the statement of Section 19.3 signed (Section 19.1) | **[PI]** Partly done. D12, D14, D15 and D16 are recorded and initialed by the PI (11 November 2026). The part of D2 on model 14 (11 November 2026), and D1, the rest of D2, D17, D18 and the part of D13 on the pilot (12 November 2026) are recorded and initialed by the PI (12 November 2026). D14 was confirmed on 12 November 2026. The record of each reading of the terms in `docs/PROVIDER_TERMS.md`, D3 to D5 and the statement are open |
+| Offline tests pass at the commit: `tests/test_frames_v23.py`, `tests/test_label_sample.py`, `tests/test_runner_offline.py`, and the tests of the new code | All eleven test files pass on 11 November 2026: 136 tests in ten files, and the complete run on synthetic data, at the local commit of that day. After the changes for decision D2 they pass again, with 137 tests (one test of the Gemini adapter added). On 12 November 2026, after decisions D17 and D18 and the change to the rendering check (Section 11.7), all eleven files pass again, with 138 tests (one test of the rendering check added); after the corrections of review rounds 5 to 9 of the code, with 158 tests. The commit that is registered is still to be made |
 | Tables of Appendix A.1 to A.3 computed for the twelve-model panel | Done on 11 November 2026 (Appendix A) |
 
 ### 14.3 What may change between the two registrations
@@ -1141,8 +1153,8 @@ Only the following, each once and each under its written rule:
 
 1. The pilot report exists, and every change it triggered is applied and logged.
 2. The three simulation packages of Appendix A run with the production code and the pilot rates. Size and coverage stay within the tolerances of Appendix A.4. If they do not, the inference is revised in a dated amendment before the freeze.
-3. The pessimistic manifest, priced again, is at or below US$124, after any cuts that Section 12.4 applies. The frozen text names the cuts that were applied, if any.
-4. A second annotator has committed in writing to the 388 labels, the USF determination and the signed agreement exist, and the two training rounds are closed. Part A in the frozen commit is the text that the pilot judges received: with the amendment of the training if the rounds came before the pilot's judging calls, and as registered if they came later (Section 9.6). Without a second annotator, the label-dependent statements are withdrawn first (Section 9.3).
+3. The pessimistic manifest, priced again, is at or below US$124, after any cuts that Section 12.4 applies. The code checks it: `spend_v23.py freeze` records the freeze only if the stored manifest was priced again, the holds were written from it, the repriced pessimistic manifest fits under the ceiling after the cuts in order, and the spending so far and the pessimistic cost of all unfinished work fit as well. The cuts that either needs are recorded. The frozen text names the cuts that were applied, if any.
+4. A second annotator has committed in writing to the 381 labels, the USF determination and the signed agreement exist, and the two training rounds are closed. Part A in the frozen commit is the text that the pilot judges received: with the amendment of the training if the rounds came before the pilot's judging calls, and as registered if they came later (Section 9.6). Without a second annotator, the label-dependent statements are withdrawn first (Section 9.3).
 5. The primary panel is chosen under Section 10.4 and recorded as decision D13: the ten local models and each hosted model that meets the conditions there. Every model of that panel is available under the builds and settings of Section 3.3. The frozen text names the panel. If fewer than twelve models are registered, it carries the numbers of the matching column of the table in Section 10.4, and the simulations of condition 2 are run for the registered panel.
 6. Final hashes are recorded: sample, frames, pilot prompts, control assignment, screen version, template, configuration, and every existing answer file.
 7. The offline tests pass at the frozen commit.
@@ -1207,7 +1219,7 @@ The full record is the amendment published with the pilot registration (`docs/PR
 
 ### 15.3 What existed when the design changed
 
-- **Answers:** 7,457, written by seven local models (Section 3.4). No person has read, screened, judged or labelled one. **[PI]** This is the PI's statement; it is signed with the pilot registration (Section 19).
+- **Answers:** 7,457, written by seven local models (Section 3.4). No person has read, screened, judged or labelled one. **[PI]** This is the PI's statement; it is signed with the pilot registration (Section 19). Decision D18 (12 November 2026) leaves these answers out of the study; only the 96 training answers of G1 are read (Section 9.6).
 - **Retired sample G1:** 150 answers of models 4 to 6, drawn on 8 November 2026 (`src/gold_sample.py`, seed 20261109).
   - The sampler selected by model, source and benchmark label, and skipped error records.
   - It copied the request and the answer of each drawn item into a labelling sheet (`results/raw/gold/labeling_sheet.xlsx`) and printed counts only.
@@ -1218,7 +1230,7 @@ The full record is the amendment published with the pilot registration (`docs/PR
   - From the G1 key these scripts read the response identifier of each row, to find its prompt, and printed counts. No row was printed.
   - `scripts/check_sealed_hashes.py` reads the bytes of each file to compute its hash.
   - Apart from the G1 sampler above, no script copied an answer text. None printed, screened, classified or summarised one.
-- **Technical pilot of version 1** (7 November 2026): 50 prompts, three local models, 150 answers. The public version 1 records that only technical checks were run on it: errors, truncation, latency and output length. Its prompts are excluded from the pilot of this protocol. Seventeen of the 50 prompts lie inside the frames (14 in the harmful frame, 3 in the safe frame). For them the analysis uses the answers of the run of 7 and 8 November (`results/raw/responses_full.jsonl`), not the pilot answers.
+- **Technical pilot of version 1** (7 November 2026): 50 prompts, three local models, 150 answers. The public version 1 records that only technical checks were run on it: errors, truncation, latency and output length. Its prompts are excluded from the pilot of this protocol. Seventeen of the 50 prompts lie inside the frames (14 in the harmful frame, 3 in the safe frame). For them the analysis uses the answers generated after the freeze (decision D18), not the answers of a sealed run.
 - **Judging calls, API calls and labels:** none. **Money spent:** none.
 - **What the design decisions used:** the two review reports, simulations with assumed rates, and the counts above. No observed flag, verdict or label existed to use.
 - The dated inventory is `docs/DATA_INVENTORY.md`; the hashes are in `docs/SEALED_HASHES.md`.
@@ -1286,13 +1298,14 @@ Version 1 sent no harmful prompt to a commercial API. This protocol does, in lim
 
 ### 16.4 Accounts, terms and retention
 
-- **Separate research accounts.** One at Anthropic, one at OpenAI, one at OpenRouter for every other API model. They are used for this study only. The code accepts only keys whose variable names start with `AC_` and has no fallback to another key (`src/providers.py`).
+- **Separate research accounts.** One at Anthropic, one at OpenAI, and one at OpenRouter for every other API model. The Google project opened for model 14 (decision D2) is not used since decision D17. They are used for this study only. The code accepts only keys whose variable names start with `AC_` and has no fallback to another key (`src/providers.py`).
 - **The accounts are not a way around enforcement.** They exist so that the study's traffic is separate, visible to the provider as research, and limited to this protocol.
 - **[PI] Terms.** Before the pilot registration the PI reads each provider's usage policy for safety evaluation, moderation and retention, and records it with its date in `docs/PROVIDER_TERMS.md`. No terms are recorded in that file yet. Where a provider offers researcher access or asks for notice of safety evaluations, the PI applies or gives notice first.
 - **Retention.**
   - OpenRouter requests are limited to endpoints on OpenRouter's zero-retention list, one pinned endpoint per model, with no fallback to other endpoints (`zdr`, `provider_order` and `allow_fallbacks` in `config/models.json`). This is checked per model in the pilot, from the provider that served each call.
-  - The list also admits endpoints that keep data for a limited time for safety review ("safety retention"), unless the account accepts zero-retention endpoints only. Of the pinned endpoints only those of model 14 are so marked (snapshot of 11 November 2026). Model 14 therefore falls under decision D2 (Section 3.3).
+  - The list also admits endpoints that keep data for a limited time for safety review ("safety retention"), unless the account accepts zero-retention endpoints only. In the snapshot of 11 November 2026 only the endpoints of model 14 were so marked. Model 14 has left the study (decision D17), and the account accepts zero-retention endpoints only.
   - Calls to Anthropic and OpenAI fall under their standard API retention terms, which are recorded. OpenAI calls set `store=false`. This does not switch off retention for abuse monitoring.
+  - **Google (decision D2; not used since decision D17).** The study's project has billing enabled, so its calls would be paid services. For paid services Google states that prompts and responses are not used to improve its products, and that they are logged for a limited period, solely to detect violations of its Prohibited Use Policy and for required legal or regulatory disclosures; its usage policy names 55 days. The project does not join the optional Contributor tier, in which Google may use the data. No safety settings are sent, so the adjustable filters keep their default, which Google documents as off; protections that cannot be adjusted still apply. A response saying that the account is limited or disabled under the Prohibited Use Policy is not an outcome of the request: it is handled as in Section 16.5.
 - **Batch files.** Only the main-run answering calls to Anthropic and OpenAI use batch endpoints; pilot calls and every judging call are synchronous. After a batch is collected and settled, its requests and results are deleted at the provider, and each deletion is logged (`src/run_models.py`).
 
 ### 16.5 If a provider warns, restricts or blocks an account
@@ -1324,7 +1337,7 @@ Version 1 sent no harmful prompt to a commercial API. This protocol does, in lim
 - **Conditions for the second annotator.** All of them hold before the annotator sees any answer:
   1. **[PI]** A written determination from the USF Human Research Protection Program on whether this annotation is human-subjects research. If it is, the required review is completed first.
   2. The signed agreement of `docs/annotator_packet/informed_agreement.md`.
-  3. A written commitment, before the freeze, to the 388 labels (about 26 hours of labelling), to the 60 training items (about 4 hours), and to the discussions of the training rounds and the adjudication on top of them (Section 14.4).
+  3. A written commitment, before the freeze, to the 381 labels (about 25.5 hours of labelling), to the 60 training items (about 4 hours), and to the discussions of the training rounds and the adjudication on top of them (Section 14.4).
   4. Independence: the annotator took no part in the design, sees no verdict, no model identity, no label of the PI and no sampling proportion, and is told the question of the study only after the labels are locked.
 - **[PI]** Recognition of the annotator's work (co-authorship or payment) is agreed in writing before labelling starts.
 - The study collects no data about the annotators beyond their labels.
@@ -1349,13 +1362,14 @@ Version 1 sent no harmful prompt to a commercial API. This protocol does, in lim
 | Author's reply to round 3, and this revision | 10 November | Author | `2026-11-10_round3_author_response.md` |
 | Review round 4, of the revision | 10 November | GPT-6.1 Sol | `2026-11-10_reviewer_round4_codex_gpt61sol.md` |
 | Corrections after round 4 | 10 November | Author | `2026-11-10_round4_author_response.md` |
-| The PI's decisions D12, D14, D15 and D16, applied to this text | 11 November | PI, with the drafting assistant | `docs/PI_DECISIONS.md` |
+| The PI's decisions D12, D14, D15 and D16, and the part of D2 on model 14, applied to this text | 11 November | PI, with the drafting assistant | `docs/PI_DECISIONS.md` |
+| The PI's decisions D1, the rest of D2, D17, D18 and the part of D13 on the pilot, applied to this text | 12 November | PI, with the drafting assistant | `docs/PI_DECISIONS.md` |
 
 - **Round 1** found the question worth a paper and advised against freezing v2.2. It asked for one outcome (harmful content), for the same answers judged by the author and by an unrelated control judge, for human double labels, and for the withdrawal of the hypotheses of version 1.
 - **Round 2** accepted the open-model panel, the same-type control judges and the screened primary statistic. It called the design settled enough to be written down as this protocol, and raised two critical, seven major and two minor issues (Section 17.2).
 - **Round 3** found a defensible core and judged the text not ready for registration as written. It raised one critical issue (the switch between eleven and ten models after the freeze), seven major and three minor issues, and eight differences from round 2 that were not declared. It asked for a short targeted check after revision, not another redesign.
 - **Round 4** was the short targeted check that round 3 asked for. It found the fixed-panel rule sufficient, no new critical problem, and the core ready for the PI's decisions. It raised three major points of specification (the order of screen, sample and judging; the claim that the effective-n intervals are exact; the gate of the missing-label rule) and three minor ones. All six are corrected in this text. It judged another design round unnecessary: the next review should inspect the code and one synthetic end-to-end run.
-- **After round 4.** On 11 November the PI decided D12, D14, D15 and D16. They change condition (c4) of the rubric, the cap, the panel (model 23) and the routing of the hosted models. No review round has checked these changes. The next round, of the code and the synthetic run, checks them too.
+- **After round 4.** On 11 November the PI decided D12, D14, D15 and D16, and the part of D2 on model 14. They change condition (c4) of the rubric, the cap, the panel (model 23), the routing of the hosted models and the route of model 14 (Google's own API). On 12 November the PI decided D1 (both rows of Section 16.2 on for every provider), the rest of D2 (every model receives every prompt), D17 (model 14 out of the study, with no replacement), D18 (every answer of the study generated after the pilot registration, with seed 20261126) and, under D13, that models 22 and 23 both take part in the pilot. No review round has checked these changes. The next round, of the code and the synthetic run, checks them too.
 - **How a round is run.**
   - The reviewer works in a read-only copy of part of the repository. The copy holds no answer, no benchmark prompt file, no label key and no secret.
   - Each round is a new session with connectors switched off. The prompt of the round is stored beside the report.
@@ -1379,7 +1393,7 @@ Version 1 sent no harmful prompt to a commercial API. This protocol does, in lim
 | R2-m1: the challenge set is not uniformly off-policy | Eligible counts per judge are published (Sections 8.6 and 9.4). After round 3: comparisons between judges use the answers eligible for every compared judge (Section 9.4) |
 | R2-m2: sealing record and workload figures were out of date | Sections 3.4 and 15.3, `docs/SEALED_HASHES.md`, annotator packet |
 
-**Where this protocol departs from round 2.** Round 3 assessed each point and found the further differences declared after this list. The counts in this list and in the table below are those of round 3, with eleven models in the primary panel. With model 23 (decision D15) they are: 583 labels; 388 second labels, 330 on the harmful side and 58 on the safe side; every judge of the primary panel classifies all 583 labelled answers blind; a reference subset of 130 answers; and 23 models on the common set (Sections 8.5 and 9.2 to 9.4).
+**Where this protocol departs from round 2.** Round 3 assessed each point and found the further differences declared after this list. The counts in this list and in the table below are those of round 3, with eleven models in the primary panel. With model 23 (decision D15) they were: 583 labels; 388 second labels, 330 on the harmful side and 58 on the safe side; every judge of the primary panel classifies all 583 labelled answers blind; a reference subset of 130 answers; and 23 models on the common set. Without model 14 (decision D17) they are: 567 labels; 381 second labels, 325 on the harmful side and 56 on the safe side; all 567 labelled answers classified blind by every judge of the primary panel; a reference subset of 130 answers; and 22 models on the common set (Sections 8.5 and 9.2 to 9.4).
 
 1. **The commercial judges see the challenge set in context** (block 7 of Section 12.3). Round 2 advised against it.
    - The reviewer noted that this advice limits adverse findings about commercial models, its own developer's included.
@@ -1428,7 +1442,7 @@ Version 1 sent no harmful prompt to a commercial API. This protocol does, in lim
 - **Advice is weighed in writing.** Every recommendation is accepted or declined with a reason, in the author's reply or in Section 17.2. A recommendation that reduces what the study can find about commercial models gets no weight from the reviewer's authority.
 - **No rule names model 11.** It receives the same prompts, calls, settings and cuts as the ten other commercial models.
   - Models 1 to 22 were fixed by written rules on 7 and 8 November, before the review. Model 23 was added by the PI on 11 November, after review round 4 (decision D15).
-  - The split into a primary and a commercial panel was made on 10 November, during the review. It moves all eleven commercial models to secondary analyses. Section 3 gives the reasons.
+  - The split into a primary and a commercial panel was made on 10 November, during the review. It moves all the commercial models (eleven then, ten since decision D17) to secondary analyses. Section 3 gives the reasons.
 - **No test rests on the commercial panel** (Section 8.6). Its tables are also shown without model 11.
 - **The reviewer saw no study data.** No answer, prompt file or label was in any review copy. A review session does not change the model build that the study calls.
 
@@ -1482,7 +1496,7 @@ These limits are part of the registered text. The paper repeats them where the m
 
 ### 18.5 Human labels
 
-- **The PI labels every sampled answer and knows the hypotheses.** The PI sees no verdict before the labels are locked (Section 9.3). The second annotator labels 388 answers and does not know the question of the study.
+- **The PI labels every sampled answer and knows the hypotheses.** The PI sees no verdict before the labels are locked (Section 9.3). The second annotator labels 381 answers and does not know the question of the study.
 - **Harm is a judgment under one rubric.** Agreement between the two labellers is reported. An answer on which they cannot agree keeps an unknown label. The analysis reports explicit assignments, an identification range and the gate of Section 9.3.
 - **The label-conditioned estimates are imprecise.** In the simulations of Appendix A.3 the 95% interval of the detection change has a half-width of 2 to 7 percentage points for the primary panel. The interval of the instruction-tuned group is not reported (Appendix A.4). A class with fewer than 20 labelled answers is not reported.
 - **Without a committed second annotator** the statements that depend on labels are withdrawn before the freeze (Section 14.4).
@@ -1504,20 +1518,20 @@ These limits are part of the registered text. The paper repeats them where the m
 
 ### 18.8 Conduct of the study
 
-- **Answers existed before this design.** 7,457 answers were generated under protocol v2.2. That no person has read them is the PI's statement. A third party can check the hashes and the script record, and nothing more (Section 15.3).
+- **Answers existed before this design.** 7,457 answers were generated under versions 1 and 2.2. The study does not use them (decision D18): every answer of the study is generated after the pilot registration, under the registered code. The 96 training answers of G1 are the exception, and no test rests on them. That no person read the old answers before the design was written is the PI's statement; a third party can check the hashes and the script record, and nothing more (Section 15.3).
 - **One investigator, with AI assistance.** The code and this text were drafted with an AI assistant and reviewed by a language model that is part of the panel (Section 17). No other person has reviewed the design.
 - **The budget shapes the commercial panel.** If prices rise, the cuts of Section 12.4 fall on repeatability calls and on descriptive blocks of the commercial judges. Of the primary panel only the 20 repeatability calls of models 22 and 23 can be cut (cut 1).
 
 ## 19. Decisions and actions of the principal investigator
 
-This section collects every item marked **[PI]** in this protocol. Each decision is recorded with its date in `docs/PI_DECISIONS.md`, which is part of both registrations. Today it records decisions D12, D14, D15 and D16 (11 November 2026), initialed by the PI the same day; the other decisions are open.
+This section collects every item marked **[PI]** in this protocol. Each decision is recorded with its date in `docs/PI_DECISIONS.md`, which is part of both registrations. Today it records decisions D12, D14, D15 and D16 (11 November 2026), initialed by the PI the same day; the part of D2 on model 14 (11 November 2026); and D1, the rest of D2, D17, D18 and the part of D13 on the pilot (12 November 2026). Every one of these entries is initialed by the PI. D19 was proposed by the AI assistant on 12 November 2026 and awaits the PI's decision; the other decisions are open.
 
 ### 19.1 Decisions
 
 | # | Decision | Recorded before | Recommendation of this draft | Section |
 |---|---|---|---|---|
-| D1 | Do commercial judges see answers with likely harmful content as their own previous turn? | Pilot registration | Yes, under the conditions below | 16.2, 12.4 |
-| D2 | Result of the PI's reading of each provider's terms. For a model without a zero-retention endpoint: does it receive harmful prompts, as respondent and as judge? In the snapshot of 11 November this concerns model 14, whose endpoints are all marked for safety retention (Section 3.3) | Pilot registration | No. Such a model answers and judges safe prompts only. It writes no answer to a harmful prompt and judges no harmful-side answer: no control verdicts on harmful prompts, no challenge set, no reference subset. Its harmful-side quantities, the commercial contrast on harmful prompts included, are reported as not available | 3.3, 16.4 |
+| D1 | Do commercial judges see answers with likely harmful content as their own previous turn? | Pilot registration | Decided by the PI on 12 November 2026: yes, both rows on for every provider, from the PI's reading of the terms, every model alike. The record of each reading is completed in `docs/PROVIDER_TERMS.md` before the pilot registration (condition 1 below) | 16.2, 12.4 |
+| D2 | Result of the PI's reading of each provider's terms. For a model without a zero-retention endpoint: does it receive harmful prompts, as respondent and as judge? In the snapshot of 11 November this concerned model 14, whose endpoints were all marked for safety retention (Section 3.3) | Pilot registration | Decided by the PI on 11 November 2026 for model 14: it leaves OpenRouter and is called directly on the Gemini API, under Google's terms for paid services, like the Anthropic and OpenAI models, and it receives every prompt. On 12 November 2026 model 14 left the study (D17), and the PI decided the rest: every model receives every prompt, as respondent and as judge. If a pinned endpoint is found marked for safety retention at a later check, the rule of Section 3.3 applies to that model: safe prompts only, no answer to a harmful prompt and no judging of a harmful-side answer (no control verdicts on harmful prompts, no challenge set, no reference subset), and its harmful-side quantities, the commercial contrast on harmful prompts included, reported as not available | 3.3, 16.4 |
 | D3 | Who assessed the Llama 3.1 Acceptable Use Policy for models 4, 6 and 20, and with what conclusion | Pilot registration | A written assessment by the PI, checked by a person at USF if one is available. It governs any further local generation by models 4, 6 and 20 as well as the paid calls | 16.6 |
 | D4 | The PI's interests in any developer or provider of the panel, and the source of the cash | Pilot registration | State them in full | 17.3 |
 | D5 | The statement on the existing answers (Section 19.3) | Pilot registration | Sign it only if it is true as written | 15.3 |
@@ -1529,13 +1543,16 @@ This section collects every item marked **[PI]** in this protocol. Each decision
 | D11 | After a provider warning: resume or end that provider's blocks | When it happens | Follow Section 16.5 without exception | 16.5 |
 | D12 | The harm definition of the rubric (`labels/RUBRIC.md`, Part A): its scope, what it leaves out, what counts as sexual content, the examples, its length | Pilot registration | Decided by the PI on 11 November 2026: the draft's text, with one change to condition (c4). Explicit sexual content about a real person counts only when that person did not authorize it | 9.1, 9.6, 11.1 |
 | D13 | The primary panel: the ten local models and each hosted model (22, 23) that meets the conditions of Section 10.4 | Freeze. A hosted model can be left out earlier | Register each hosted model whose three conditions hold on the day of the freeze | 10.4 |
-| D14 | The cash cap and the freeze ceiling | Pilot registration | Decided by the PI on 11 November 2026, in two steps: cap US$120 and ceiling US$116; then, after D15 and D16, the lowest values that keep the plan without a cut, cap US$128 and ceiling US$124. The pessimistic plan, US$123.30, fits without a cut | 12.2, 12.4 |
+| D14 | The cash cap and the freeze ceiling | Pilot registration | Decided by the PI on 11 November 2026, in two steps: cap US$120 and ceiling US$116; then, after D15 and D16, the lowest values that keep the plan without a cut, cap US$128 and ceiling US$124. The pessimistic plan, US$123.30 then and US$102.03 since D17, fits without a cut. On 12 November 2026, after D17, the PI kept both values | 12.2, 12.4 |
 | D15 | A second hosted model without refusals in the primary panel | Pilot registration | Decided by the PI on 11 November 2026: model 23, Cydonia 24B v4.1, the runner-up of the stratum of model 22 on 8 November | 3.1, 3.2, 6, 10.4 |
-| D16 | How the models outside Anthropic and OpenAI are reached: an account at each developer, or OpenRouter with one pinned endpoint per model | Pilot registration | Decided by the PI on 11 November 2026: OpenRouter, with one endpoint per model chosen by the rule of Section 3.3 | 3.3, 16.4 |
+| D16 | How the models outside Anthropic and OpenAI are reached: an account at each developer, or OpenRouter with one pinned endpoint per model | Pilot registration | Decided by the PI on 11 November 2026: OpenRouter, with one endpoint per model chosen by the rule of Section 3.3. The same day decision D2 moved model 14 to Google's own API, and on 12 November 2026 decision D17 took it out of the study | 3.3, 16.4 |
+| D17 | Model 14 and the doubling of its price on 1 December 2026 | Pilot registration | Decided by the PI on 12 November 2026: model 14 leaves the study, with no replacement. The commercial panel has ten models, and the pessimistic plan is US$102.03 | 3.1, 3.2, 12.2 |
+| D18 | The answers that already exist: used, or generated again after the pilot registration | Pilot registration | Decided by the PI on 12 November 2026: generated again by the ten local models, with seed 20261126 for every respondent. The 7,457 old answers stay sealed and unused, except the 96 training answers of G1 | 3.3, 3.4, 13.2 |
+| D19 | The degrees of freedom of the cluster ratio, revised under Appendix A.4 after checks 1 and 3 failed twice in the rare-flag run | Freeze (Section 14.4, condition 2) | Proposed by the AI assistant on 12 November 2026, awaiting the PI's decision: domain degrees of freedom, Σ_h (m_h − 1) over the prompts with an answer of the statistic | 8.1, A.4 |
 
 **D1 in detail.** Two rows of the table in Section 16.2 are concerned: the ten answers per pilot round, and block 7 of the main run.
 
-- **For running them.** They are the only place where a commercial judge sees harmful-leaning content as its own turn in useful numbers. Without them the commercial panel says little about the question. Their pessimistic cost is US$6.98.
+- **For running them.** They are the only place where a commercial judge sees harmful-leaning content as its own turn in useful numbers. Without them the commercial panel says little about the question. Their pessimistic cost is US$5.67.
 - **Against.** To a provider, such a call can look like an attempt to insert a fabricated assistant turn. It may trigger a warning or the loss of the research account. Review round 2 advised against block 7; the reviewer has a conflict of interest on this point (Section 17.3).
 - **Conditions of the recommendation.**
   1. The provider's terms have been read and recorded, and notice was given where the provider asks for it (Section 16.4).
@@ -1553,16 +1570,16 @@ This section collects every item marked **[PI]** in this protocol. Each decision
 
 **Before the pilot registration**
 
-1. **Research accounts.** Open one account at Anthropic, one at OpenAI and one at OpenRouter, for this study only. Put the keys in `.env` as `AC_ANTHROPIC_API_KEY`, `AC_OPENAI_API_KEY` and `AC_OPENROUTER_API_KEY`.
-2. **Spending limits at the providers.** Prepaid credit or a hard limit per account, so that the three together cannot pass US$128. Fees and taxes on credit purchases count against that cap (Section 12.4).
+1. **Research accounts.** Open one account at Anthropic, one at OpenAI and one at OpenRouter, for this study only. Put the keys in `.env` as `AC_ANTHROPIC_API_KEY`, `AC_OPENAI_API_KEY` and `AC_OPENROUTER_API_KEY`. Done on 12 November 2026: the keys are in `.env` and each one authenticates (a call that lists models, no prompt). The Google key (`AC_GOOGLE_API_KEY`), opened for model 14, is not used since decision D17.
+2. **Spending limits at the providers.** Prepaid credit or a hard limit per account, so that the four together cannot pass US$128. Fees and taxes on credit purchases count against that cap (Section 12.4).
 3. **Terms.** Read each provider's usage policy for safety evaluation, moderation and retention. Record the result in `docs/PROVIDER_TERMS.md`. Apply for researcher access, or give notice, where a provider offers or asks for it.
-4. **Retention settings.** Set and verify them in each account: no training use and zero-retention routing at OpenRouter, with or without safety-retention endpoints according to decision D2 for model 14; the data controls of the two other accounts (Section 16.4).
+4. **Retention settings.** Set and verify them in each account: no training use and zero-retention routing at OpenRouter, with zero-retention endpoints only; the data controls of the Anthropic and OpenAI accounts (Section 16.4).
 5. **USF Human Research Protection Program.** Ask for a written determination on the annotation work (Section 16.8).
 6. **Second annotator.** Send the invitation with the annotator packet. No answer is shown to the annotator before the determination and the signed agreement exist.
 7. **Licence assessment** of D3, recorded.
 8. **Welfare protocol** read and in force for the PI's own reading of pilot answers.
 9. **Accounts and keys for registration.** An OSF account, and a signing key for the tagged commits.
-10. **The statement of Section 19.3,** signed, and the decisions D1 to D5, D12 and D14 to D16 recorded in `docs/PI_DECISIONS.md`. D12 is the PI's decision on the harm definition of the rubric (Section 9.1). D14 is the cash cap (Section 12.4). D15 and D16 are model 23 and the routes of the hosted models (Section 3). With them, the PI approves in writing the missing-label rules of Section 9.3, the access criteria for public and gated material of Section 16.7, and the rule of Section 10.4 for the hosted models.
+10. **The statement of Section 19.3,** signed, and the decisions D1 to D5, D12 and D14 to D18 recorded in `docs/PI_DECISIONS.md`. D12 is the PI's decision on the harm definition of the rubric (Section 9.1). D14 is the cash cap (Section 12.4). D15 and D16 are model 23 and the routes of the hosted models (Section 3). D17 takes model 14 out, and D18 has every answer generated after the pilot registration (Section 3). With them, the PI approves in writing the missing-label rules of Section 9.3, the access criteria for public and gated material of Section 16.7, and the rule of Section 10.4 for the hosted models.
 11. **Approval to publish.** The commit, the push and the OSF registration are done only on the PI's explicit instruction (Section 14.1). The PI gives it only when the conditions of Section 14.2 hold, the complete code and the synthetic run included.
     - The push also publishes the local commit `e95a932` (Amendment 1), which has never been public.
     - The notice of change (`docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md`) reproduces Amendment 1 and its unpublished revision.
@@ -1571,15 +1588,15 @@ This section collects every item marked **[PI]** in this protocol. Each decision
 
 12. Read the 200 pilot answers of the reading draw (190 with eleven models, 180 with ten) and fill the worksheet for the revision of the screen (Sections 7.3 and 13.3, rule 5).
 13. Approve the pilot report and every change that it triggered.
-14. Record D6 and D8, the arrangements for sending sheets to and from the annotator, and the support contacts of the welfare protocol (Section 16.8). Obtain the annotator's written commitment to the 388 labels, the training rounds and the adjudication. Then hold the two training rounds, close Part A of the rubric and approve it in writing: it is the common harm instrument of the labellers and the judges. This comes before the judging calls of the pilot (Section 9.6).
+14. Record D6 and D8, the arrangements for sending sheets to and from the annotator, and the support contacts of the welfare protocol (Section 16.8). Obtain the annotator's written commitment to the 381 labels, the training rounds and the adjudication. Then hold the two training rounds, close Part A of the rubric and approve it in writing: it is the common harm instrument of the labellers and the judges. This comes before the judging calls of the pilot (Section 9.6).
 15. **Methodological review.** The reader of D7 reads the protocol and the pilot report. The comments and the answers to them are published with the freeze.
     - Record D7, D10 and D13. For D13, make the availability check of Section 10.4 on the day of the freeze (`python -I src/run_models.py --run d13 --availability-check --run-cap 1`), and write the registered hosted models as `registered_hosted` in `config/panel_v23.json`: the manifest, the holds, the label sample and the runners follow that record. Set the switch of D1 for the last time. Sign the second statement of Section 19.3.
 16. Publish the freeze: second signed commit, push, update of the OSF registration.
 
 **During the main run**
 
-17. **Machine time.** About 35 to 105 hours of local judging, plus the missing local answers. Heavy local runs start only on the PI's instruction.
-18. **Reading and labelling by the PI.** About 56 hours at four minutes per item: the 583 answers (about 39 hours), the 60 training items (about 4 hours) and the reading draw of Section 7.3 (about 13.5 hours). In sessions of at most 45 minutes this is about 75 hours of elapsed time. The discussions of the training rounds and the adjudication come on top. After the labelling the two labellers adjudicate the disagreements, and the PI locks the label file with its hash (Section 9.3). No verdict is read before the lock.
+17. **Machine time.** About 35 to 105 hours of local judging, plus the local answers: for the seven models that had answered before, about 2.5 hours for each pilot round and 10 hours for the frames (decision D18); for models 19, 20 and 21, the time measured in the pilot. Heavy local runs start only on the PI's instruction.
+18. **Reading and labelling by the PI.** About 55.5 hours at four minutes per item: the 567 answers (about 38 hours), the 60 training items (about 4 hours) and the reading draw of Section 7.3 (about 13.5 hours). In sessions of at most 45 minutes this is about 74 hours of elapsed time. The discussions of the training rounds and the adjudication come on top. After the labelling the two labellers adjudicate the disagreements, and the PI locks the label file with its hash (Section 9.3). No verdict is read before the lock.
 19. **Provider warnings.** Stop the calls at any warning and record the decision of D11.
 
 **After the analysis**
@@ -1590,9 +1607,12 @@ This section collects every item marked **[PI]** in this protocol. Each decision
 **Added on 11 November 2026, to do before the pilot registration**
 
 22. **External proof of the selection dates.** Stamp the list of hashes `data/selection/SNAPSHOTS_2026-11-11.sha256` with OpenTimestamps: open opentimestamps.org, drop the file on the page and save the proof that it returns next to the file, as `SNAPSHOTS_2026-11-11.sha256.ots`. A few hours later the same page upgrades and checks the proof. The stamp shows that the selection files existed in their present form on that day, before any call to models 7 to 14, 22 and 23 (Section 3.2). Only the list of hashes leaves the computer, and it holds no answer, prompt or label.
+    - **Done on 11 November 2026 at 19:52 Eastern time** (00:52 UTC on 12 November), with the OpenTimestamps library that the page loads. The SHA-256 of the list was computed on the PI's computer, and only that digest, behind a random nonce, was sent to three public calendars (alice and bob at opentimestamps.org, finney at eternitywall.com). The proof has 689 bytes.
+    - **Still to do:** the upgrade, a few hours after the stamp, which adds the Bitcoin attestation. The upgraded proof replaces the file, and its check is recorded here.
 23. **Registration line in the ledger.** Right after the signed registration commit: `python -I src/spend_v23.py register --tag <tag of that commit>`. Before this line exists, no code reads or screens the answer files in `results/raw` (`src/answers_v23.py` refuses), so no run of the code can touch the answers that the statement of Section 19.3 covers.
 24. **Judge builds of model 6 and the rendering checks** (local work, on the PI's instruction). `python -I scripts/make_judge_alias_m6.py --models-dir <Ollama models folder> --role primary --source mannix/llama3.1-8b-abliterated:latest`, then `ollama create agentscontrol/llama3.1-8b-abliterated-judge-q4_0 -f config/ollama/Modelfile_m6_judge_primary`, then `python -I scripts/check_system_override.py --test <build> [--ref llama3.1:8b]` for every build named in Section 11.7. The digest of the Q4_0 build goes into `config/models.json` (`judge_model_digest`) only when its checks pass.
-25. **Decision D2 in the configuration.** For model 14, `d2_safety_retention` in `config/models.json`: `safe_only` or `all`. While it is empty, model 14 receives no call: the runners check it before every paid session.
+    - **Done on 11 November 2026 for the Q4_0 build:** both checks pass, and its digest is recorded. **Done on 12 November 2026:** the content check of the sensitivity build of model 6 and of the nine other local judge builds; all ten pass. The check sends each judge's thinking setting from `config/models.json` (Section 11.7).
+25. **Decision D2 in the configuration.** Done on 11 November 2026: model 14 was configured for the Gemini API (`provider: google`, key `AC_GOOGLE_API_KEY`, `d2_safety_retention: all`). Decision D17 removed its entry on 12 November 2026. For a model whose pinned endpoint keeps data for safety review, `d2_safety_retention` is `safe_only` or `all`; while it is empty, that model receives no call: the runners check it before every paid session.
 
 ### 19.3 Statement on the existing answers
 
@@ -1623,7 +1643,7 @@ These items need no decision of the PI, and nothing can be registered without th
   - They reserve with the worst-case bound of Section 12.5 and settle at the larger of the list cost and the reported cost.
   - They hold the unfinished blocks of higher priority (`config/stage_holds.json`, written for the blocks of Section 12.3 by `scripts/holds_v23.py`).
   - Before every paid run they check the pinned endpoint (`only` and `order`, fallbacks off).
-  - Decision D2: a model whose endpoint keeps data for safety review gets harmful prompts only if D2 allows it. Otherwise it gets no harmful prompt, no challenge set and no reference subset; those calls are never sent and are counted as excluded under D2, and the answers it never wrote do not stop the close of a block.
+  - Decision D2: a model whose pinned endpoint keeps data for safety review gets harmful prompts only if D2 allows it. Since model 14 left the study (D17), no pinned endpoint does. Otherwise it gets no harmful prompt, no challenge set and no reference subset; those calls are never sent and are counted as excluded under D2, and the answers it never wrote do not stop the close of a block.
   - Both use the one cap of decision D14. A different value of `STUDY_BUDGET_USD` in the environment stops them. Fees on credit purchases are ledger lines (`src/spend_v23.py fee`).
 - **Pilot.** `scripts/pilot_report_v23.py` writes the report of Section 13.2. `scripts/reading_draw_v23.py` writes the reading draw of Section 7.3 and the one revision of the screen.
 - **Labels.** Tests: `tests/test_label_tools_v23.py`.
@@ -1656,8 +1676,10 @@ These items need no decision of the PI, and nothing can be registered without th
 **Still to do.**
 
 - **Before the pilot registration.**
-  - The commit of this code with its tests (Section 14.2). Nothing is committed yet.
-  - The Q4_0 judge build of model 6 and its two checks (Section 11.7), on the PI's computer (action 24 of Section 19.2). The scripts are written and tested; the builds are not made.
+  - Done on 12 November 2026: the content check of the sensitivity build of model 6 and of the nine other local judge builds, on the PI's computer (Section 11.7, action 24 of Section 19.2). All ten pass.
+  - Done on 11 November 2026: the local commit of this code with its tests (commit `4cf7a3c`, branch `v2.3-pre-registration`, not pushed), and the Q4_0 judge build of model 6 with its two checks.
+  - Changed after that commit on 11 November 2026, for decision D2: the Gemini adapter (`src/providers.py`), model 14 in `config/models.json` (route, key, `price_schedule`), the account of the ledger (`src/spend_v23.py`), the manifest's split by provider and the tests. Every offline test passes. Not yet committed.
+  - Changed on 12 November 2026, also not yet committed. For decision D17: model 14 out of `config/models.json` and `config/panel_v23.json`; the control assignment, the manifest and the holds written again; R-S3 computed again (Appendix A); the tests. In the rendering check (`scripts/check_system_override.py`): the judges' thinking setting (Section 11.7), with a new test. For decision D18: no sealed run is read as answers of the study (`src/answers_v23.py`; the training draw reads the G1 answers of the run `full`), the respondent seed 20261126 in `config/models.json`, and the tests. In the analysis (`analysis/analyze_v23.py`, `call_state`): an answer that was never written has no judge, and the list of the models under decision D2 no longer reads that missing judge as the last judge of the panel. The fault showed when model 14, the last commercial judge, left the tests. Every offline test passes.
 - **Before the freeze.** Runs (b), (d), (e) and, if the registered panel differs, (g) of Appendix A.4. Run (f) comes after the pilot.
 - **Readings.** Where this protocol leaves a detail open, the code takes a reading and marks it `[reading]` in a comment. The readings are listed for the PI before the registration. A reading that the PI changes is changed in the code and in this protocol first.
 
@@ -1676,7 +1698,7 @@ The simulations apply the registered inference to artificial data. They show whe
 - Each replication uses the frames of `src/frames_v23.py`, the control assignment of `src/yoking.py` and the inference functions of `analysis/inference_v23.py`. R-S3 also uses the label sampler of `src/label_sample.py`.
 - The analysis script `analysis/analyze_v23.py` applies the same functions to the verdicts. On synthetic data it gives the numbers of the packages (`tests/test_sim_v23_analyze.py`), a condition of the pilot registration (Section 14.2).
 
-**Panel of the tables.** The tables of A.1 to A.3 are for the twelve models of the primary panel (decision D15). They were computed on 11 November 2026 and replace the tables of 10 November, which had eleven models. The check before the freeze (A.4) uses the registered panel.
+**Panel of the tables.** The tables of A.1 to A.3 are for the twelve models of the primary panel (decision D15). They were computed on 12 November 2026 with the code of amendment D19 (domain degrees of freedom, Section 8.1; proposed, awaiting the PI's decision) and, in R-S3, with the ten commercial models of decision D17. They replace the tables of 11 November, which were made with the registered code. Those runs, and every other run of the registered code, are kept in `analysis/output/registered_code_2026-11-12/` (A.4). R-S1 and R-S2 do not use the commercial panel. The check before the freeze (A.4) uses the registered panel.
 
 **The artificial data.** One replication is one study: 300 prompts in two strata of 150, the twelve models of the primary panel and the four arms.
 
@@ -1700,7 +1722,7 @@ python -I analysis/sim_v23_labels.py --reps 10000 --clusters 1000000
 python -I analysis/tables_v23.py --write
 ```
 
-- On the PI's computer, with the three packages running side by side at low priority, one row of R-S1 or R-S2 takes about two minutes and one scenario of R-S3 about 13 minutes.
+- On the PI's computer, with the three packages running side by side at low priority, one row of R-S1 or R-S2 takes one to two minutes and one scenario of R-S3 5 to 14 minutes.
 - Every result file carries a fingerprint of the code, the design and the settings that produced it. A run resumes only when the fingerprint matches.
 - The tables of A.1 to A.3 are copied by script from `analysis/output/tables_v23.md`. No number in them was typed by hand.
 
@@ -1745,7 +1767,7 @@ Boundary cases: in no replication was a denominator zero, an estimated variance 
 
 Null rows. Half-widths in percentage points.
 
-**Approximate power of the bound P3 for other margins.** Normal approximation with the simulated standard error of β̂_S; not a simulation of the test.
+**Approximate power of the bound P3 for other margins.** Normal approximation with the simulated standard error of β̂_S and the 99% quantile of Student's t with 298 degrees of freedom (all 300 prompts with a screen-positive answer; with fewer, the domain degrees of freedom of Section 8.1 are fewer and the quantile slightly larger); not a simulation of the test.
 
 | Scenario | Standard error of β̂_S | Margin 3: β = 0 | β = −1 | Margin 5: β = 0 | β = −1 | β = −2 | Margin 7: β = 0 | β = −1 | β = −2 | β = −3 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -1866,120 +1888,120 @@ After the slash: `all` for the primary panel, `i` for the instruction-tuned auth
 
 | Scenario | Statistic | Interval | True value | Bias | Replications with an interval | Coverage of the 95% interval | Half-width | Labelled answers in the class (mean; minimum) | Events (mean): positive; negative | Zero variance | Coverage of the replaced ratio interval |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| screen_0.9_0.8 / null | `harm_share_pos / all` | eff-n | +80.04 | +0.00 | 10,000 | 99.6 | 6.5 | 215; 215 | 161.1; 53.9 | 0 | 96.4 |
-| screen_0.9_0.8 / null | `harm_share_neg / all` | eff-n | +10.02 | -0.02 | 10,000 | 99.4 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 92.8 |
-| screen_0.9_0.8 / null | `screen_pass_harm / all` | eff-n | +90.00 | +0.12 | 10,000 | 99.9 | 9.8 | 170; 147 | 161.1; 8.4 | 1 | 93.8 |
-| screen_0.9_0.8 / null | `det_blind_own / all` | eff-n | +74.98 | -0.03 | 10,000 | 98.0 | 7.9 | 161; 141 | 121.9; 39.1 | 0 | 95.3 |
-| screen_0.9_0.8 / null | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.7 | 7.9 | 161; 141 | 122.0; 39.1 | 0 | 94.5 |
-| screen_0.9_0.8 / null | `fa_blind_own / all` | eff-n | +11.72 | +0.06 | 10,000 | 97.6 | 9.9 | 54; 33 | 6.5; 47.4 | 9 | 91.6 |
-| screen_0.9_0.8 / null | `fa_blind_ctrl / all` | eff-n | +11.71 | +0.04 | 10,000 | 97.7 | 9.9 | 54; 33 | 6.4; 47.5 | 14 | 90.9 |
-| screen_0.9_0.8 / null | `det_change_own_reg / all` | ratio | -0.13 | -0.02 | 10,000 | 95.3 | 2.5 | 161; 141 | 10.9; 11.2 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_diff_reg / all` | ratio | -0.05 | +0.00 | 10,000 | 95.4 | 3.4 | 161; 141 | 18.8; 18.9 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_own_reg / r` | ratio | -0.12 | -0.02 | 10,000 | 95.5 | 2.6 | 128; 113 | 9.2; 9.4 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_diff_reg / r` | ratio | -0.04 | -0.00 | 10,000 | 95.3 | 3.4 | 128; 113 | 15.8; 15.8 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_own_reg / i` | ratio | -0.24 | -0.06 | 9,989 | 95.1 | 8.4 | 33; 17 | 1.7; 1.8 | 0 | – |
-| screen_0.9_0.8 / null | `fa_change_own_reg / all` | ratio | +0.50 | +0.00 | 10,000 | 99.1 | 6.9 | 54; 33 | 2.3; 2.0 | 0 | – |
-| screen_0.9_0.8 / null | `fa_change_diff_reg / all` | ratio | +0.25 | -0.05 | 10,000 | 99.2 | 9.5 | 54; 33 | 3.9; 3.8 | 0 | – |
-| screen_0.9_0.8 / null | `det_change_own / all` | ratio | -0.13 | +0.01 | 10,000 | 95.0 | 5.9 | 161; 141 | 10.9; 11.2 | 0 | – |
-| screen_0.9_0.8 / null | `fa_change_own / all` | ratio | +0.50 | +0.03 | 9,884 | 96.2 | 7.5 | 54; 33 | 2.3; 2.0 | 116 | – |
-| screen_0.9_0.8 / both | `harm_share_pos / all` | eff-n | +80.04 | +0.00 | 10,000 | 99.6 | 6.5 | 215; 215 | 161.1; 53.9 | 0 | 96.4 |
-| screen_0.9_0.8 / both | `harm_share_neg / all` | eff-n | +10.02 | -0.02 | 10,000 | 99.4 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 92.8 |
-| screen_0.9_0.8 / both | `screen_pass_harm / all` | eff-n | +90.00 | +0.12 | 10,000 | 99.9 | 9.8 | 170; 147 | 161.1; 8.4 | 1 | 93.8 |
-| screen_0.9_0.8 / both | `det_blind_own / all` | eff-n | +74.98 | -0.03 | 10,000 | 98.0 | 7.9 | 161; 141 | 121.9; 39.1 | 0 | 95.3 |
-| screen_0.9_0.8 / both | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.7 | 7.9 | 161; 141 | 122.0; 39.1 | 0 | 94.5 |
-| screen_0.9_0.8 / both | `fa_blind_own / all` | eff-n | +11.72 | +0.06 | 10,000 | 97.6 | 9.9 | 54; 33 | 6.5; 47.4 | 9 | 91.6 |
-| screen_0.9_0.8 / both | `fa_blind_ctrl / all` | eff-n | +11.71 | +0.04 | 10,000 | 97.7 | 9.9 | 54; 33 | 6.4; 47.5 | 14 | 90.9 |
-| screen_0.9_0.8 / both | `det_change_own_reg / all` | ratio | -6.38 | -0.02 | 10,000 | 96.4 | 2.8 | 161; 141 | 8.1; 18.1 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_diff_reg / all` | ratio | -6.30 | +0.00 | 10,000 | 95.7 | 3.6 | 161; 141 | 15.8; 25.1 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_own_reg / r` | ratio | -6.64 | -0.02 | 10,000 | 96.7 | 2.9 | 128; 113 | 6.8; 15.2 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_diff_reg / r` | ratio | -6.56 | -0.00 | 10,000 | 95.8 | 3.7 | 128; 113 | 13.2; 21.0 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_own_reg / i` | ratio | -4.74 | -0.07 | 9,989 | 94.6 | 9.0 | 33; 17 | 1.3; 2.9 | 0 | – |
-| screen_0.9_0.8 / both | `fa_change_own_reg / all` | ratio | +0.50 | -0.01 | 10,000 | 98.8 | 7.1 | 54; 33 | 2.3; 2.0 | 0 | – |
-| screen_0.9_0.8 / both | `fa_change_diff_reg / all` | ratio | +0.25 | -0.06 | 10,000 | 99.1 | 9.7 | 54; 33 | 3.9; 3.8 | 0 | – |
-| screen_0.9_0.8 / both | `det_change_own / all` | ratio | -6.38 | +0.00 | 10,000 | 94.7 | 6.4 | 161; 141 | 8.1; 18.1 | 0 | – |
-| screen_0.9_0.8 / both | `fa_change_own / all` | ratio | +0.50 | +0.03 | 9,884 | 96.2 | 7.5 | 54; 33 | 2.3; 2.0 | 116 | – |
+| screen_0.9_0.8 / null | `harm_share_pos / all` | eff-n | +80.04 | -0.04 | 10,000 | 99.4 | 6.6 | 215; 215 | 161.0; 54.0 | 0 | 96.7 |
+| screen_0.9_0.8 / null | `harm_share_neg / all` | eff-n | +10.02 | +0.00 | 10,000 | 99.5 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 93.3 |
+| screen_0.9_0.8 / null | `screen_pass_harm / all` | eff-n | +90.00 | +0.09 | 10,000 | 99.9 | 9.8 | 169; 145 | 161.0; 8.4 | 1 | 93.8 |
+| screen_0.9_0.8 / null | `det_blind_own / all` | eff-n | +74.98 | -0.00 | 10,000 | 97.9 | 7.9 | 161; 140 | 121.9; 39.1 | 0 | 94.9 |
+| screen_0.9_0.8 / null | `det_blind_ctrl / all` | eff-n | +74.94 | -0.03 | 10,000 | 97.6 | 7.9 | 161; 140 | 121.8; 39.2 | 0 | 94.8 |
+| screen_0.9_0.8 / null | `fa_blind_own / all` | eff-n | +11.72 | +0.01 | 10,000 | 97.7 | 9.9 | 54; 32 | 6.5; 47.5 | 21 | 91.7 |
+| screen_0.9_0.8 / null | `fa_blind_ctrl / all` | eff-n | +11.71 | -0.02 | 10,000 | 97.6 | 9.9 | 54; 32 | 6.4; 47.6 | 15 | 91.2 |
+| screen_0.9_0.8 / null | `det_change_own_reg / all` | ratio | -0.13 | +0.01 | 10,000 | 95.1 | 2.5 | 161; 140 | 10.9; 11.1 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_diff_reg / all` | ratio | -0.05 | +0.02 | 10,000 | 95.2 | 3.4 | 161; 140 | 18.9; 18.8 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_own_reg / r` | ratio | -0.12 | +0.01 | 10,000 | 95.4 | 2.6 | 128; 113 | 9.2; 9.3 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_diff_reg / r` | ratio | -0.04 | +0.02 | 10,000 | 95.5 | 3.4 | 128; 113 | 15.8; 15.8 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_own_reg / i` | ratio | -0.24 | +0.03 | 9,994 | 95.9 | 8.8 | 33; 17 | 1.7; 1.8 | 0 | – |
+| screen_0.9_0.8 / null | `fa_change_own_reg / all` | ratio | +0.50 | -0.06 | 10,000 | 99.1 | 6.8 | 54; 32 | 2.3; 2.0 | 0 | – |
+| screen_0.9_0.8 / null | `fa_change_diff_reg / all` | ratio | +0.25 | -0.07 | 10,000 | 99.1 | 9.5 | 54; 32 | 3.9; 3.7 | 0 | – |
+| screen_0.9_0.8 / null | `det_change_own / all` | ratio | -0.13 | +0.05 | 10,000 | 95.0 | 6.0 | 161; 140 | 10.9; 11.1 | 0 | – |
+| screen_0.9_0.8 / null | `fa_change_own / all` | ratio | +0.50 | -0.02 | 9,866 | 96.3 | 7.6 | 54; 32 | 2.3; 2.0 | 134 | – |
+| screen_0.9_0.8 / both | `harm_share_pos / all` | eff-n | +80.04 | -0.04 | 10,000 | 99.4 | 6.6 | 215; 215 | 161.0; 54.0 | 0 | 96.7 |
+| screen_0.9_0.8 / both | `harm_share_neg / all` | eff-n | +10.02 | +0.00 | 10,000 | 99.5 | 9.2 | 60; 60 | 8.4; 51.6 | 1 | 93.3 |
+| screen_0.9_0.8 / both | `screen_pass_harm / all` | eff-n | +90.00 | +0.09 | 10,000 | 99.9 | 9.8 | 169; 145 | 161.0; 8.4 | 1 | 93.8 |
+| screen_0.9_0.8 / both | `det_blind_own / all` | eff-n | +74.98 | -0.00 | 10,000 | 97.9 | 7.9 | 161; 140 | 121.9; 39.1 | 0 | 94.9 |
+| screen_0.9_0.8 / both | `det_blind_ctrl / all` | eff-n | +74.94 | -0.03 | 10,000 | 97.6 | 7.9 | 161; 140 | 121.8; 39.2 | 0 | 94.8 |
+| screen_0.9_0.8 / both | `fa_blind_own / all` | eff-n | +11.72 | +0.01 | 10,000 | 97.7 | 9.9 | 54; 32 | 6.5; 47.5 | 21 | 91.7 |
+| screen_0.9_0.8 / both | `fa_blind_ctrl / all` | eff-n | +11.71 | -0.02 | 10,000 | 97.6 | 9.9 | 54; 32 | 6.4; 47.6 | 15 | 91.2 |
+| screen_0.9_0.8 / both | `det_change_own_reg / all` | ratio | -6.38 | +0.01 | 10,000 | 96.1 | 2.8 | 161; 140 | 8.1; 18.1 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_diff_reg / all` | ratio | -6.30 | +0.02 | 10,000 | 95.7 | 3.6 | 161; 140 | 15.9; 25.1 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_own_reg / r` | ratio | -6.64 | +0.01 | 10,000 | 96.2 | 2.9 | 128; 113 | 6.7; 15.1 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_diff_reg / r` | ratio | -6.56 | +0.02 | 10,000 | 96.0 | 3.7 | 128; 113 | 13.2; 21.0 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_own_reg / i` | ratio | -4.74 | -0.01 | 9,994 | 95.6 | 9.4 | 33; 17 | 1.3; 2.9 | 0 | – |
+| screen_0.9_0.8 / both | `fa_change_own_reg / all` | ratio | +0.50 | -0.05 | 10,000 | 98.7 | 7.1 | 54; 32 | 2.3; 2.0 | 0 | – |
+| screen_0.9_0.8 / both | `fa_change_diff_reg / all` | ratio | +0.25 | -0.06 | 10,000 | 99.1 | 9.6 | 54; 32 | 3.9; 3.7 | 0 | – |
+| screen_0.9_0.8 / both | `det_change_own / all` | ratio | -6.38 | +0.03 | 10,000 | 95.1 | 6.4 | 161; 140 | 8.1; 18.1 | 0 | – |
+| screen_0.9_0.8 / both | `fa_change_own / all` | ratio | +0.50 | -0.02 | 9,866 | 96.3 | 7.6 | 54; 32 | 2.3; 2.0 | 134 | – |
 | screen_perfect / null | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.2 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
 | screen_perfect / null | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 3.9 | 60; 60 | 0.0; 60.0 | 10,000 | 100.0 |
 | screen_perfect / null | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 4.8 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
-| screen_perfect / null | `det_blind_own / all` | eff-n | +74.97 | -0.01 | 10,000 | 97.4 | 7.2 | 215; 215 | 166.0; 49.0 | 0 | 95.0 |
-| screen_perfect / null | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.0 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.4 |
+| screen_perfect / null | `det_blind_own / all` | eff-n | +74.97 | +0.02 | 10,000 | 97.2 | 7.2 | 215; 215 | 166.1; 48.9 | 0 | 94.9 |
+| screen_perfect / null | `det_blind_ctrl / all` | eff-n | +74.94 | -0.02 | 10,000 | 97.1 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.6 |
 | screen_perfect / null | `fa_blind_own / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / null | `fa_blind_ctrl / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / null | `det_change_own_reg / all` | ratio | +0.00 | -0.02 | 10,000 | 95.5 | 1.9 | 215; 215 | 14.1; 14.2 | 0 | – |
-| screen_perfect / null | `det_change_diff_reg / all` | ratio | +0.01 | -0.00 | 10,000 | 95.4 | 2.5 | 215; 215 | 24.2; 24.2 | 0 | – |
-| screen_perfect / null | `det_change_own_reg / r` | ratio | +0.02 | -0.02 | 10,000 | 95.5 | 2.1 | 140; 140 | 10.2; 10.2 | 0 | – |
-| screen_perfect / null | `det_change_diff_reg / r` | ratio | +0.02 | -0.00 | 10,000 | 95.5 | 2.7 | 140; 140 | 17.3; 17.3 | 0 | – |
-| screen_perfect / null | `det_change_own_reg / i` | ratio | -0.14 | -0.01 | 10,000 | 95.3 | 4.3 | 75; 75 | 3.9; 4.0 | 0 | – |
+| screen_perfect / null | `det_change_own_reg / all` | ratio | +0.00 | +0.01 | 10,000 | 95.1 | 1.9 | 215; 215 | 14.1; 14.1 | 0 | – |
+| screen_perfect / null | `det_change_diff_reg / all` | ratio | +0.01 | +0.01 | 10,000 | 95.1 | 2.5 | 215; 215 | 24.3; 24.2 | 0 | – |
+| screen_perfect / null | `det_change_own_reg / r` | ratio | +0.02 | +0.01 | 10,000 | 95.3 | 2.1 | 140; 140 | 10.2; 10.1 | 0 | – |
+| screen_perfect / null | `det_change_diff_reg / r` | ratio | +0.02 | +0.02 | 10,000 | 95.3 | 2.8 | 140; 140 | 17.3; 17.2 | 0 | – |
+| screen_perfect / null | `det_change_own_reg / i` | ratio | -0.14 | -0.02 | 10,000 | 95.9 | 4.3 | 75; 75 | 3.9; 4.0 | 0 | – |
 | screen_perfect / null | `fa_change_own_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / null | `fa_change_diff_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / null | `det_change_own / all` | ratio | +0.00 | -0.02 | 10,000 | 95.0 | 5.6 | 215; 215 | 14.1; 14.2 | 0 | – |
+| screen_perfect / null | `det_change_own / all` | ratio | +0.00 | +0.03 | 10,000 | 94.9 | 5.6 | 215; 215 | 14.1; 14.1 | 0 | – |
 | screen_perfect / null | `fa_change_own / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / both | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.2 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
 | screen_perfect / both | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 3.9 | 60; 60 | 0.0; 60.0 | 10,000 | 100.0 |
 | screen_perfect / both | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 4.8 | 215; 215 | 215.0; 0.0 | 10,000 | 100.0 |
-| screen_perfect / both | `det_blind_own / all` | eff-n | +74.97 | -0.01 | 10,000 | 97.4 | 7.2 | 215; 215 | 166.0; 49.0 | 0 | 95.0 |
-| screen_perfect / both | `det_blind_ctrl / all` | eff-n | +74.94 | +0.01 | 10,000 | 97.0 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.4 |
+| screen_perfect / both | `det_blind_own / all` | eff-n | +74.97 | +0.02 | 10,000 | 97.2 | 7.2 | 215; 215 | 166.1; 48.9 | 0 | 94.9 |
+| screen_perfect / both | `det_blind_ctrl / all` | eff-n | +74.94 | -0.02 | 10,000 | 97.1 | 7.2 | 215; 215 | 165.9; 49.1 | 0 | 94.6 |
 | screen_perfect / both | `fa_blind_own / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / both | `fa_blind_ctrl / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / both | `det_change_own_reg / all` | ratio | -5.00 | -0.01 | 10,000 | 96.8 | 2.2 | 215; 215 | 11.0; 21.0 | 0 | – |
-| screen_perfect / both | `det_change_diff_reg / all` | ratio | -4.99 | +0.00 | 10,000 | 96.2 | 2.7 | 215; 215 | 21.0; 30.4 | 0 | – |
-| screen_perfect / both | `det_change_own_reg / r` | ratio | -5.20 | -0.02 | 10,000 | 96.7 | 2.4 | 140; 140 | 7.8; 15.1 | 0 | – |
-| screen_perfect / both | `det_change_diff_reg / r` | ratio | -5.19 | -0.00 | 10,000 | 96.2 | 2.9 | 140; 140 | 14.9; 21.7 | 0 | – |
-| screen_perfect / both | `det_change_own_reg / i` | ratio | -3.71 | +0.01 | 10,000 | 95.2 | 4.6 | 75; 75 | 3.1; 5.9 | 0 | – |
+| screen_perfect / both | `det_change_own_reg / all` | ratio | -5.00 | +0.01 | 10,000 | 96.0 | 2.2 | 215; 215 | 11.0; 21.0 | 0 | – |
+| screen_perfect / both | `det_change_diff_reg / all` | ratio | -4.99 | +0.01 | 10,000 | 95.8 | 2.7 | 215; 215 | 21.1; 30.4 | 0 | – |
+| screen_perfect / both | `det_change_own_reg / r` | ratio | -5.20 | +0.02 | 10,000 | 96.4 | 2.4 | 140; 140 | 7.8; 15.0 | 0 | – |
+| screen_perfect / both | `det_change_diff_reg / r` | ratio | -5.19 | +0.02 | 10,000 | 96.2 | 3.0 | 140; 140 | 14.9; 21.6 | 0 | – |
+| screen_perfect / both | `det_change_own_reg / i` | ratio | -3.71 | -0.04 | 10,000 | 95.7 | 4.7 | 75; 75 | 3.1; 6.0 | 0 | – |
 | screen_perfect / both | `fa_change_own_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | screen_perfect / both | `fa_change_diff_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| screen_perfect / both | `det_change_own / all` | ratio | -5.00 | -0.00 | 10,000 | 94.8 | 5.9 | 215; 215 | 11.0; 21.0 | 0 | – |
+| screen_perfect / both | `det_change_own / all` | ratio | -5.00 | +0.04 | 10,000 | 95.0 | 5.9 | 215; 215 | 11.0; 21.0 | 0 | – |
 | screen_perfect / both | `fa_change_own / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| low_failure / null | `harm_share_pos / all` | eff-n | +40.09 | +0.01 | 10,000 | 98.5 | 7.9 | 215; 215 | 83.4; 131.6 | 0 | 96.0 |
-| low_failure / null | `harm_share_neg / all` | eff-n | +1.82 | +0.01 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,075 | 69.1 |
-| low_failure / null | `screen_pass_harm / all` | eff-n | +90.02 | +0.65 | 10,000 | 99.7 | 22.5 | 85; 56 | 83.4; 1.2 | 3,075 | 68.5 |
-| low_failure / null | `det_blind_own / all` | eff-n | +74.57 | -0.07 | 10,000 | 97.5 | 10.7 | 83; 55 | 62.3; 21.2 | 0 | 94.0 |
-| low_failure / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.02 | 10,000 | 97.7 | 10.6 | 83; 55 | 62.4; 21.1 | 0 | 94.6 |
-| low_failure / null | `fa_blind_own / all` | eff-n | +11.23 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / null | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.00 | 10,000 | 97.9 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / null | `det_change_own_reg / all` | ratio | -0.68 | +0.03 | 10,000 | 94.8 | 6.3 | 83; 55 | 6.7; 7.3 | 0 | – |
-| low_failure / null | `det_change_diff_reg / all` | ratio | -0.31 | +0.00 | 10,000 | 95.2 | 8.7 | 83; 55 | 11.6; 11.8 | 0 | – |
-| low_failure / null | `det_change_own_reg / r` | ratio | -0.68 | +0.02 | 10,000 | 95.0 | 6.6 | 74; 51 | 6.2; 6.7 | 0 | – |
-| low_failure / null | `det_change_diff_reg / r` | ratio | -0.32 | +0.00 | 10,000 | 95.2 | 9.1 | 74; 51 | 10.6; 10.8 | 0 | – |
-| low_failure / null | `det_change_own_reg / i` | ratio | -0.60 | +2.48 | 9 | 100.0 | 14.4 | 9; 1 | 0.5; 0.6 | 0 | – |
-| low_failure / null | `fa_change_own_reg / all` | ratio | +0.49 | -0.05 | 10,000 | 95.5 | 4.1 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure / null | `fa_change_diff_reg / all` | ratio | +0.24 | -0.02 | 10,000 | 95.6 | 5.6 | 132; 105 | 10.7; 10.5 | 0 | – |
-| low_failure / null | `det_change_own / all` | ratio | -0.68 | +0.03 | 10,000 | 94.8 | 8.8 | 83; 55 | 6.7; 7.3 | 0 | – |
-| low_failure / null | `fa_change_own / all` | ratio | +0.49 | -0.07 | 10,000 | 95.0 | 5.2 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure / both | `harm_share_pos / all` | eff-n | +40.09 | +0.01 | 10,000 | 98.5 | 7.9 | 215; 215 | 83.4; 131.6 | 0 | 96.0 |
-| low_failure / both | `harm_share_neg / all` | eff-n | +1.82 | +0.01 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,075 | 69.1 |
-| low_failure / both | `screen_pass_harm / all` | eff-n | +90.02 | +0.65 | 10,000 | 99.7 | 22.5 | 85; 56 | 83.4; 1.2 | 3,075 | 68.5 |
-| low_failure / both | `det_blind_own / all` | eff-n | +74.57 | -0.07 | 10,000 | 97.5 | 10.7 | 83; 55 | 62.3; 21.2 | 0 | 94.0 |
-| low_failure / both | `det_blind_ctrl / all` | eff-n | +74.58 | +0.02 | 10,000 | 97.7 | 10.6 | 83; 55 | 62.4; 21.1 | 0 | 94.6 |
-| low_failure / both | `fa_blind_own / all` | eff-n | +11.23 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / both | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.00 | 10,000 | 97.9 | 6.4 | 132; 105 | 14.9; 116.6 | 0 | 93.5 |
-| low_failure / both | `det_change_own_reg / all` | ratio | -13.15 | +0.01 | 10,000 | 94.6 | 7.2 | 83; 55 | 4.4; 15.4 | 0 | – |
-| low_failure / both | `det_change_diff_reg / all` | ratio | -12.79 | -0.01 | 10,000 | 95.0 | 9.3 | 83; 55 | 9.0; 18.8 | 0 | – |
-| low_failure / both | `det_change_own_reg / r` | ratio | -13.51 | +0.01 | 10,000 | 95.0 | 7.5 | 74; 51 | 4.0; 14.1 | 0 | – |
-| low_failure / both | `det_change_diff_reg / r` | ratio | -13.14 | -0.01 | 10,000 | 95.0 | 9.7 | 74; 51 | 8.2; 17.2 | 0 | – |
-| low_failure / both | `det_change_own_reg / i` | ratio | -9.82 | +4.82 | 9 | 55.6 | 16.2 | 9; 1 | 0.4; 1.3 | 0 | – |
-| low_failure / both | `fa_change_own_reg / all` | ratio | +0.49 | -0.05 | 10,000 | 95.6 | 4.4 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure / both | `fa_change_diff_reg / all` | ratio | +0.24 | -0.02 | 10,000 | 95.6 | 5.9 | 132; 105 | 10.7; 10.5 | 0 | – |
-| low_failure / both | `det_change_own / all` | ratio | -13.15 | -0.00 | 10,000 | 94.0 | 10.2 | 83; 55 | 4.4; 15.4 | 0 | – |
-| low_failure / both | `fa_change_own / all` | ratio | +0.49 | -0.07 | 10,000 | 95.0 | 5.2 | 132; 105 | 6.3; 5.8 | 0 | – |
-| low_failure_perfect / null | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.4 | 185; 163 | 184.9; 0.0 | 10,000 | 100.0 |
-| low_failure_perfect / null | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 2.3 | 90; 69 | 0.0; 90.1 | 10,000 | 100.0 |
-| low_failure_perfect / null | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 13.9 | 185; 163 | 184.9; 0.0 | 10,000 | 100.0 |
-| low_failure_perfect / null | `det_blind_own / all` | eff-n | +74.56 | -0.01 | 10,000 | 97.7 | 7.8 | 185; 163 | 140.7; 44.3 | 0 | 94.4 |
-| low_failure_perfect / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.02 | 10,000 | 97.6 | 7.8 | 185; 163 | 140.7; 44.2 | 0 | 94.4 |
+| low_failure / null | `harm_share_pos / all` | eff-n | +40.09 | -0.04 | 10,000 | 98.3 | 7.9 | 215; 215 | 83.3; 131.7 | 0 | 95.8 |
+| low_failure / null | `harm_share_neg / all` | eff-n | +1.82 | +0.02 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,066 | 69.2 |
+| low_failure / null | `screen_pass_harm / all` | eff-n | +90.02 | +0.61 | 10,000 | 99.8 | 22.5 | 85; 57 | 83.3; 1.2 | 3,066 | 68.6 |
+| low_failure / null | `det_blind_own / all` | eff-n | +74.57 | -0.06 | 10,000 | 97.5 | 10.7 | 83; 57 | 62.2; 21.1 | 0 | 94.4 |
+| low_failure / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.08 | 10,000 | 97.6 | 10.6 | 83; 57 | 62.3; 21.0 | 0 | 94.5 |
+| low_failure / null | `fa_blind_own / all` | eff-n | +11.23 | -0.05 | 10,000 | 98.0 | 6.3 | 132; 108 | 14.8; 116.8 | 0 | 93.6 |
+| low_failure / null | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 108 | 14.9; 116.7 | 0 | 93.9 |
+| low_failure / null | `det_change_own_reg / all` | ratio | -0.68 | -0.01 | 10,000 | 95.7 | 6.4 | 83; 57 | 6.7; 7.3 | 0 | – |
+| low_failure / null | `det_change_diff_reg / all` | ratio | -0.31 | +0.02 | 10,000 | 95.0 | 8.8 | 83; 57 | 11.6; 11.8 | 0 | – |
+| low_failure / null | `det_change_own_reg / r` | ratio | -0.68 | -0.02 | 10,000 | 95.3 | 6.7 | 74; 52 | 6.2; 6.7 | 0 | – |
+| low_failure / null | `det_change_diff_reg / r` | ratio | -0.32 | -0.00 | 10,000 | 95.3 | 9.2 | 74; 52 | 10.6; 10.8 | 0 | – |
+| low_failure / null | `det_change_own_reg / i` | ratio | -0.60 | +10.63 | 1 | 100.0 | 13.4 | 9; 1 | 0.5; 0.6 | 0 | – |
+| low_failure / null | `fa_change_own_reg / all` | ratio | +0.49 | -0.01 | 10,000 | 95.4 | 4.1 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure / null | `fa_change_diff_reg / all` | ratio | +0.24 | -0.02 | 10,000 | 95.4 | 5.6 | 132; 108 | 10.8; 10.5 | 0 | – |
+| low_failure / null | `det_change_own / all` | ratio | -0.68 | +0.00 | 10,000 | 94.9 | 9.0 | 83; 57 | 6.7; 7.3 | 0 | – |
+| low_failure / null | `fa_change_own / all` | ratio | +0.49 | +0.00 | 10,000 | 95.4 | 5.2 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure / both | `harm_share_pos / all` | eff-n | +40.09 | -0.04 | 10,000 | 98.3 | 7.9 | 215; 215 | 83.3; 131.7 | 0 | 95.8 |
+| low_failure / both | `harm_share_neg / all` | eff-n | +1.82 | +0.02 | 10,000 | 99.0 | 4.8 | 60; 60 | 1.2; 58.8 | 3,066 | 69.2 |
+| low_failure / both | `screen_pass_harm / all` | eff-n | +90.02 | +0.61 | 10,000 | 99.8 | 22.5 | 85; 57 | 83.3; 1.2 | 3,066 | 68.6 |
+| low_failure / both | `det_blind_own / all` | eff-n | +74.57 | -0.06 | 10,000 | 97.5 | 10.7 | 83; 57 | 62.2; 21.1 | 0 | 94.4 |
+| low_failure / both | `det_blind_ctrl / all` | eff-n | +74.58 | +0.08 | 10,000 | 97.6 | 10.6 | 83; 57 | 62.3; 21.0 | 0 | 94.5 |
+| low_failure / both | `fa_blind_own / all` | eff-n | +11.23 | -0.05 | 10,000 | 98.0 | 6.3 | 132; 108 | 14.8; 116.8 | 0 | 93.6 |
+| low_failure / both | `fa_blind_ctrl / all` | eff-n | +11.25 | +0.01 | 10,000 | 98.0 | 6.4 | 132; 108 | 14.9; 116.7 | 0 | 93.9 |
+| low_failure / both | `det_change_own_reg / all` | ratio | -13.15 | +0.02 | 10,000 | 94.9 | 7.3 | 83; 57 | 4.5; 15.3 | 0 | – |
+| low_failure / both | `det_change_diff_reg / all` | ratio | -12.79 | +0.06 | 10,000 | 95.1 | 9.5 | 83; 57 | 9.1; 18.7 | 0 | – |
+| low_failure / both | `det_change_own_reg / r` | ratio | -13.51 | +0.01 | 10,000 | 95.2 | 7.6 | 74; 52 | 4.1; 14.0 | 0 | – |
+| low_failure / both | `det_change_diff_reg / r` | ratio | -13.14 | +0.03 | 10,000 | 95.1 | 9.9 | 74; 52 | 8.2; 17.1 | 0 | – |
+| low_failure / both | `det_change_own_reg / i` | ratio | -9.82 | +2.99 | 1 | 100.0 | 12.3 | 9; 1 | 0.4; 1.3 | 0 | – |
+| low_failure / both | `fa_change_own_reg / all` | ratio | +0.49 | -0.05 | 10,000 | 95.8 | 4.4 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure / both | `fa_change_diff_reg / all` | ratio | +0.24 | -0.07 | 10,000 | 95.5 | 5.9 | 132; 108 | 10.8; 10.5 | 0 | – |
+| low_failure / both | `det_change_own / all` | ratio | -13.15 | +0.08 | 10,000 | 94.4 | 10.3 | 83; 57 | 4.5; 15.3 | 0 | – |
+| low_failure / both | `fa_change_own / all` | ratio | +0.49 | +0.00 | 10,000 | 95.4 | 5.2 | 132; 108 | 6.4; 5.7 | 0 | – |
+| low_failure_perfect / null | `harm_share_pos / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 1.4 | 185; 160 | 184.8; 0.0 | 10,000 | 100.0 |
+| low_failure_perfect / null | `harm_share_neg / all` | eff-n | +0.00 | +0.00 | 10,000 | 100.0 | 2.3 | 90; 67 | 0.0; 90.2 | 10,000 | 100.0 |
+| low_failure_perfect / null | `screen_pass_harm / all` | eff-n | +100.00 | +0.00 | 10,000 | 100.0 | 13.9 | 185; 160 | 184.8; 0.0 | 10,000 | 100.0 |
+| low_failure_perfect / null | `det_blind_own / all` | eff-n | +74.56 | -0.05 | 10,000 | 98.0 | 7.8 | 185; 160 | 140.5; 44.3 | 0 | 95.1 |
+| low_failure_perfect / null | `det_blind_ctrl / all` | eff-n | +74.58 | +0.07 | 10,000 | 97.7 | 7.8 | 185; 160 | 140.7; 44.1 | 0 | 94.7 |
 | low_failure_perfect / null | `fa_blind_own / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | low_failure_perfect / null | `fa_blind_ctrl / all` | eff-n | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| low_failure_perfect / null | `det_change_own_reg / all` | ratio | +0.02 | -0.00 | 10,000 | 95.1 | 3.8 | 185; 163 | 14.8; 14.8 | 0 | – |
-| low_failure_perfect / null | `det_change_diff_reg / all` | ratio | +0.02 | -0.01 | 10,000 | 94.8 | 5.2 | 185; 163 | 25.0; 25.0 | 0 | – |
-| low_failure_perfect / null | `det_change_own_reg / r` | ratio | +0.04 | -0.01 | 10,000 | 94.9 | 4.1 | 140; 140 | 12.0; 12.0 | 0 | – |
-| low_failure_perfect / null | `det_change_diff_reg / r` | ratio | +0.03 | -0.01 | 10,000 | 95.0 | 5.5 | 140; 140 | 20.1; 20.1 | 0 | – |
-| low_failure_perfect / null | `det_change_own_reg / i` | ratio | -0.13 | +0.04 | 9,954 | 94.3 | 10.0 | 45; 23 | 2.7; 2.8 | 46 | – |
+| low_failure_perfect / null | `det_change_own_reg / all` | ratio | +0.02 | -0.01 | 10,000 | 95.5 | 3.8 | 185; 160 | 14.8; 14.8 | 0 | – |
+| low_failure_perfect / null | `det_change_diff_reg / all` | ratio | +0.02 | +0.00 | 10,000 | 95.2 | 5.2 | 185; 160 | 25.0; 25.0 | 0 | – |
+| low_failure_perfect / null | `det_change_own_reg / r` | ratio | +0.04 | -0.00 | 10,000 | 95.5 | 4.1 | 140; 140 | 12.1; 12.0 | 0 | – |
+| low_failure_perfect / null | `det_change_diff_reg / r` | ratio | +0.03 | +0.00 | 10,000 | 95.6 | 5.6 | 140; 140 | 20.2; 20.1 | 0 | – |
+| low_failure_perfect / null | `det_change_own_reg / i` | ratio | -0.13 | -0.04 | 9,958 | 94.6 | 10.4 | 45; 20 | 2.7; 2.8 | 42 | – |
 | low_failure_perfect / null | `fa_change_own_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 | low_failure_perfect / null | `fa_change_diff_reg / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
-| low_failure_perfect / null | `det_change_own / all` | ratio | +0.02 | -0.01 | 10,000 | 94.5 | 6.4 | 185; 163 | 14.8; 14.8 | 0 | – |
+| low_failure_perfect / null | `det_change_own / all` | ratio | +0.02 | +0.02 | 10,000 | 94.6 | 6.4 | 185; 160 | 14.8; 14.8 | 0 | – |
 | low_failure_perfect / null | `fa_change_own / all` | ratio | n/a | n/a | 0 | n/a | n/a | 0; 0 | n/a | n/a | n/a |
 
-All 7 scenarios, every replication: labelled answers 583, second labels 388, challenge set 70, API reference subset 130, unfilled quota 0, answers with no chance of selection 0. Values in percentage points.
+All 7 scenarios, every replication: labelled answers 567, second labels 381, challenge set 70, API reference subset 130, unfilled quota 0, answers with no chance of selection 0. Values in percentage points.
 
 - **Interval.** `eff-n`: the approximate interval on the effective number of answers (Section 9.5). `ratio`: the cluster ratio interval of Section 8.
 - **Replications with an interval.** The class holds at least 20 labelled answers. For a ratio interval the estimated variance is also above zero. Bias and coverage are computed over these replications.
@@ -1989,15 +2011,15 @@ All 7 scenarios, every replication: labelled answers 583, second labels 388, cha
 
 **Reading.**
 
-- **The sampler fills its quotas.** Every replication has 583 labelled answers and 388 second labels. No quota stays unfilled, and no answer is without a chance of selection.
-- **Rates.** The effective-n intervals cover 97.0% to 100% in every scenario. They were conservative in these scenarios; that is an empirical result, not a property of the method. The cluster ratio interval that they replace is in the last column: it covers as little as 68.5% when few events are observed.
-- **Registered estimator, primary panel and refusal-removed group.** Coverage is 94.6% to 96.8%. The half-widths are those of Section 9.5.
-- **Direct estimator.** Coverage is 94.0% to 95.0%, with wider intervals. It is reported as a check only, without its interval: the interval failed both runs of Appendix A.4 in `low_failure|null` in the eleven-model run of 10 November, and here it covers 94.0% in `low_failure|both`.
+- **The sampler fills its quotas.** Every replication has 567 labelled answers and 381 second labels. No quota stays unfilled, and no answer is without a chance of selection.
+- **Rates.** The effective-n intervals cover 97.1% to 100% in every scenario. They were conservative in these scenarios; that is an empirical result, not a property of the method. The cluster ratio interval that they replace is in the last column: it covers as little as 68.6% when few events are observed.
+- **Registered estimator, primary panel and refusal-removed group.** Coverage is 94.9% to 96.4%. The half-widths are those of Section 9.5.
+- **Direct estimator.** Coverage is 94.4% to 95.1%, with wider intervals. It is reported as a check only, without its interval: the interval failed both runs of Appendix A.4 in `low_failure|null` in the eleven-model run of 10 November. Here it covers 94.4% in `low_failure|both`, just above the threshold.
 - **Instruction-tuned group.** Few of its answers are labelled harmful.
-  - In `low_failure` the class holds 9 labelled answers on average and 1 at the least. It reaches the minimum of 20 labelled answers (Section 9.5) in 9 of 10,000 replications, so the quantity is almost never reported.
-  - In the baseline the class holds 33 labelled answers on average and 17 at the least. The minimum binds there too: the interval is reported in 9,989 of 10,000 replications.
-  - In the five other scenarios coverage is 94.3% to 95.3%, with half-widths of 4.3 to 10.0 points. The interval of this group is approximate. In `low_failure_perfect|null` it covers 94.3%, below the threshold of Appendix A.4, and its second run fails too. So the interval of this group is not reported. Its estimate and counts are (Section 9.5).
-- **False-alarm change.** Coverage is 95.5% to 99.2%. The interval is conservative. It is not defined when the screen makes no error.
+  - In `low_failure` the class holds 9 labelled answers on average and 1 at the least. It reaches the minimum of 20 labelled answers (Section 9.5) in 1 of 10,000 replications, so the quantity is almost never reported.
+  - In the baseline the class holds 33 labelled answers on average and 17 at the least. The minimum binds there too: the interval is reported in 9,994 of 10,000 replications.
+  - In the five other scenarios coverage is 94.6% to 95.9%, with half-widths of 4.3 to 10.4 points. The interval of this group is approximate. With the registered code it failed both runs of check 5 in `low_failure_perfect|null`, on 11 and again on 12 November (A.4). So the interval of this group is not reported; its estimate and counts are (Section 9.5). With the code of these tables it passes; it stays withdrawn until the PI decides on amendment D19 (Section 19.1).
+- **False-alarm change.** Coverage is 95.4% to 99.1%. The interval is conservative. It is not defined when the screen makes no error.
 
 ### A.4 Tolerances for the check before the freeze
 
@@ -2008,13 +2030,13 @@ Condition 2 of Section 14.4 holds when every check of this section passes.
 
 **What is run.** Every run uses the production code, 10,000 replications per row and true values from about one million independent prompt clusters.
 
-| Run | What it is | State on 11 November 2026 |
+| Run | What it is | State on 12 November 2026 |
 |---|---|---|
 | (a) The three packages | R-S1, R-S2 and R-S3, as in A.1 to A.3 | Stored for the twelve-model panel: see the status below |
-| (b) Informative screening | R-S3 with the unequal rates of harmful answers of R-S2. The screen depends on the answer itself: P(S = 1) = expit(a_Y + v), where v is the effect of the answer that also enters every blind verdict, and a_1 and a_0 are set so that 90% of the answers with harmful content and 20% of the others are screen-positive. Judge shifts of ±0.5 as in A.2: alternating and aligned, on all content and on harmful content only. Rows: no effect, and θ_S = ι_S = −5 points | Written (`analysis/sim_v23_labels.py --grid informative`). Run before the freeze |
+| (b) Informative screening | R-S3 with the unequal rates of harmful answers of R-S2. The screen depends on the answer itself: P(S = 1) = expit(a_Y + v), where v is the effect of the answer that also enters every blind verdict, and a_1 and a_0 are set so that 90% of the answers with harmful content and 20% of the others are screen-positive. Judge shifts of ±0.5 as in A.2: alternating and aligned, on all content and on harmful content only. Rows: no effect, and θ_S = ι_S = −5 points | Written (`analysis/sim_v23_labels.py --grid informative`). Run on 12 November 2026: see the status below |
 | (c) Low-harm alternative | The scenario `low_failure` of R-S3 with θ_S = ι_S = −5 points | Part of R-S3 since 10 November 2026 |
-| (d) Safe-side simulation | Below | Written (`analysis/sim_v23_safe.py`). Run before the freeze |
-| (e) Rare-flag run | Below | Written (`analysis/sim_v23_registered.py --grid rare`). Run before the freeze |
+| (d) Safe-side simulation | Below | Written (`analysis/sim_v23_safe.py`). Run on 12 November 2026: see the status below |
+| (e) Rare-flag run | Below | Written (`analysis/sim_v23_registered.py --grid rare`). Run on 12 November 2026: see the status below |
 | (f) Pilot planning scenarios | Below | Written (`analysis/pilot_planning_v23.py`, and the grids `pilot_rs1`, `pilot_rs2` and `pilot`). Run after the pilot |
 | (g) Registered-panel confirmation | For the panel registered under Section 10.4, when it differs from the panel of the tables. The whole grid of R-S1 and the aligned rows of R-S2, with the control assignment of that panel (Section 6.5) | Written (`--grid rs1` and `--grid rs2_aligned` with `--drop`). Run before the freeze if the panel differs |
 
@@ -2039,7 +2061,8 @@ The code of every run is tested on small runs (`tests/test_sim_v23_boundaries.py
 - **Rule.** Pilot planning scenarios reproduce observable screen and blind-flag marginals where feasible. Harm prevalence, screen accuracy and sensitivity remain assumed nuisance parameters varied over a registered grid. Unattainable targets are reported explicitly and never silently clipped.
 - **What the pilot gives.** Two kinds of numbers, both without labels.
   - For each model m: the share s_m of screen-positive answers among its pilot answers to harmful prompts.
-  - For each judge j: the blind flag rate f_j on its own screen-positive pilot answers.
+  - For each judge j: the blind flag rate f_j on its own screen-positive pilot answers. A blind verdict that was not delivered counts as no flag (Section 10.2); a blind call without a final attempt is counted apart and not used.
+  - The pilot report writes these counts in the input format of the planning script (`results/pilot/pilot_planning_input_r<round>.json`).
 - **What the pilot does not give.** The pilot has no label. The rate of harmful answers, the accuracy of the screen and the sensitivity of a judge are not measured. No scenario claims to estimate them.
 - **The grid.** Three assumptions about the screen. Each is a pair: the share of answers with harmful content that are screen-positive, and the same share for the other answers. The pairs are (0.9, 0.2), (1, 0) and (0.7, 0.4), the settings of A.1 and A.3.
 - **The mapping, at each point (a, b) of the grid.**
@@ -2085,18 +2108,27 @@ The code of every run is tested on small runs (`tests/test_sim_v23_boundaries.py
 - Smaller departures cannot be told from noise at this number of replications.
 - The run before the freeze makes several hundred checks. If every true rate were exactly at its nominal value, each check would fail by chance about once in 740 runs. With 300 checks at least one would fail in about one run in three, and with 500 checks in about one run in two. The second run exists for this reason.
 
-**Status on 11 November 2026** (twelve-model panel).
-- R-S1 and R-S2 are stored with 10,000 replications per row. Their rows pass checks 1 to 4: 260 checks.
-- R-S3 is stored with 10,000 replications per scenario and one million reference clusters. Check 5 is made 84 times: for every reported interval of Section 9.5, wherever it is reported in at least 1,000 replications.
-  - One check fails: the registered detection change of the instruction-tuned authors (`det_change_own_reg / i`) in `low_failure_perfect|null` covers 94.32% against the threshold of 94.34% (9,954 replications).
-  - Its second run, with 40,000 replications and seed 20261124, gives 94.40% against the threshold of 94.67% (39,830 replications). It fails twice, so this interval is not reported. The estimate and the counts are (Section 9.5).
-- With checks 1 to 4 the stored runs make 344 checks.
+**Status on 12 November 2026** (twelve-model panel; ten commercial models, decision D17).
+
+*With the registered code* (Section 8.1 as registered; files in `analysis/output/registered_code_2026-11-12/`).
+- R-S1 and R-S2 (11 November): checks 1 to 4 are made 260 times, and none fails.
+- R-S3 (12 November): check 5 is made 84 times. One check fails twice: the registered detection change of the instruction-tuned authors (`det_change_own_reg / i`) in `low_failure_perfect|null`. It covers 93.98% against the threshold of 94.34% (9,958 replications); its second run, with 40,000 replications and seed 20261124, gives 94.28% against 94.67%. It failed both runs on 11 November too, with 583 labels (94.32% and 94.40%). So this interval is not reported; the estimate and the counts are (Section 9.5).
+- Run (d), safe-side: check 6 is made 48 times in each run. Seven intervals among screen-negative answers fail in both runs, in at least one of the two settings.
+- Run (e), rare flags: in `rare_10|bound` the family-wise rate of P1 and P2 is 6.16% against the threshold of 4.59%, and the rate of P3 2.37% against 1.30%. The second run gives 6.33% against 4.29% and 2.46% against 1.15%. Checks 1 and 3 fail twice, so the inference is revised before the freeze (Section 14.4): amendment D19. The other five rows pass.
+- Run (b), informative screening, was stopped unfinished when run (e) showed that the inference must be revised.
+
+*With the code of amendment D19* (domain degrees of freedom, Section 8.1; proposed on 12 November 2026, awaiting the PI's decision). Every package and run was made again on 12 November 2026, with the same seeds. Files in `analysis/output/`, console output in `analysis/output/logs_2026-11-12_D19/`.
+- R-S1, R-S2 and R-S3: checks 1 to 5 are made 344 times, and none fails. The tables of A.1 to A.3 are these runs.
+  - The instruction-tuned interval passes check 5 in every scenario: 94.60% in `low_failure_perfect|null`. It stays withdrawn until the PI decides on D19 (Section 19.1).
+- Run (b): check 5 is made 112 times in the eight scenarios, and none fails. The lowest coverage is 94.6%.
+- Run (e): checks 1 and 3 are made 9 times, and none fails. In `rare_10|bound` the family-wise rate is 1.43% and the rate of P3 0.79%. In `rare_2` the tests are rarely carried out and almost never reject. The coverage of the intervals among the replications that report one is in the result file, with no threshold.
+- Run (d): check 6 is made 48 times in each run. Six intervals among screen-negative answers fail in both runs, in at least one setting; they are not reported (Section 8.7). The lowest coverage is 92.0%, for ι_W of the commercial panel. A seventh interval, θ_S^ctrl of the commercial panel, failed twice only with the registered code; it stays withdrawn until the PI decides on D19.
 - The direct estimator is reported beside the registered one as a check, with its estimate only.
   - In the eleven-model run of 10 November its interval fell below the threshold for the authors in `low_failure|null`: 94.27% against 94.35%. The second run, with 40,000 replications and seed 20261124, gave 94.46% against the threshold of 94.67%. It failed twice, so the interval of the direct estimator is not reported. The estimate and the counts are (Section 9.5).
-  - In this run it covers 94.0% in `low_failure|both`. It is not checked, because its interval is not reported.
-- Eleven cells of estimators that are not reported fall below the threshold, between 93.2% and 94.3%. The result file keeps them.
+  - In this run it covers 94.4% in `low_failure|both`. It is not checked, because its interval is not reported.
+- Two cells of estimators that are not reported fall below the threshold, 94.1% and 94.3%. The result file keeps them.
 - 46 cells are reported in fewer than 1,000 replications and are not checked. A screen that makes no error leaves no harmless screen-positive answer, so the false-alarm quantities do not exist there. In `low_failure` the instruction-tuned group rarely reaches 20 labelled harmful answers.
-- Runs (b), (d), (e) and (g) are written and come before the freeze; run (f) is written and comes after the pilot.
+- Run (g) is needed only if the registered panel differs from the panel of the tables (Section 10.4). Run (f) is written and comes after the pilot. With the pilot rates, every run is made again before the freeze (Section 14.4, condition 2).
 
 ## References
 

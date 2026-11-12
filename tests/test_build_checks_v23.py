@@ -12,6 +12,7 @@ import hashlib
 import http.server
 import io
 import json
+import os
 import pathlib
 import shutil
 import struct
@@ -23,7 +24,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import check_system_override as C  # noqa: E402
 import make_judge_alias_m6 as MK  # noqa: E402
 
-TMP = pathlib.Path("E:/claude/agentsControl_work/tmp/test_build_checks_v23")
+TMP = pathlib.Path(os.environ.get("AC_TEST_TMP", "E:/claude/agentsControl_tests")) / "test_build_checks_v23"
 
 # ---------------------------------------------------------------- fake Ollama
 
@@ -43,6 +44,8 @@ FAKE = {
     "dropmulti": {"system": "", "mode": "dropmulti", "template": "T-drop"},
     "nocontext": {"system": "", "mode": "normal", "template": "T-standard", "nocontext": True},
     "gguf": {"system": "", "mode": "normal", "template": "T-standard", "no_vocab": True},
+    "qthink": {"system": "", "mode": "switch", "template": "T-switch {{ if $.Think }} /think{{ else }} /no_think{{ end }}"},
+    "qextra": {"system": "", "mode": "switch_extra", "template": "T-switch-extra /no_think Extra"},
 }
 
 
@@ -60,8 +63,14 @@ def tokenize(text):
     return ids
 
 
-def render(name, msgs):
+def render(name, msgs, think=None):
     cfg = FAKE[name]
+    if cfg["mode"] in ("switch", "switch_extra"):     # like Qwen templates: a switch word in the last user message
+        last = max(i for i, (r, _) in enumerate(msgs) if r == "user")
+        word = " /no_think" if think is False else " /think"
+        word += " Extra" if cfg["mode"] == "switch_extra" else ""
+        word += "\n"                                  # ChatML templates end each turn with a newline
+        msgs = [(r, c + word if i == last else c) for i, (r, c) in enumerate(msgs)]
     if cfg["system"] and (cfg["mode"] == "keep" or not msgs or msgs[0][0] != "system"):
         msgs = [("system", cfg["system"])] + msgs
     multi = sum(1 for r, _ in msgs if r == "user") > 1
@@ -96,14 +105,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                    "details": {"quantization_level": "Q4_0"}, "model_info": mi}
         elif self.path == "/api/generate":
             msgs = ([("system", body["system"])] if body.get("system") else []) + [("user", body["prompt"])]
-            prompt = render(name, msgs)
+            prompt = render(name, msgs, body.get("think"))
             out = {"response": "Hi", "prompt_eval_count": len(tokenize(prompt)), "eval_count": 1}
             if not cfg.get("nocontext"):
                 out["context"] = tokenize(prompt + "Hi")
         elif self.path == "/api/chat":
             msgs = [(m["role"], m["content"]) for m in body["messages"]]
             out = {"message": {"role": "assistant", "content": "Hi"},
-                   "prompt_eval_count": len(tokenize(render(name, msgs)))}
+                   "prompt_eval_count": len(tokenize(render(name, msgs, body.get("think"))))}
         else:
             self.send_error(404)
             return
@@ -126,11 +135,13 @@ def base():
     return f"http://127.0.0.1:{SERVER.server_address[1]}"
 
 
-def check(test, ref=None, models_dir=None):
-    out = TMP / "logs" / f"{test}_{ref}.json"
+def check(test, ref=None, models_dir=None, think=None, models_config=None):
+    out = TMP / "logs" / f"{test}_{ref}_{think}.json"
     argv = ["--test", test, "--base", base(), "--out", str(out)]
     argv += ["--ref", ref] if ref else []
     argv += ["--models-dir", str(models_dir)] if models_dir else []
+    argv += ["--think", think] if think else []
+    argv += ["--models-config", str(models_config)] if models_config else []
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         code = C.main(argv)
@@ -306,8 +317,32 @@ def t_alias_builds():
     return ok
 
 
+def t_thinking_switch():
+    """The check sends the judge's thinking setting; only the template's own "/no_think" is accepted, with thinking off."""
+    code, res = check("qthink", think="unset")       # thinking left on: "/think" is unexplained text
+    ok = code == 1 and failed(res) == ["no_unexplained_text"]
+    ok &= res["informational"]["residual_by_layout"]["SU"] == "/think"
+    code, res = check("qthink", think="off")
+    ok &= code == 0 and res["pass_v23"] and res["think"] is False
+    ok &= res["informational"]["thinking_switch_accepted"] == "/no_think"
+    ok &= res["informational"]["residual_by_layout"]["SU"] == "/no_think"
+    code, res = check("qextra", think="off")         # the switch word plus anything else still fails
+    ok &= code == 1 and failed(res) == ["no_unexplained_text"]
+    code, res = check("ref", think="off")            # no switch word in the template: nothing more is accepted
+    ok &= code == 0 and res["informational"]["thinking_switch_accepted"] is None
+    cfg = TMP / "think_models.json"                  # --think config follows the entry of the build, as judge_cfg does
+    cfg.write_text(json.dumps({"models": [{"n": 5, "model": "qthink:latest", "think": False},
+                                          {"n": 4, "model": "ref:latest"}]}), encoding="utf-8")
+    code, res = check("qthink:latest", models_config=cfg)
+    ok &= code == 0 and res["think"] is False and res["think_mode"] == "config"
+    code, res = check("ref:latest", models_config=cfg)
+    ok &= code == 0 and res["think"] is None
+    ok &= C.think_setting("qthink:latest", cfg) is False and C.think_setting("other", cfg) is None
+    return ok
+
+
 TESTS = [t_decoders, t_gguf_reader, t_clean_builds_pass, t_reference_comparison, t_faults_found,
-         t_no_context_and_vocab_fallback, t_alias_builds]
+         t_no_context_and_vocab_fallback, t_alias_builds, t_thinking_switch]
 
 
 def main():

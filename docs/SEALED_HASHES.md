@@ -3,8 +3,9 @@
 - A sealed file is never appended to and never modified. A later run uses another run name.
 - The run names `full`, `pilot_local` and `v22_local` are sealed in the code: `src/run_models.py` and `scripts/run_with_memory_guard.py` refuse to write to them.
 - `python -I scripts/check_sealed_hashes.py` checks every file of this record against its hash. On 10 November 2026 all of them matched.
+- **Decision D18 (12 November 2026).** No answer in these files is an answer of the study: every answer is generated after the pilot registration, with seed 20261126. The 96 answers of the retired sample G1 on prompts outside the frames, in `responses_full.jsonl`, are the only ones that are read: they train the annotators (protocol v2.3, Section 9.6). The code refuses the sealed run names as runs of the study (`src/answers_v23.py`).
 - No person has read an answer in any of these files (protocol v2.3, Sections 3.4 and 15.3). The history of what scripts did with them is in `docs/DATA_INVENTORY.md`.
-- Nothing in this record is committed yet. It is committed with the pilot registration (protocol v2.3, Section 14).
+- This record and the selection snapshots were committed locally on 11 November 2026, not pushed. The other files it lists are not in the repository. The record is pushed with the pilot registration (protocol v2.3, Section 14).
 
 ## Recorded on 8 November 2026
 
@@ -58,7 +59,7 @@ Logs of 8 November 2026 that hold no answer to a study prompt: the download log 
 
 - **What they are.** The 89 files of `data/selection/2026-11-08/`: the rankings, model lists and pages from which the panel was chosen on 8 November 2026 (capture times in its `SELECTION_EVIDENCE.md`). And the 11 files of `data/selection/2026-11-11/`: OpenRouter's endpoint lists, downloaded on 11 November 2026 at 08:09 UTC for decisions D15 and D16.
 - **What the record shows.** The hashes of the 8 November files were first recorded on 11 November. They cannot show that a file stayed unchanged between 8 and 11 November. The file times agree with the capture table: the latest is 19:48 EST on 8 November (`ollama_default_layers.json`).
-- **External date.** `data/selection/SNAPSHOTS_2026-11-11.sha256` lists the same 100 hashes. Its own SHA-256 is `86038473093837608eefb63c05b1edad16ec32e283eea99000eb5e0617ad9f20`. The PI stamps that file with OpenTimestamps (Section 19.2, action 22); the proof is kept next to it as `SNAPSHOTS_2026-11-11.sha256.ots`.
+- **External date.** `data/selection/SNAPSHOTS_2026-11-11.sha256` lists the same 100 hashes. Its own SHA-256 is `86038473093837608eefb63c05b1edad16ec32e283eea99000eb5e0617ad9f20`. That file was stamped with OpenTimestamps on 11 November 2026 at 19:52 Eastern time (Section 19.2, action 22); the proof is kept next to it as `SNAPSHOTS_2026-11-11.sha256.ots`.
 
 | File | SHA-256 | Bytes |
 |---|---|---|

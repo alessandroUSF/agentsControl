@@ -11,8 +11,13 @@ Reads
 It computes no flag rate for the in-context presentation, no difference between presentations and none between
 authors and controls (Section 13.1). In-context calls enter counts of statuses, tokens and costs only.
 
-Writes results/pilot/pilot_report_r<round>.json, results/pilot/pilot_report_r<round>.md and
-results/pilot/pilot_tokens_r<round>.json (measured token counts per model, for the repricing).
+Writes results/pilot/pilot_report_r<round>.json, results/pilot/pilot_report_r<round>.md,
+results/pilot/pilot_tokens_r<round>.json (measured token counts per model, for the repricing) and
+results/pilot/pilot_planning_input_r<round>.json (the input of run (f) of Appendix A.4, analysis/pilot_planning_v23.py:
+for each model of the primary panel its pilot answers to harmful prompts and the screen-positive ones among them; for
+each of its judges the own screen-positive pilot answers to harmful prompts judged blind with a final attempt, and the
+delivered blind flags on them, a final verdict that is not valid counting as no flag, Section 10.2; blind calls without
+a final attempt are counted apart and not used).
 
 Usage: python -I scripts/pilot_report_v23.py --round 1 --answer-runs p1 [--out results/pilot]
 Standard library only.
@@ -84,6 +89,33 @@ def blind_flags(path, part):
         if v["presentation"] == "blind" and v["status"] == "valid":
             out[v["judge"]][1] += 1
             out[v["judge"]][0] += 1 if v["flag"] is True else 0
+    return out
+
+
+def planning_input(panel, rnd, table, verdicts_path, part):
+    """Run (f) of Appendix A.4: the input of analysis/pilot_planning_v23.py (format in its docstring), from counts.
+    s_m: pilot answers of model m to harmful prompts, and the screen-positive ones. f_j: judge j's own screen-positive
+    pilot answers to harmful prompts that it judged blind with a final attempt, and its delivered blind flags on them
+    (a final verdict that is not valid is no flag, Section 10.2). Blind calls without a final attempt are counted in
+    'blind_not_final' and are not used. Reads only the key fields and 'harmful_content' of final blind verdicts."""
+    harmful = set(rnd["harmful"])
+    first = {}
+    for r in jsonl(verdicts_path):
+        if r.get("final") and r.get("part") == part and r.get("presentation") == "blind":
+            first.setdefault(r["key"], (r["judge"], r.get("author"), r["answer_id"], r["status"],
+                                        r.get("harmful_content") is True))
+    final_blind = {(j, aid): (st, flag) for j, author, aid, st, flag in first.values() if j == author}
+    out = {"round": rnd.get("round"), "models": {}, "judges": {}}
+    for n in panel.primary:
+        key = panel.key_of[n]
+        mine = [table.get(A.answer_id(key, p)) for p in rnd["harmful"]]
+        mine = [a for a in mine if a is not None and a["prompt_id"] in harmful]
+        pos = [a for a in mine if a["screen"] == screen_mod.POSITIVE]
+        out["models"][str(n)] = {"answers": len(mine), "screen_positive": len(pos)}
+        done = [final_blind[(key, a["answer_id"])] for a in pos if (key, a["answer_id"]) in final_blind]
+        out["judges"][str(n)] = {"screen_positive": len(done),
+                                 "blind_flags": sum(1 for st, flag in done if st == "valid" and flag),
+                                 "blind_not_final": len(pos) - len(done)}
     return out
 
 
@@ -316,8 +348,10 @@ def main(argv=None):
         "rule 4 (repricing)": "token counts in pilot_tokens_r%d.json; price the manifest again" % a.round,
         "rule 5 (screen)": "screen-positive shares below; screen errors come from the reading draw "
                            "(scripts/reading_draw_v23.py)",
-        "rule 6 (power and Appendix A.4)": "blind flag rates and screen-positive shares below feed the pilot "
-                                           "planning scenarios",
+        "rule 6 (power and Appendix A.4)": "pilot_planning_input_r%d.json (own screen-positive answers to harmful "
+                                           "prompts, delivered blind flags) feeds the pilot planning scenarios "
+                                           "(analysis/pilot_planning_v23.py); the blind flag rates below are a "
+                                           "diagnostic over every valid blind verdict" % a.round,
         "over the reservation bound": sum(e.get("over_bound", 0) for e in list(resp.values()) + list(jud.values())),
         "overruns recorded in the ledger (block 1)": overruns,
         "identity mismatches": sum(e["identity_mismatches"] for e in jud.values()),
@@ -331,7 +365,10 @@ def main(argv=None):
     (out / f"pilot_report_r{a.round}.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")
     (out / f"pilot_report_r{a.round}.md").write_text(markdown(rep), encoding="utf-8")
     (out / f"pilot_tokens_r{a.round}.json").write_text(json.dumps(tokens_file(resp, jud), indent=1), encoding="utf-8")
-    print(f"written {out / f'pilot_report_r{a.round}.md'} (and .json, pilot_tokens_r{a.round}.json)")
+    plan_in = planning_input(panel, dict(rnd, round=a.round), table, R.verdicts_path("1"), part)
+    (out / f"pilot_planning_input_r{a.round}.json").write_text(json.dumps(plan_in, indent=1), encoding="utf-8")
+    print(f"written {out / f'pilot_report_r{a.round}.md'} (and .json, pilot_tokens_r{a.round}.json, "
+          f"pilot_planning_input_r{a.round}.json for run (f) of Appendix A.4)")
     for k, v in rules.items():
         print(f"  {k}: {v}")
     return 0

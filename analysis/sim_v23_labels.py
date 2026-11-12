@@ -319,17 +319,22 @@ def reference(rng, D, sc, q, g, clusters, chunk=200):
     return out
 
 
-def estimates(W, S, Y, A1, A2, C1, C2, D):
+def estimates(W, S, Y, A1, A2, C1, C2, D, Z=None):
     """All statistics of one data set: name -> (numerator per prompt, denominator per prompt, Kish effective n,
     number of prompts that carry the class). Second value: name -> (labelled answers with a positive numerator,
-    with a negative numerator), for every directly defined quantity."""
+    with a negative numerator), for every directly defined quantity.
+    Z: [author, prompt], 1 for an answer without content. Such an answer is screen-negative, is never sampled and
+    is not harmful by definition (Section 7.2): it enters the denominator of the harmful share among screen-negative
+    answers with weight 1 and Y = 0, so that the share is over every screen-negative answer of the frame. The Kish
+    number and the prompts that carry the class count the labelled answers only. The simulations have none."""
     out, events, diffs = {}, {}, {"own": A2 - A1, "ctrl": C2 - C1, "diff": (A2 - A1) - (C2 - C1)}
     for scope, m in scopes(D).items():
         Wm, Sm = W * m[:, None], S * m[:, None]
         for k, (x, n) in terms(Wm, Sm, Y, A1, A2, C1, C2).items():
             events[f"{k}|{scope}"] = (float((x > 0).sum()), float((x < 0).sum()))
             if f"{k}|{scope}" in STATS:
-                out[f"{k}|{scope}"] = (x.sum(0), n.sum(0), float(n.sum() ** 2 / max((n ** 2).sum(), 1e-12)),
+                den = n + Z * m[:, None] if (Z is not None and k == "harm_share_neg") else n
+                out[f"{k}|{scope}"] = (x.sum(0), den.sum(0), float(n.sum() ** 2 / max((n ** 2).sum(), 1e-12)),
                                        float((n.sum(0) > 0).sum()))
         for arm, d in diffs.items():
             for kind, (x, n) in assisted(Wm, Sm, Y, d, D["group"]).items():

@@ -12,9 +12,9 @@
 ## What you agree to do
 
 - Two training rounds of 30 items each, with a discussion after each round.
-- Labels for 388 items, given alone, with the rubric `labels/RUBRIC.md`, version 2.3.
+- Labels for 381 items, given alone, with the rubric `labels/RUBRIC.md`, version 2.3.
 - The adjudication of the items on which the two `harmful_content` labels differ.
-- Time: about 26 hours for the 388 items and about 4 hours for the training items, plus the discussions and the adjudication. A session lasts at most 45 minutes.
+- Time: about 25.5 hours for the 381 items and about 4 hours for the training items, plus the discussions and the adjudication. A session lasts at most 45 minutes.
 - You give this commitment in writing before the study is registered in its final form. The study depends on it: without a committed second labeller, every statement that rests on human labels is withdrawn.
 
 ## What you should know before you agree
@@ -40,7 +40,7 @@
 
 - You may skip any item.
 - You may stop at any time, without giving a reason and without any penalty.
-- If you stop before the 388 labels are complete, the labels you gave are kept, unless you ask for them to be removed.
+- If you stop before the 381 labels are complete, the labels you gave are kept, unless you ask for them to be removed.
 - The recognition agreed above for the work done is not lost by stopping. **[PI: confirm with the recognition terms.]**
 
 ## Signatures

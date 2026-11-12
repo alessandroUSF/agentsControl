@@ -26,11 +26,17 @@ For a test model, optionally beside a reference model with the same tokenizer an
        SUAU - SU = UAU - U (supplying a system message changes nothing else in the conversation).
    With --ref: equal template and parameter hashes, equal counts in all six layouts and equal decoded renderings of
    U, SU and SLU ('identical_to_ref').
+3. Thinking setting (12 November 2026). Every request carries the thinking setting of the judge run: "think": false
+   when the build's entry in config/models.json has a "think" key (src/judge_v23.py, judge_cfg), otherwise none
+   (--think config, the default; --think off or unset overrides it). Some chat templates write a switch word into
+   the last user message for this setting. The only text accepted beyond the supplied texts is that word, "/no_think",
+   and only when thinking is off and the template itself contains it; anything else still fails.
 'pass_v23' is true when every condition that applies holds. Informational: whether the built-in prompt is used when
 no system message is given, and the text the template adds then.
 
 Usage:
   python -I scripts/check_system_override.py --test MODEL [--ref MODEL] [--models-dir E:/ollama/models] [--out PATH]
+         [--think config|off|unset] [--models-config config/models.json]
 Writes results/logs/render_check_v23_<test>.json (counts, hashes and the decoded renderings of the harmless texts).
 Needs the local Ollama server: run it only with the PI's OK. Standard library only.
 """
@@ -63,6 +69,7 @@ SINGLE = {"U": None, "SU": SYSTEM, "SLU": SYSTEM_LONG}
 OPTIONS = {"num_predict": 1, "temperature": 0, "seed": 1}
 ROLE_WORDS = re.compile(r"\b(system|user|assistant)\b", re.I)
 NORMAL, UNKNOWN, CONTROL, USER_DEFINED, UNUSED, BYTE = 1, 2, 3, 4, 5, 6
+THINK_OFF_SWITCH = "/no_think"
 
 
 def post(base, path, body, timeout=600):
@@ -81,12 +88,32 @@ def hashes(d):
             "template_has_cr": "\r" in (d.get("template") or "")}
 
 
-def counts(base, model):
+def think_setting(build, cfg_path):
+    """The thinking setting a judge run sends for this build: False when its config entry has a 'think' key
+    (as src/judge_v23.py judge_cfg does), None otherwise."""
+    try:
+        models = json.loads(pathlib.Path(cfg_path).read_text(encoding="utf-8"))["models"]
+    except (OSError, ValueError, KeyError):
+        return None
+    for m in models:
+        builds = {m.get("judge_model") or m.get("model"), m.get("judge_model_sensitivity")}
+        if build in builds and "think" in m:
+            return False
+    return None
+
+
+def with_think(body, think):
+    if think is not None:
+        body["think"] = think
+    return body
+
+
+def counts(base, model, think=None):
     out = {}
     for name, msgs in LAYOUTS.items():
         body = {"model": model, "messages": [{"role": r, "content": c} for r, c in msgs], "stream": False,
                 "keep_alive": 0, "options": OPTIONS}
-        out[name] = post(base, "/api/chat", body)["prompt_eval_count"]
+        out[name] = post(base, "/api/chat", with_think(body, think))["prompt_eval_count"]
     return out
 
 
@@ -210,13 +237,13 @@ def residual(text, contents):
     return re.sub(r"\s+", "", ROLE_WORDS.sub(" ", t))
 
 
-def rendered(base, model, vocab):
+def rendered(base, model, vocab, think=None):
     out = {}
     for name, system in SINGLE.items():
         body = {"model": model, "prompt": U1, "stream": False, "keep_alive": 0, "options": OPTIONS}
         if system is not None:
             body["system"] = system
-        r = post(base, "/api/generate", body)
+        r = post(base, "/api/generate", with_think(body, think))
         ctx = r.get("context")
         if not ctx:
             return None
@@ -230,8 +257,10 @@ def rendered(base, model, vocab):
     return out
 
 
-def content_checks(rend, show_d):
+def content_checks(rend, show_d, think=None):
     pr = builtin_probes(show_d.get("system"))
+    switch = THINK_OFF_SWITCH if think is False and THINK_OFF_SWITCH in (show_d.get("template") or "") else None
+    explained = {"", switch} if switch else {""}
     has_builtin = lambda s: any(p in norm(s) for p in pr)
     c = {
         "system_sentinel_once": (all(rend[k]["text"].count(SYS_ID) == 1 for k in ("SU", "SLU"))
@@ -240,9 +269,9 @@ def content_checks(rend, show_d):
         "system_text_whole": norm(SYSTEM) in norm(rend["SU"]["text"]) and norm(SYSTEM_LONG) in norm(rend["SLU"]["text"]),
         "user_text_whole": all(norm(U1) in norm(rend[k]["text"]) for k in SINGLE),
         "builtin_absent_with_system": not any(has_builtin(rend[k]["text"]) for k in ("SU", "SLU")),
-        "no_unexplained_text": all(residual(rend[k]["text"], (SINGLE[k], U1)) == "" for k in ("SU", "SLU")),
+        "no_unexplained_text": all(residual(rend[k]["text"], (SINGLE[k], U1)) in explained for k in ("SU", "SLU")),
     }
-    info = {"builtin_prompt": bool(pr),
+    info = {"builtin_prompt": bool(pr), "think": think, "thinking_switch_accepted": switch,
             "builtin_used_without_system": bool(pr) and has_builtin(rend["U"]["text"]),
             "residual_by_layout": {k: residual(rend[k]["text"], (SINGLE[k], U1)) for k in SINGLE}}
     return c, info
@@ -254,11 +283,11 @@ def count_checks(rend, cnt):
             "multi_turn_nothing_else": cnt["SUAU"] - cnt["SU"] == cnt["UAU"] - cnt["U"]}
 
 
-def examine(base, model, models_dir):
+def examine(base, model, models_dir, think=None):
     show = post(base, "/api/show", {"model": model})
     vocab, source = vocab_of(post(base, "/api/show", {"model": model, "verbose": True}), models_dir, model)
-    t = {"hashes": hashes(show), "counts": counts(base, model), "vocabulary": source}
-    t["rendered"] = rendered(base, model, vocab) if vocab else None
+    t = {"hashes": hashes(show), "counts": counts(base, model, think), "vocabulary": source, "think": think}
+    t["rendered"] = rendered(base, model, vocab, think) if vocab else None
     if t["rendered"] is None:
         t["content_note"] = (source if not vocab else "/api/generate returned no token sequence ('context'): this "
                              "Ollama version cannot show the rendered conversation")
@@ -272,25 +301,30 @@ def main(argv=None):
     ap.add_argument("--base", default="http://127.0.0.1:11434")
     ap.add_argument("--models-dir", default="", help="Ollama models folder, to read the vocabulary from the GGUF blob")
     ap.add_argument("--out", default="")
+    ap.add_argument("--think", choices=["config", "off", "unset"], default="config",
+                    help="thinking setting sent with every request; 'config' follows config/models.json as a judge run")
+    ap.add_argument("--models-config", default=str(PROJECT / "config" / "models.json"))
     a = ap.parse_args(argv)
+    pick = lambda b: {"off": False, "unset": None}.get(a.think) if a.think != "config" else think_setting(b, a.models_config)
+    think, ref_think = pick(a.test), (pick(a.ref) if a.ref else None)
     res = {"protocol": "2.3", "checked_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "test": a.test,
            "ref": a.ref, "texts": {"system": SYSTEM, "system_long": SYSTEM_LONG, "user": U1, "assistant": A1,
-                                   "user2": U2}}
-    t, show = examine(a.base, a.test, a.models_dir)
+                                   "user2": U2}, "think_mode": a.think, "think": think}
+    t, show = examine(a.base, a.test, a.models_dir, think)
     res["test_model"] = t
     c = t["counts"]
     res["system_rendered"] = c["SLU"] > c["SU"] and c["SLUAU"] > c["SUAU"]
     res["builtin_system_replaced"] = bool(t["hashes"]["system_sha256"]) and c["SU"] != c["U"]
     checks = {}
     if t["rendered"]:
-        cc, info = content_checks(t["rendered"], show)
+        cc, info = content_checks(t["rendered"], show, think)
         checks.update(cc)
         checks.update(count_checks(t["rendered"], c))
         res["informational"] = info
     else:
         checks["content_checked"] = False
     if a.ref:
-        r, _ = examine(a.base, a.ref, a.models_dir)
+        r, _ = examine(a.base, a.ref, a.models_dir, ref_think)
         res["ref_model"] = r
         res["builtin_tokens_when_no_system"] = c["U"] - r["counts"]["U"]
         res["count_diff_by_layout"] = {k: c[k] - r["counts"][k] for k in LAYOUTS}

@@ -1,0 +1,4 @@
+rare_10|bound                      th +0.0015 (ref +0.0008) cov 0.919 | io +0.0010 (ref +0.0012) cov 0.903 | iw -0.0028 (ref +0.0012) cov 0.890 | holm th 0.034 io 0.049 any 0.063 both 0.021 | io&iw 0.000 | p3 0.025 | 434s
+    boundary cases in 40000 replications: zero denominator 0, zero variance {'p1': 3139, 'p2': 966, 'p3': 1268}, tests carried out {'p1': 36861, 'p2': 39034, 'p3': 38732}, iota_W not estimable with iota_S estimable 39560
+    CHECK 1 FAILS: P1 or P2 0.0633 against 0.0429 (R 40000)
+    CHECK 3 FAILS: P3 0.0246 against 0.0115 (R 40000)

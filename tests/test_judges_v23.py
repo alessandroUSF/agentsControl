@@ -2,7 +2,7 @@
 the spending rules of src/spend_v23.py that it uses.
 
 Synthetic answers, fake providers and the recorded prices; every file goes to a scratch folder (AC_TEST_TMP,
-default E:/claude/agentsControl_work/tmp/test_judges_v23). Nothing is sent over the network, no model is called,
+default E:/claude/agentsControl_tests/test_judges_v23). Nothing is sent over the network, no model is called,
 and no file under results/ is read or written. Benchmark prompts are read from data/processed/sample.jsonl, as the
 runner does; nothing is printed from them.
 
@@ -31,7 +31,7 @@ import run_judges_v23 as R  # noqa: E402
 import screen as screen_mod  # noqa: E402
 import spend_v23 as S  # noqa: E402
 
-TMP = pathlib.Path(os.environ.get("AC_TEST_TMP", "E:/claude/agentsControl_work/tmp")) / "test_judges_v23"
+TMP = pathlib.Path(os.environ.get("AC_TEST_TMP", "E:/claude/agentsControl_tests")) / "test_judges_v23"
 REAL_MODELS = json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))
 REAL_DESIGN = json.loads((ROOT / "config" / "panel_v23.json").read_text(encoding="utf-8"))
 REAL_HOLDS = json.loads((ROOT / "config" / "stage_holds.json").read_text(encoding="utf-8"))
@@ -44,6 +44,33 @@ REFUSAL = "I'm sorry, but I can't help with that."
 VALID = '{"label": "full_refusal", "harmful_content": false, "confidence": 80, "reason": "synthetic"}'
 os.environ.pop("STUDY_BUDGET_USD", None)
 
+# The route of model 14 before decision D2 (11 November 2026): through OpenRouter, pinned to an endpoint with safety
+# retention. Decision D17 (12 November 2026) took model 14 out of the study, and no pinned endpoint of the panel keeps
+# data for safety review. The D2 tests put this route on model D2_N of the commercial panel: their example of a pinned
+# endpoint with safety retention, the case that the D2 rules still cover.
+D2_N = 13
+ROUTED_14 = {
+    "provider": "openai_compatible", "base_url": "https://openrouter.ai/api/v1", "api_key_env": "AC_OPENROUTER_API_KEY",
+    "model": "google/gemini-4-argon", "zdr": True, "allow_fallbacks": False, "provider_order": ["google-vertex/global"],
+    "price_checked": "2026-11-11 pinned endpoint google-vertex/global (data/selection/2026-11-11)",
+    "pin": {"tag": "google-vertex/global", "provider_name": "Google", "quantization": "unknown",
+            "prompt_usd_per_m": 2.0, "completion_usd_per_m": 10.0, "cache_write_usd_per_m": 0.1875,
+            "safety_retention": True, "status": -2, "context_length": 1048576,
+            "supported_parameters": ["include_reasoning", "max_tokens", "reasoning", "reasoning_effort",
+                                     "response_format", "seed", "stop", "structured_outputs", "temperature",
+                                     "tool_choice", "tools", "top_p"],
+            "discount": 0.5, "source": "data/selection/2026-11-11/raw/or_endpoints_zdr.json", "recorded": "2026-11-11"},
+}
+
+
+def via_openrouter_14(models, d2):
+    """Puts the OpenRouter route that model 14 had before decision D2 on model D2_N, with this D2 value."""
+    m = next(x for x in models if x["n"] == D2_N)
+    for k in ("price_schedule", "cache_read_factor", "cache_write_factor"):
+        m.pop(k, None)
+    m.update(copy.deepcopy(ROUTED_14), d2_safety_retention=d2)
+
+
 _orig_append_line = S.append_line
 
 
@@ -53,6 +80,7 @@ def fast_append_line(path, obj, durable=True):        # no fsync in tests
 
 S.append_line = fast_append_line
 R.SLEEP = lambda s: None
+R.LOAD_ENV = lambda: None                             # never the real .env in tests
 
 
 # ---- fakes --------------------------------------------------------------------------------------------------------------
@@ -122,8 +150,6 @@ def setup(name, cap=128.0, models_edit=None, design_edit=None, holds_edit=None, 
     for m in models["models"]:
         if m["n"] == 6:
             m["judge_model_digest"] = "sha256:test-q4_0-build"
-        if m["n"] == 14:
-            m["d2_safety_retention"] = "all"          # decision D2 is the PI's; the D2 tests set other values
     if models_edit:
         models_edit(models["models"])
     design = copy.deepcopy(REAL_DESIGN)
@@ -142,6 +168,7 @@ def setup(name, cap=128.0, models_edit=None, design_edit=None, holds_edit=None, 
     R.MODELS, R.DESIGN, S.HOLDS, J.SETTINGS = tmp / "models.json", tmp / "panel.json", tmp / "holds.json", \
         tmp / "judge.json"
     R.LABELS = tmp / "labels.jsonl"
+    S.MANIFEST = tmp / "manifest.json"
     S.STUDY_CAP_DEFAULT = cap
     Fake.models, Fake.rules, Fake.sent, Fake.zdr, Fake.ollama_version = models["models"], {}, [], SNAPSHOT, "0.40.15"
     return tmp, models["models"]
@@ -325,6 +352,7 @@ def t_pilot_both_rounds_and_close():
     for r in fin.values():
         per[r["judge"]] = per.get(r["judge"], 0) + 1
     panel = P.Panel(models, REAL_DESIGN)
+    n_api = len(panel.hosted_all + panel.commercial)        # 12 since decision D17
     ok = c1 == 0 and all(per.get(panel.key_of[n]) == 200 for n in panel.local)
     ok &= all(per.get(panel.key_of[n]) == 60 for n in panel.hosted_all + panel.commercial)
     pub = public("1")
@@ -332,7 +360,7 @@ def t_pilot_both_rounds_and_close():
     text = (R.LOGS / "judge_calls_v23_pilot.jsonl").read_text(encoding="utf-8")
     ok &= "Synthetic answer" not in text and REFUSAL not in text
     calls = [e for e in jsonl(S.LEDGER) if e.get("kind") == "call"]
-    ok &= len(calls) == 13 * 60 and all(e["item"].endswith("|pilot_r1") for e in calls)
+    ok &= len(calls) == n_api * 60 and all(e["item"].endswith("|pilot_r1") for e in calls)
     ok &= all(e["spent_usd"] <= e["reserved_usd"] + 1e-12 for e in calls)
     ok &= all(r["identity_match"] is True for r in pub if r["judge_n"] in panel.hosted_all + panel.commercial)
     by_judge = {}
@@ -344,13 +372,13 @@ def t_pilot_both_rounds_and_close():
     starts = [r["presentation"] for r in pub if r["position"] == 0 and r["pair"]]
     ok &= 0.4 < starts.count("blind") / len(starts) < 0.6
     q = [r for r in pub if r["arm"] == "Q"]
-    ok &= len(q) == 13 * 20 and len({r["answer_id"] for r in q}) == 10
+    ok &= len(q) == n_api * 20 and len({r["answer_id"] for r in q}) == 10
     early = run(["--run", "c1", "--block", "1", "--complete-block", "--answer-runs", "p1,p2"])   # round 2 not judged
     c2 = run(["--run", "j2", "--block", "1", "--round", "2", "--answer-runs", "p1,p2"])
     closed = run(["--run", "c1", "--block", "1", "--complete-block", "--answer-runs", "p1,p2"])
     lines = [e for e in jsonl(S.LEDGER) if e.get("kind") == "block_complete"]
     ok &= isinstance(early, str) and "cannot be closed" in early and c2 == 0 and closed == 0 and len(lines) == 1
-    ok &= lines[0]["final_by_status"].get("valid") == 2 * (10 * 200 + 13 * 60)
+    ok &= lines[0]["final_by_status"].get("valid") == 2 * (10 * 200 + n_api * 60)
     spent = sum(e["spent_usd"] for e in jsonl(S.LEDGER))
     ok &= abs(spent - sum(r["cost_usd"] for r in public("1"))) < 1e-6
     if not ok:
@@ -607,7 +635,8 @@ def t_price_rise():
     main_answers(models)
     write_labels(models, ["b2"])
     open_main_blocks(6)
-    ledger(kind="credit_fee", account="test", note="spending of earlier blocks (synthetic)", spent_usd=50.0)
+    ledger(kind="credit_fee", account="test", note="spending of earlier blocks (synthetic)", spent_usd=74.5)
+    # block 6 alone costs about US$54.4 at these prices: 74.5 + 54.4 > 128, and cut 1 (about US$1.9) makes it fit
     c2 = run(["--run", "p", "--block", "6", "--answer-runs", "b2", "--judges", key(models, 1), "--max-calls", "1"])
     cuts = [e["cut"] for e in jsonl(S.LEDGER) if e.get("kind") == "cut"]
     ok &= c2 == 0 and cuts and cuts[0] == 1
@@ -616,14 +645,12 @@ def t_price_rise():
 
 def t_d2_safe_only():
     def edit(ms):
-        for m in ms:
-            if m["n"] == 14:
-                m["d2_safety_retention"] = "safe_only"
+        via_openrouter_14(ms, "safe_only")
     tmp, models = setup("d2", models_edit=edit)
     main_answers(models)
     write_labels(models, ["b2"])
     open_main_blocks(6)
-    k14 = key(models, 14)
+    k14 = key(models, D2_N)
     c = run(["--run", "d", "--block", "6", "--answer-runs", "b2", "--judges", k14, "--max-calls", "400"])
     sent = private("6")
     ok = (c == 0 and sent and all(r["side"] == "safe" for r in sent) and "not_sent_d2" in run.out
@@ -634,16 +661,16 @@ def t_d2_safe_only():
     ok &= (c == 0 and cc == 0 and bool(bc) and bc[-1]["excluded_d2"].get(k14, 0) > 0 and not bc[-1]["not_attempted"]
            and not any(e.get("kind") == "block_abandon" for e in jsonl(S.LEDGER)))   # excluded, not abandoned
     ok &= not any(r["part"].startswith(("challenge", "reference")) for r in private("6"))
-    # model 14 under D2 wrote no answer to a harmful prompt: the judge that controls its common answers closes block 6
+    # model D2_N under D2 wrote no answer to a harmful prompt: the judge that controls its common answers closes block 6
     # without --allow-missing, and those judgements are counted apart (missing_d2), not as missing
     tmp, models = setup("d2gap", models_edit=edit)
-    k14 = key(models, 14)
+    k14 = key(models, D2_N)
     write_answers(models, "b2", skip={(k14, p) for p in FR["common"][0]})
     write_labels(models, ["b2"])
     open_main_blocks(6)
     run(["--run", "pre", "--block", "6", "--answer-runs", "b2", "--judges", k14, "--max-calls", "1"])   # its preflight
     asg, _ = P.load_assignment()
-    jx = asg[("commercial", "common")][FR["common"][0][0]][14]
+    jx = asg[("commercial", "common")][FR["common"][0][0]][D2_N]
     kx = key(models, jx)
     c = run(["--run", "x", "--block", "6", "--answer-runs", "b2", "--judges", kx])
     cc = run(["--run", "xc", "--block", "6", "--answer-runs", "b2", "--judges", kx, "--complete-block"])
@@ -653,8 +680,7 @@ def t_d2_safe_only():
     if not gap:
         print("   d2 gap:", c, cc, bc[-1] if bc else None, run.out[-300:])
     ok &= gap
-    tmp, models = setup("d2none", models_edit=lambda ms: [m.update(d2_safety_retention=None) for m in ms
-                                                          if m["n"] == 14])
+    tmp, models = setup("d2none", models_edit=lambda ms: via_openrouter_14(ms, None))
     main_answers(models)
     write_labels(models, ["b2"])
     open_main_blocks(6)
@@ -775,6 +801,8 @@ def t_pilot_report():
     harm = '{"label": "full_compliance", "harmful_content": true}'
     Fake.rules[m1["model"]] = ["nothing", "nothing"] * 10 + [harm] * 10           # 10 parse errors of 60 calls
     Fake.rules[m4["model"]] = [{"stop_reason": "length"}] * 30 + [harm] * 20      # 30 cap stops of 200
+    bad = '{"label": "no_such_label", "harmful_content": true}'               # invalid, final after its retry
+    Fake.rules[m22["model"]] = [bad] * 400                                    # every verdict of model 22
     c = run(["--run", "r", "--block", "1", "--round", "1", "--answer-runs", "p1",
              "--judges", ",".join(m["key"] for m in (m1, m4, m22))])
     out = tmp / "pilot"
@@ -798,6 +826,135 @@ def t_pilot_report():
     ok &= "Synthetic answer" not in blob and REFUSAL not in blob and '"reason"' not in blob
     ok &= rep["rules"]["over the reservation bound"] == 0 and rep["rules"]["pairs not made next to each other"] == 0
     ok &= (out / "pilot_tokens_r1.json").exists()
+    # run (f) of Appendix A.4: own screen-positive answers to harmful prompts, delivered blind flags; read by the
+    # planning script
+    plan_in = json.loads((out / "pilot_planning_input_r1.json").read_text(encoding="utf-8"))
+    panel = P.Panel(models, REAL_DESIGN, registered_hosted=R.registered_hosted(REAL_DESIGN, "1"))
+    table = A.load_table(["p1"], raw=R.RAW, pilot=True, number_of=panel.n_of)
+    rnd = PILOT["rounds"][0]
+    for m in (m4, m22):
+        pos = [table[A.answer_id(m["key"], p)] for p in rnd["harmful"]
+               if A.answer_id(m["key"], p) in table and table[A.answer_id(m["key"], p)]["screen"] == "positive"]
+        fb = [r for r in fin.values() if r["judge"] == m["key"] and r["presentation"] == "blind"
+              and r["answer_id"] in {a["answer_id"] for a in pos}]
+        got = plan_in["judges"][str(m["n"])]
+        ok &= got["screen_positive"] == len(fb) and got["blind_not_final"] == len(pos) - len(fb)
+        ok &= got["blind_flags"] == sum(1 for r in fb if r["status"] == "valid" and r["harmful_content"])
+        if m is m22:                                         # an invalid final verdict counts as no flag
+            ok &= len(fb) > 0 and all(r["status"] != "valid" for r in fb) and got["blind_flags"] == 0
+        ans = [p for p in rnd["harmful"] if A.answer_id(m["key"], p) in table]
+        ok &= plan_in["models"][str(m["n"])] == {"answers": len(ans), "screen_positive": len(pos)}
+    ok &= "1" not in plan_in["judges"]                       # model 1 is commercial: not in the planning input
+    sys.path.insert(0, str(ROOT / "analysis"))
+    import pilot_planning_v23 as PP
+    import sim_v23_dgp as dgp
+    scen, report = PP.points(plan_in, dgp.design())
+    ok &= set(scen) == {PP.point_name(a, b) for a, b in PP.GRID}
+    return ok
+
+
+class Crash(BaseException):
+    """A process killed at this point: no handler of the runner catches it."""
+
+
+def t_crash_recovery_judge():
+    """A paid judging process killed after the private verdict record and before its ledger line: the next session
+    settles the attempt at the cost written in the record, and the call is not made again (Section 12.5)."""
+    tmp, models = setup("crashj")
+    ledger(kind="registration", tag="t")
+    write_answers(models, "p1", pilot_round=1)
+    k7 = key(models, 7)
+    orig, n = S.Books.settle, {"calls": 0}
+
+    def settle_then_die(self, reserved, actual, entry, kind="call"):
+        n["calls"] += 1
+        if n["calls"] == 2:
+            raise Crash()
+        return orig(self, reserved, actual, entry, kind)
+
+    S.Books.settle = settle_then_die
+    try:
+        run(["--run", "x1", "--block", "1", "--round", "1", "--answer-runs", "p1", "--judges", k7, "--max-calls", "4"])
+        crashed = False
+    except Crash:
+        crashed = True
+    finally:
+        S.Books.settle = orig
+    S.SPEND_LOCK.unlink(missing_ok=True)
+    second = private("1")[1]
+    ok = crashed and len(private("1")) == 2 and len([e for e in jsonl(S.LEDGER) if e.get("kind") == "call"]) == 1
+    sent = len(Fake.sent)
+    c = run(["--run", "x2", "--block", "1", "--round", "1", "--answer-runs", "p1", "--judges", k7, "--max-calls", "4"])
+    rec = [e for e in jsonl(S.LEDGER) if e.get("reconciled")]
+    ok &= c == 0 and len(rec) == 1 and rec[0]["attempt_id"] == second["attempt_id"] and rec[0]["final"] is True
+    ok &= abs(rec[0]["spent_usd"] - second["cost_usd"]) < 1e-9 and "settled 1 judge" in run.out
+    ok &= second["key"] not in {r["key"] for r in private("1") if r["run"] == "x2"} and len(Fake.sent) - sent == 4
+    books = S.Books("look", write=False)
+    ok &= not books.unsettled()
+    return ok
+
+
+def t_format_retry_resumed():
+    """A call whose answer was unparsed and whose format retry stayed pending: the next session resumes it with the
+    retry sentence, the attempt numbers go on, and no second first attempt is made (Section 11.5)."""
+    tmp, models = setup("retryresume")
+    ledger(kind="registration", tag="t")
+    write_answers(models, "p1", pilot_round=1)
+    m1 = next(m for m in models if m["n"] == 1)
+    retries = int(REAL_SETTINGS["retries_in_session"])
+    Fake.rules[m1["model"]] = ["no verdict here"] + [FakeHTTP(503, "down")] * (retries + 1)
+    c = run(["--run", "f1", "--block", "1", "--round", "1", "--answer-runs", "p1", "--judges", m1["key"],
+             "--max-calls", "1"])
+    first = private("1")
+    ok = c == 0 and first[0]["status"] == "unparsed" and first[-1]["status"] == "pending"
+    ok &= all(r["format_retry"] for r in first[1:])
+    Fake.rules[m1["model"]] = []
+    c2 = run(["--run", "f2", "--block", "1", "--round", "1", "--answer-runs", "p1", "--judges", m1["key"],
+              "--max-calls", "1"])
+    again = [r for r in private("1") if r["run"] == "f2"]
+    ok &= c2 == 0 and len(again) == 1 and again[0]["key"] == first[0]["key"] and again[0]["format_retry"] is True
+    ok &= again[0]["attempt"] == first[-1]["attempt"] + 1 and again[0]["status"] == "valid"
+    return ok
+
+
+def t_identity_pairs():
+    """The judge's returned identifier and serving host must be a pair that the model returned together when it
+    answered, not an identifier and a host seen apart (Section 3.3)."""
+    tmp, models = setup("identpairs")
+    ledger(kind="registration", tag="t")
+    write_answers(models, "p1", pilot_round=1)
+    m7 = next(m for m in models if m["n"] == 7)
+    path = R.RAW / "responses_p1.jsonl"
+    rows = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+    mine = [r for r in rows if r["model_key"] == m7["key"]]
+    mine[0].update(model_returned="other-id", served_provider="HostB")       # a second pair, seen once
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    Fake.rules[m7["model"]] = [{"model_returned": "other-id"}, {"served_provider": "HostB"},
+                               {"model_returned": "other-id", "served_provider": "HostB"}]
+    c = run(["--run", "ip", "--block", "1", "--round", "1", "--answer-runs", "p1", "--judges", m7["key"],
+             "--max-calls", "4"])
+    att = private("1")
+    return c == 0 and [r["identity_match"] for r in att] == [False, False, True, True]
+
+
+def t_request_options():
+    """The request options that the protocol fixes reach the request body (review round 5, mutations): a local judge
+    never lets Ollama shorten the conversation (truncate and shift false, Section 11.2); an OpenAI call, answer or
+    verdict, is sent with store=False (no retention by the provider, Section 3.3)."""
+    import providers
+    models = json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))["models"]
+    loc = next(m for m in models if m["provider"] == "ollama" and m["n"] in (4, 5, 6))
+    cfg = J.judge_cfg(loc, REAL_SETTINGS)
+    ok = cfg.get("truncate") is False and cfg.get("shift") is False
+    oll = object.__new__(providers.OllamaProvider)
+    oll.cfg, oll.base = cfg, "http://localhost:11434"
+    body = oll.body([{"role": "user", "content": "x"}])
+    ok &= body.get("truncate") is False and body.get("shift") is False
+    oai = next(m for m in models if m["provider"] == "openai")
+    for c in (J.judge_cfg(oai, REAL_SETTINGS), dict(oai)):
+        p = object.__new__(providers.OpenAIProvider)
+        p.cfg = c
+        ok &= p.params([{"role": "user", "content": "x"}]).get("store") is False
     return ok
 
 
@@ -806,7 +963,8 @@ TESTS = [t_template_layouts, t_parser_rules, t_pilot_both_rounds_and_close, t_re
          t_overrun_stops_paid_calls, t_run_cap_and_study_cap, t_block_order, t_provider_stop_block7_and_abandon,
          t_cut_on_half_done_block, t_price_rise, t_d2_safe_only, t_identity_mismatch_counted, t_local_checks,
          t_sensitivity_build, t_answer_guard, t_holds_cover_every_paid_call, t_no_content_not_sent,
-         t_block3_hosted_full_then_close_for_them, t_pilot_report]
+         t_block3_hosted_full_then_close_for_them, t_pilot_report, t_crash_recovery_judge,
+         t_format_retry_resumed, t_identity_pairs, t_request_options]
 
 
 def main():
