@@ -1,0 +1,16 @@
+# Corrections after review round 4 (protocol v2.3)
+
+- **Report answered:** `docs/audit/2026-11-10_reviewer_round4_codex_gpt61sol.md` (GPT-6.1 Sol, 10 November 2026, short targeted check).
+- **Verdict of the report:** the core is ready for the PI's decisions; no new critical problem; another design round is unnecessary. Three major points of specification and three minor ones.
+- **Session log audit:** 30 shell commands, all inside the copy; no web action.
+
+| Point of round 4 | Correction | Where |
+|---|---|---|
+| Major: the block order judged the primary panel before the screen and the label sample, against Sections 7 and 9.2 | The screen of an answer runs before any verdict on that answer exists: the primary panel's answers before block 3, the commercial answers in block 4. The label sample is drawn in block 4; the primary verdicts exist by then, but the sampler reads only model, prompt, source, side and screen result, and nobody opens a verdict file before the label lock | 7.2, 9.2, 12.3, 13.4 |
+| Major: the effective-n intervals were called exact and conservative by construction | Described as approximate: the Clopper–Pearson formula on an effective number of answers. Conservative in the simulations, not by construction. The propagated interval is at least 95% only if its components have nominal coverage. Every interval passes check 5 of Appendix A.4, the informative-screening run included, or it is not reported. The table label is now `eff-n` | 9.5; Appendix A.3, A.4; `analysis/tables_v23.py` |
+| Major: the missing-label gate checked the extremes of the estimate, not of the interval | Gate on the largest upper limit (for a decrease) or smallest lower limit (for an increase) of the 95% interval over every assignment of the unknown labels, with and without the answers labelled once. Enumeration when at most 20 labels are unknown in the scope, otherwise no statement. Ties, missing support and undefined intervals withhold the statement. The enumeration tests cover the gate | 2.4, 9.3, 19.4 |
+| Minor: supporting copies kept superseded rules | 18.5: unknown labels and joint adjudication with the PI as one labeller. D5 second text, D6 and D8 deadlines in `docs/PI_DECISIONS.md`. README registration line. Rubric: training after the pilot's first judging call changes nothing in Part A. 18.8: model 22's repeatability is the one primary-panel cut. Pilot and training operations listed apart in both copies of the second statement | 18.5, 18.8, 19.2, 19.3; `docs/PI_DECISIONS.md`, `README.md`, `labels/RUBRIC.md` |
+| Minor: the reading draw is 190, not 198 | Model 22 answers 5 harmful prompts per source in round 1: 190 answers with eleven models, 180 with ten; round-2 answers are not added. PI workload about 53 hours of reading, about 71 elapsed | 7.3, 13.3, 19.2 |
+| Minor: cut totals were computed from rounded savings | From unrounded block values: US$113.69, 107.80, 101.90, 98.95. The illustrations of Section 17.2 are marked as figures of round 3 | 1, 12.2, 12.4, 17.2; `docs/PI_DECISIONS.md` |
+
+The points that round 4 marked "resolved on a condition" depend on work already listed: the code of Section 19.4, the synthetic end-to-end run, the adverse-path tests and the runs of Appendix A.4 before the freeze, and the PI's decisions.

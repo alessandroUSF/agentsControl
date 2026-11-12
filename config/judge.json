@@ -1,0 +1,18 @@
+{
+ "_readme": "VERSION-1 DRAFT, SUPERSEDED. This file configured the version-1 local multi-agent judge (Agent A, Agent B, arbiter) and is kept only for the record. The version-2.2 judges are specified in docs/STUDY_PROTOCOL_v2.md, Section 8: all 22 respondent-judges (API judges included, so answers to harmful prompts are sent to API judges under Section 10), guards, a keyword baseline and frontier judges. The v2.2 judge configuration (one entry per judge with provider, ID, AC_* key, effort, temperature, seed, caps, num_ctx, thinking, explicit sampling options, batch, template SHA-256 and parser version) is committed with the judge code before the G2 draw and the first judge call (Section 13). Answers are never clipped in v2.2.",
+ "status": "superseded (version 1)",
+ "agent_a": {
+  "model": "qwen3:8b",
+  "think": false
+ },
+ "agent_b": {
+  "model": "llama3.1:8b"
+ },
+ "arbiter": {
+  "model": "qwen3:8b",
+  "think": false
+ },
+ "seed": 20261108,
+ "num_ctx": 8192,
+ "max_output_tokens": 200
+}

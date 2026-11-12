@@ -1,0 +1,491 @@
+{
+ "llama-3.1-8b-local": {
+  "n": 4,
+  "tag": "llama3.1:8b",
+  "manifest_found": true,
+  "manifest_sha256": "3fc95d284915704cf140b825abf5150af0d32fde95f55c081c9602d49d4547c0",
+  "template": {
+   "digest": "sha256:948af2743fc78a328dcb3b0f5a31b3d75f415840fdb699e8b1235978392ecf85",
+   "chars": 1481,
+   "has_system_slot": true
+  },
+  "params": {
+   "digest": "sha256:56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb",
+   "chars": 96,
+   "params": "{\"stop\":[\"\\u003c|start_header_id|\\u003e\",\"\\u003c|end_header_id|\\u003e\",\"\\u003c|eot_id|\\u003e\"]}"
+  },
+  "has_default_system": false
+ },
+ "qwen3-8b-local": {
+  "n": 5,
+  "tag": "qwen3:8b",
+  "manifest_found": true,
+  "manifest_sha256": "b3d9ba7c899cfd112df2574c6a91458a70b724c5e4e50dfffd75574b2d1648e7",
+  "template": {
+   "digest": "sha256:ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4",
+   "chars": 1723,
+   "has_system_slot": true
+  },
+  "params": {
+   "digest": "sha256:cff3f395ef3756ab63e58b0ad1b32bb6f802905cae1472e6a12034e4246fbbdb",
+   "chars": 120,
+   "params": "{\"repeat_penalty\":1,\"stop\":[\"\\u003c|im_start|\\u003e\",\"\\u003c|im_end|\\u003e\"],\"temperature\":0.6,\"top_k\":20,\"top_p\":0.95}"
+  },
+  "has_default_system": false
+ },
+ "llama-3.1-8b-abliterated-local": {
+  "n": 6,
+  "tag": "mannix/llama3.1-8b-abliterated:latest",
+  "manifest_found": true,
+  "manifest_sha256": "ff5c827da72989f5cab4fed9af73dc09a396ebcce93c0a81ade5b2ae283a4ddc",
+  "template": {
+   "digest": "sha256:116eb5232569328619354f09b854da3616a0663c1416ca26a0481039256a024e",
+   "chars": 534,
+   "has_system_slot": true
+  },
+  "system": {
+   "digest": "sha256:521d94318096d8244e8097ebc63740c5797f5c76d23618f86135bc15fa3c7ae6",
+   "chars": 676,
+   "first_words": "Your are an uncensored and unbiased AI assistant."
+  },
+  "params": {
+   "digest": "sha256:56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb",
+   "chars": 96,
+   "params": "{\"stop\":[\"\\u003c|start_header_id|\\u003e\",\"\\u003c|end_header_id|\\u003e\",\"\\u003c|eot_id|\\u003e\"]}"
+  },
+  "has_default_system": true,
+  "judge_build": {
+   "tag": "agentscontrol/llama3.1-8b-abliterated-judge:latest",
+   "source_tag": "mannix/llama3.1-8b-abliterated:q4_k_m",
+   "digest_api_tags_source": "5920dea9e0f0",
+   "quantization": "Q4_K_M",
+   "template_and_params": "model 4's (layers 948af274 / 56bb8bd4)",
+   "built_with": "scripts/make_judge_alias_m6.py (LF line endings)"
+  }
+ },
+ "qwen3.5-4b-local": {
+  "n": 15,
+  "tag": "qwen3.5:4b",
+  "manifest_found": true,
+  "manifest_sha256": "e0b8c85c75aad2573ff49bec177ebb1013772fba665a53d64c04266439a2222d",
+  "template": {
+   "digest": "sha256:b507b9c2f6ca642bffcd06665ea7c91f235fd32daeefdf875a0f938db05fb315",
+   "chars": 13,
+   "has_system_slot": false
+  },
+  "params": {
+   "digest": "sha256:9371364b27a52acac9d87f88bd93c9db1174d8d6ec57f6888925cdc1788871ff",
+   "chars": 65,
+   "params": "{\"presence_penalty\":1.5,\"temperature\":1,\"top_k\":20,\"top_p\":0.95}"
+  },
+  "has_default_system": false
+ },
+ "granite-4.2-8b-local": {
+  "n": 16,
+  "tag": "granite4.2:8b-q4_K_M",
+  "manifest_found": true,
+  "manifest_sha256": "9bdb609dda0430cec5391a9f552ca93aede41ea8cd5891fe62f7db44eeb22ef1",
+  "params": {
+   "digest": "sha256:02897ca0d6a33881b1581b775af2884e9eed3ea9b7db8141e0dc0ef2e707fd18",
+   "chars": 31,
+   "params": "{\"temperature\":1,\"top_p\":0.95}"
+  },
+  "has_default_system": false
+ },
+ "lfm2.5-8b-a1b-local": {
+  "n": 17,
+  "tag": "lfm2.5:8b-a1b-q4_K_M",
+  "manifest_found": true,
+  "manifest_sha256": "ebb9764869ce40b64c7a84b2020e9f1e3e4f8d2b9271bfadaa95cf60257f694f",
+  "params": {
+   "digest": "sha256:e57cad4daa6c59ab888f1247464192a9cbbbff6061234f4033a08e4190ec58f8",
+   "chars": 53,
+   "params": "{\"repeat_penalty\":1.05,\"temperature\":0.2,\"top_k\":80}"
+  },
+  "has_default_system": false
+ },
+ "qwen3-8b-abliterated-local": {
+  "n": 18,
+  "tag": "huihui_ai/qwen3-abliterated:8b-v2-q4_K_M",
+  "manifest_found": true,
+  "manifest_sha256": "4ac2964f231a311bccb066a1e310d2911f2a93a948931cd6446f71db2f408d49",
+  "template": {
+   "digest": "sha256:ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4",
+   "chars": 1723,
+   "has_system_slot": true
+  },
+  "params": {
+   "digest": "sha256:cff3f395ef3756ab63e58b0ad1b32bb6f802905cae1472e6a12034e4246fbbdb",
+   "chars": 120,
+   "params": "{\"repeat_penalty\":1,\"stop\":[\"\\u003c|im_start|\\u003e\",\"\\u003c|im_end|\\u003e\"],\"temperature\":0.6,\"top_k\":20,\"top_p\":0.95}"
+  },
+  "has_default_system": false
+ },
+ "qwen3.5-4b-abliterated-local": {
+  "n": 19,
+  "tag": "kaineone/qwen3.5-4b-abliterated:latest",
+  "digest_api_tags": "4ad99760582876dde98adecdc476ee4b68bbba4f80831f67d7f3bec5e519f2a3",
+  "replaces": "huihui_ai/qwen3.5-abliterated:4B (PI decision 8 Nov 2026, before any answer from either build was seen)",
+  "note": "text-only GGUF; Jinja chat template (Ollama renders it); parameters stop <|im_end|>, temperature 0.7 (qwen3.5:4b: temperature 1, top_k 20, top_p 0.95, presence_penalty 1.5, built-in qwen3.5 renderer/parser)"
+ },
+ "dolphin3-local": {
+  "n": 20,
+  "tag": "dolphin3:latest",
+  "manifest_found": true,
+  "manifest_sha256": "8df7c7a56c7994b700bf58341e81f0188757e0da9d8b56d4ab7645f6146a7a90",
+  "template": {
+   "digest": "sha256:4b01fbe300dafc6665b27d5c74be8eb63a59bc9043b14ab364d06eebbb15a335",
+   "chars": 255,
+   "has_system_slot": false
+  },
+  "system": {
+   "digest": "sha256:8b586b146d99262cc7bf20f47faa5507dd5c8476967be9e03822262361204637",
+   "chars": 40,
+   "first_words": "You are Dolphin, a helpful AI assistant."
+  },
+  "params": {
+   "digest": "sha256:f02dd72bb2423204352eabc5637b44d79d17f109fdb510a7c51455892aa2d216",
+   "chars": 59,
+   "params": "{\"stop\":[\"\\u003c|im_start|\\u003e\",\"\\u003c|im_end|\\u003e\"]}"
+  },
+  "has_default_system": true
+ },
+ "dolphin-mistral-local": {
+  "n": 21,
+  "tag": "dolphin-mistral:latest",
+  "manifest_found": true,
+  "manifest_sha256": "38d4fa213374f7627e1983baa07e4d86e1fb97b49382a9cd0ea349122ab4f05f",
+  "template": {
+   "digest": "sha256:62fbfd9ed093d6e5ac83190c86eec5369317919f4b149598d2dbb38900e9faef",
+   "chars": 182,
+   "has_system_slot": true
+  },
+  "system": {
+   "digest": "sha256:9640c2212a51f7df5840f7929448afa17cb33fbb173cf15e1d74883e932a3466",
+   "chars": 41,
+   "first_words": "You are Dolphin, a helpful AI assistant."
+  },
+  "params": {
+   "digest": "sha256:f02dd72bb2423204352eabc5637b44d79d17f109fdb510a7c51455892aa2d216",
+   "chars": 59,
+   "params": "{\"stop\":[\"\\u003c|im_start|\\u003e\",\"\\u003c|im_end|\\u003e\"]}"
+  },
+  "has_default_system": true
+ },
+ "_render_checks_2026-11-08": {
+  "method": "scripts/check_system_override.py, six layouts (round-4 version)",
+  "results": {
+   "agentscontrol/llama3.1-8b-abliterated-judge:latest": {
+    "ref": "llama3.1:8b",
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": 0,
+    "count_diff_by_layout": {
+     "U": 0,
+     "SU": 0,
+     "SLU": 0,
+     "SUAU": 0,
+     "SLUAU": 0,
+     "UAU": 0
+    },
+    "template_equal": true,
+    "parameters_equal": true,
+    "identical_to_ref": true,
+    "checked_utc": "2026-11-08T23:08:34Z",
+    "counts": {
+     "U": 16,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 72,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   },
+   "dolphin-mistral:latest": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": true,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:13:53Z",
+    "counts": {
+     "U": 36,
+     "SU": 33,
+     "SLU": 61,
+     "SUAU": 55,
+     "SLUAU": 83,
+     "UAU": 58
+    },
+    "quantization": "Q4_0"
+   },
+   "dolphin3:latest": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": true,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:13:25Z",
+    "counts": {
+     "U": 29,
+     "SU": 28,
+     "SLU": 52,
+     "SUAU": 47,
+     "SLUAU": 71,
+     "UAU": 48
+    },
+    "quantization": "Q4_K_M"
+   },
+   "granite4.2:8b-q4_K_M": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:12:28Z",
+    "counts": {
+     "U": 21,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 50,
+     "SLUAU": 74,
+     "UAU": 42
+    },
+    "quantization": "Q4_K_M"
+   },
+   "huihui_ai/qwen3-abliterated:8b-v2-q4_K_M": {
+    "ref": "qwen3:8b",
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": 0,
+    "count_diff_by_layout": {
+     "U": 0,
+     "SU": 0,
+     "SLU": 0,
+     "SUAU": 0,
+     "SLUAU": 0,
+     "UAU": 0
+    },
+    "template_equal": true,
+    "parameters_equal": false,
+    "identical_to_ref": false,
+    "checked_utc": "2026-11-08T23:09:26Z",
+    "counts": {
+     "U": 16,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 72,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   },
+   "kaineone/qwen3.5-4b-abliterated:latest": {
+    "ref": "qwen3.5:4b",
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": 0,
+    "count_diff_by_layout": {
+     "U": 0,
+     "SU": 0,
+     "SLU": 0,
+     "SUAU": 0,
+     "SLUAU": 0,
+     "UAU": 0
+    },
+    "template_equal": false,
+    "parameters_equal": false,
+    "identical_to_ref": false,
+    "checked_utc": "2026-11-08T23:10:23Z",
+    "counts": {
+     "U": 16,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 72,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   },
+   "lfm2.5:8b-a1b-q4_K_M": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:12:56Z",
+    "counts": {
+     "U": 15,
+     "SU": 28,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 73,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   },
+   "llama3.1:8b": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:11:10Z",
+    "counts": {
+     "U": 16,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 72,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   },
+   "mannix/llama3.1-8b-abliterated:latest": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": true,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:14:16Z",
+    "counts": {
+     "U": 326,
+     "SU": 42,
+     "SLU": 90,
+     "SUAU": 61,
+     "SLUAU": 109,
+     "UAU": 345
+    },
+    "quantization": "Q4_0"
+   },
+   "qwen3.5:4b": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:12:03Z",
+    "counts": {
+     "U": 16,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 72,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   },
+   "qwen3:8b": {
+    "ref": null,
+    "system_rendered": true,
+    "builtin_system_replaced": false,
+    "builtin_tokens_when_no_system": null,
+    "count_diff_by_layout": null,
+    "template_equal": null,
+    "parameters_equal": null,
+    "identical_to_ref": null,
+    "checked_utc": "2026-11-08T23:11:36Z",
+    "counts": {
+     "U": 16,
+     "SU": 29,
+     "SLU": 53,
+     "SUAU": 48,
+     "SLUAU": 72,
+     "UAU": 35
+    },
+    "quantization": "Q4_K_M"
+   }
+  }
+ },
+ "_t4_token_check_2026-11-08": {
+  "_what": "scripts/check_t4_tokens.py, 8 November 2026, local Ollama, benign synthetic text only; full log results/logs/t4_token_check_2026-11-08.json (sha256 ba690514001cac35)",
+  "ollama_version": "0.40.15",
+  "pairs": [
+   {
+    "base": "llama3.1:8b",
+    "abliterated": "agentscontrol/llama3.1-8b-abliterated-judge:latest",
+    "identical": {
+     "architecture_hparams": true,
+     "tokenizer": true,
+     "tensor_shapes": true,
+     "prompt_ids_user": true,
+     "prompt_ids_system_user": true,
+     "think_off_both": true
+    },
+    "extra_nextn_block_tensors": {
+     "llama3.1:8b": 0,
+     "agentscontrol/llama3.1-8b-abliterated-judge:latest": 0
+    },
+    "greedy_identical_prefix_chars": [
+     5,
+     0,
+     5
+    ]
+   },
+   {
+    "base": "qwen3:8b",
+    "abliterated": "huihui_ai/qwen3-abliterated:8b-v2-q4_K_M",
+    "identical": {
+     "architecture_hparams": true,
+     "tokenizer": true,
+     "tensor_shapes": true,
+     "prompt_ids_user": true,
+     "prompt_ids_system_user": true,
+     "think_off_both": true
+    },
+    "extra_nextn_block_tensors": {
+     "qwen3:8b": 0,
+     "huihui_ai/qwen3-abliterated:8b-v2-q4_K_M": 0
+    },
+    "greedy_identical_prefix_chars": [
+     179,
+     99,
+     192
+    ]
+   },
+   {
+    "base": "qwen3.5:4b",
+    "abliterated": "kaineone/qwen3.5-4b-abliterated:latest",
+    "identical": {
+     "architecture_hparams": false,
+     "tokenizer": true,
+     "tensor_shapes": true,
+     "prompt_ids_user": true,
+     "prompt_ids_system_user": true,
+     "think_off_both": true
+    },
+    "extra_nextn_block_tensors": {
+     "qwen3.5:4b": 0,
+     "kaineone/qwen3.5-4b-abliterated:latest": 15
+    },
+    "greedy_identical_prefix_chars": [
+     140,
+     211,
+     13
+    ]
+   }
+  ],
+  "note_15_19": "architecture_hparams false only because the kaineone GGUF has block_count 33 with nextn_predict_layers 1 (one multi-token-prediction block, 15 tensors in blk.32) and no explicit qwen35.attention.recurrent_layers list; the base build lists the hybrid layout [T,T,T,F] x 8 explicitly. All shared tensors match in name and shape, the tokenizer is identical, the rendered prompt token IDs are identical in both single-turn layouts, and greedy outputs share long identical prefixes, consistent with the extra block not being applied in standard decoding and with a matching layer layout (prefix length mainly reflects how far abliteration moved the weights: pair 4-6, with identical architecture, shares only 5, 0 and 5 characters). Multi-turn layouts: token counts identical (check_system_override.py); token IDs are checked from the server log at the judge pilot."
+ }
+}

@@ -1,0 +1,305 @@
+{
+ "blocks": [
+  {
+   "id": "resp.main",
+   "who": "respondents",
+   "label": "answers to the frame prompts",
+   "calls_per_model": null,
+   "models": 13,
+   "cut": 0,
+   "expected": 11.8368,
+   "pessimistic": 25.8099
+  },
+  {
+   "id": "resp.pilot1",
+   "who": "respondents",
+   "label": "respondent pilot, round 1",
+   "calls_per_model": 20,
+   "models": 13,
+   "cut": 0,
+   "expected": 2.1169,
+   "pessimistic": 4.6189
+  },
+  {
+   "id": "resp.pilot2",
+   "who": "respondents",
+   "label": "respondent pilot, round 2 (reserved)",
+   "calls_per_model": 20,
+   "models": 13,
+   "cut": 0,
+   "expected": 2.1169,
+   "pessimistic": 4.6189
+  },
+  {
+   "id": "judge.commercial.1",
+   "who": "commercial judges",
+   "label": "own answers, blind and in context",
+   "calls_per_model": 300,
+   "models": 11,
+   "cut": 0,
+   "expected": 14.0534,
+   "pessimistic": 29.8943
+  },
+  {
+   "id": "judge.commercial.2",
+   "who": "commercial judges",
+   "label": "controls on harmful prompts, blind and in context",
+   "calls_per_model": 120,
+   "models": 11,
+   "cut": 0,
+   "expected": 5.6213,
+   "pessimistic": 11.9577
+  },
+  {
+   "id": "judge.commercial.3",
+   "who": "commercial judges",
+   "label": "controls on safe prompts, blind and in context",
+   "calls_per_model": 60,
+   "models": 11,
+   "cut": 2,
+   "expected": 2.8107,
+   "pessimistic": 5.9789
+  },
+  {
+   "id": "judge.commercial.4",
+   "who": "commercial judges",
+   "label": "blind reference: challenge set",
+   "calls_per_model": 70,
+   "models": 11,
+   "cut": 0,
+   "expected": 3.2791,
+   "pessimistic": 6.9753
+  },
+  {
+   "id": "judge.commercial.5",
+   "who": "commercial judges",
+   "label": "blind reference: other labelled answers, first half",
+   "calls_per_model": 30,
+   "models": 11,
+   "cut": 0,
+   "expected": 1.4053,
+   "pessimistic": 2.9894
+  },
+  {
+   "id": "judge.commercial.6",
+   "who": "commercial judges",
+   "label": "blind reference: other labelled answers, second half",
+   "calls_per_model": 30,
+   "models": 11,
+   "cut": 4,
+   "expected": 1.4053,
+   "pessimistic": 2.9894
+  },
+  {
+   "id": "judge.commercial.7",
+   "who": "commercial judges",
+   "label": "challenge set, in context",
+   "calls_per_model": 70,
+   "models": 11,
+   "cut": 3,
+   "expected": 3.2791,
+   "pessimistic": 6.9753
+  },
+  {
+   "id": "judge.commercial.8",
+   "who": "commercial judges",
+   "label": "judge pilot, round 1",
+   "calls_per_model": 60,
+   "models": 11,
+   "cut": 0,
+   "expected": 2.8107,
+   "pessimistic": 5.9789
+  },
+  {
+   "id": "judge.commercial.9",
+   "who": "commercial judges",
+   "label": "judge pilot, round 2 (reserved)",
+   "calls_per_model": 60,
+   "models": 11,
+   "cut": 0,
+   "expected": 2.8107,
+   "pessimistic": 5.9789
+  },
+  {
+   "id": "judge.commercial.10",
+   "who": "commercial judges",
+   "label": "repeatability",
+   "calls_per_model": 20,
+   "models": 11,
+   "cut": 1,
+   "expected": 0.9369,
+   "pessimistic": 1.993
+  },
+  {
+   "id": "judge.hosted.1",
+   "who": "hosted judges",
+   "label": "own answers, blind and in context",
+   "calls_per_model": 780,
+   "models": 2,
+   "cut": 0,
+   "expected": 1.4431,
+   "pessimistic": 2.1689
+  },
+  {
+   "id": "judge.hosted.2",
+   "who": "hosted judges",
+   "label": "controls, blind and in context",
+   "calls_per_model": 780,
+   "models": 2,
+   "cut": 0,
+   "expected": 1.4431,
+   "pessimistic": 2.1689
+  },
+  {
+   "id": "judge.hosted.3",
+   "who": "hosted judges",
+   "label": "challenge set, in context",
+   "calls_per_model": 70,
+   "models": 2,
+   "cut": 0,
+   "expected": 0.1295,
+   "pessimistic": 0.1946
+  },
+  {
+   "id": "judge.hosted.4",
+   "who": "hosted judges",
+   "label": "labelled answers, blind",
+   "calls_per_model": 583,
+   "models": 2,
+   "cut": 0,
+   "expected": 1.0786,
+   "pessimistic": 1.6211
+  },
+  {
+   "id": "judge.hosted.5",
+   "who": "hosted judges",
+   "label": "judge pilot, round 1",
+   "calls_per_model": 60,
+   "models": 2,
+   "cut": 0,
+   "expected": 0.111,
+   "pessimistic": 0.1668
+  },
+  {
+   "id": "judge.hosted.6",
+   "who": "hosted judges",
+   "label": "judge pilot, round 2 (reserved)",
+   "calls_per_model": 60,
+   "models": 2,
+   "cut": 0,
+   "expected": 0.111,
+   "pessimistic": 0.1668
+  },
+  {
+   "id": "judge.hosted.7",
+   "who": "hosted judges",
+   "label": "repeatability",
+   "calls_per_model": 20,
+   "models": 2,
+   "cut": 1,
+   "expected": 0.037,
+   "pessimistic": 0.0556
+  }
+ ],
+ "totals": {
+  "expected": 58.84,
+  "pessimistic": 123.3
+ },
+ "cap_usd": 128.0,
+ "freeze_ceiling_usd": 124.0,
+ "judge_calls_per_model": {
+  "commercial": 820,
+  "hosted": 2353
+ },
+ "labelled_answers": 583,
+ "per_provider": {
+  "anthropic": {
+   "expected": 8.43,
+   "pessimistic": 23.75
+  },
+  "openai": {
+   "expected": 8.02,
+   "pessimistic": 23.33
+  },
+  "openrouter": {
+   "expected": 42.39,
+   "pessimistic": 76.22
+  }
+ },
+ "per_model": {
+  "claude-sonnet-5.5": {
+   "expected": 8.07,
+   "pessimistic": 22.75
+  },
+  "claude-haiku-5.5": {
+   "expected": 0.35,
+   "pessimistic": 1.01
+  },
+  "gpt-5.6-luna": {
+   "expected": 0.8,
+   "pessimistic": 2.22
+  },
+  "deepseek-v4.1-flash": {
+   "expected": 0.38,
+   "pessimistic": 0.78
+  },
+  "glm-5.3-flash": {
+   "expected": 0.83,
+   "pessimistic": 1.49
+  },
+  "gpt-6-luna": {
+   "expected": 0.35,
+   "pessimistic": 1.01
+  },
+  "hy3": {
+   "expected": 0.8,
+   "pessimistic": 1.46
+  },
+  "gpt-6.1-sol": {
+   "expected": 6.87,
+   "pessimistic": 20.1
+  },
+  "kimi-k3.1-pro": {
+   "expected": 13.68,
+   "pessimistic": 25.6
+  },
+  "grok-4.7": {
+   "expected": 10.49,
+   "pessimistic": 18.77
+  },
+  "gemini-4-argon": {
+   "expected": 11.69,
+   "pessimistic": 21.23
+  },
+  "venice-uncensored": {
+   "expected": 1.91,
+   "pessimistic": 2.95
+  },
+  "cydonia-24b-v4.1": {
+   "expected": 2.61,
+   "pessimistic": 3.94
+  }
+ },
+ "cuts": [
+  {
+   "order": 1,
+   "loses": "repeatability of the API judges is not measured",
+   "saves_pessimistic": 2.05
+  },
+  {
+   "order": 2,
+   "loses": "no author-versus-control comparison on safe prompts for the commercial judges",
+   "saves_pessimistic": 5.98
+  },
+  {
+   "order": 3,
+   "loses": "no in-context verdicts of the commercial judges on the challenge set (blind verdicts remain)",
+   "saves_pessimistic": 6.98
+  },
+  {
+   "order": 4,
+   "loses": "blind accuracy of the commercial judges rests on the challenge set, half of the other reference answers and their own labelled answers",
+   "saves_pessimistic": 2.99
+  }
+ ]
+}

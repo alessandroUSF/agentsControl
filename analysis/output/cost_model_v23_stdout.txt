@@ -1,0 +1,38 @@
+v2.3 manifest: API respondent prompts {'safe': 90, 'harmful': 60, 'own': 0} + pilot 20
+v2.3 manifest: calls per API judge 820 {'main: own answers, blind': 150, 'main: own answers, in-context': 150, 'main: yoked control answers, blind': 150, 'main: yoked control answers, in-context': 150, 'judge pilot (20 own pairs + 10 control pairs)': 60, 'repeatability': 40, 'blind reference subset (labelled items)': 120}
+
+=== v2.3, expected ===
+API respondents (150 prompts + 20 pilot each, retries included): $ 13.64   [v2.2 subsets with retries: $ 25.58]
+  main: own answers, blind                           $  6.19
+  main: own answers, in-context                      $  6.19
+  main: yoked control answers, blind                 $  6.19
+  main: yoked control answers, in-context            $  6.19
+  judge pilot (20 own pairs + 10 control pairs)      $  2.48
+  repeatability                                      $  1.65
+  blind reference subset (labelled items)            $  4.95
+  API guard on labelled items                        $  0.17
+TOTAL $ 47.65   remaining under the cap of $110: $ 62.35   [with v2.2 respondent subsets: $ 59.59]
+one call to each API judge, retries included: $0.041265 (five expensive judges $0.038619, other seven $0.002646)
+per API judge, one call: [claude-sonnet-5.5 $0.006248] [claude-haiku-5.5 $0.000320] [gpt-5.6-luna $0.000720] [deepseek-v4.1-flash $0.000215] [glm-5.3-flash $0.000121] [gpt-6-luna $0.000320] [hy3 $0.000348] [gpt-6.1-sol $0.006248] [kimi-k3.1-pro $0.009240] [grok-4.7 $0.007644] [gemini-4-argon $0.009240] [venice-uncensored $0.000601]
+per API respondent: [claude-sonnet-5.5 $2.36] [claude-haiku-5.5 $0.07] [gpt-5.6-luna $0.16] [deepseek-v4.1-flash $0.21] [glm-5.3-flash $0.04] [gpt-6-luna $0.07] [hy3 $0.14] [gpt-6.1-sol $1.37] [kimi-k3.1-pro $4.21] [grok-4.7 $2.54] [gemini-4-argon $2.42] [venice-uncensored $0.06]
+  option: off-policy harmful answers, in-context (+30 per API judge): $ 1.24  -> total $ 48.89
+  option: grey-zone own prompts (+30 answers per API respondent): $ 2.52  -> total $ 50.17
+  option: Venice extended to the 150 harmful prefix (+90 answers, +360 judge calls on 2 API judges): $ 0.80  -> total $ 48.46
+
+=== v2.3, pessimistic ===
+API respondents (150 prompts + 20 pilot each, retries included): $ 27.02   [v2.2 subsets with retries: $ 50.35]
+  main: own answers, blind                           $ 12.88
+  main: own answers, in-context                      $ 12.88
+  main: yoked control answers, blind                 $ 12.88
+  main: yoked control answers, in-context            $ 12.88
+  judge pilot (20 own pairs + 10 control pairs)      $  5.15
+  repeatability                                      $  3.43
+  blind reference subset (labelled items)            $ 10.30
+  API guard on labelled items                        $  0.30
+TOTAL $ 97.72   remaining under the cap of $110: $ 12.28   [with v2.2 respondent subsets: $121.04]
+one call to each API judge, retries included: $0.085843 (five expensive judges $0.080063, other seven $0.005780)
+per API judge, one call: [claude-sonnet-5.5 $0.017192] [claude-haiku-5.5 $0.000860] [gpt-5.6-luna $0.001885] [deepseek-v4.1-flash $0.000438] [glm-5.3-flash $0.000204] [gpt-6-luna $0.000860] [hy3 $0.000605] [gpt-6.1-sol $0.017192] [kimi-k3.1-pro $0.016330] [grok-4.7 $0.013018] [gemini-4-argon $0.016330] [venice-uncensored $0.000929]
+per API respondent: [claude-sonnet-5.5 $4.77] [claude-haiku-5.5 $0.13] [gpt-5.6-luna $0.31] [deepseek-v4.1-flash $0.42] [glm-5.3-flash $0.07] [gpt-6-luna $0.13] [hy3 $0.28] [gpt-6.1-sol $2.59] [kimi-k3.1-pro $8.52] [grok-4.7 $5.12] [gemini-4-argon $4.61] [venice-uncensored $0.06]
+  option: off-policy harmful answers, in-context (+30 per API judge): $ 2.58  -> total $100.29
+  option: grey-zone own prompts (+30 answers per API respondent): $ 4.83  -> total $102.55
+  option: Venice extended to the 150 harmful prefix (+90 answers, +360 judge calls on 2 API judges): $ 1.59  -> total $ 99.31

@@ -1,0 +1,99 @@
+ 62.2 gpqa= 90.5 hle= 33.9  Alibaba         Qwen3.8 27B (Xhigh)                            reas=True  P=27
+ 54.6 gpqa= 85.7 hle= 23.6  Google          Gemma 4 31B (Reasoning)                        reas=True  P=30.7
+ 53.2 gpqa= 84.1 hle= 22.2  Alibaba         Qwen3.6 35B A3B (Reasoning)                    reas=True  P=36
+ 52.8 gpqa= 82.2 hle= 23.4  Institute of Fo K2 Horizon MoVA 36B A4B                        reas=True  P=36
+ 52.8 gpqa= 83.5 hle= 22.0  Meta            Muse Glimmer (High)                            reas=True  P=30
+ 49.3 gpqa= 84.5 hle= 14.1  Alibaba         Qwen3.8 27B (Medium)                           reas=True  P=27
+ 49.3 gpqa= 84.5 hle= 14.0  Alibaba         Qwen3.8 27B (Low)                              reas=True  P=27
+ 49.3 gpqa= 79.2 hle= 19.3  Google          Gemma 4 26B A4B (Reasoning)                    reas=True  P=None
+ 49.0 gpqa= 80.5 hle= 17.5  AI9Stars        G9v3-39A5B                                     reas=True  P=39
+ 47.9 gpqa= 84.9 hle= 10.9  Nanbeige        Nanbeige4.1-3B                                 reas=True  P=3.93
+ 47.8 gpqa= 81.7 hle= 13.9  Alibaba         Qwen3.6 35B A3B (Non-reasoning)                reas=False P=36
+ 47.8 gpqa= 80.6 hle= 14.9  Alibaba         Qwen3.5 9B (Reasoning)                         reas=True  P=None
+ 47.0 gpqa= 81.8 hle= 12.1  Alibaba         Qwen3.8 27B (Non-reasoning)                    reas=False P=27
+ 46.7 gpqa= 75.3 hle= 18.2  Institute of Fo K2 Horizon 7B                                  reas=True  P=7
+ 46.1 gpqa= 79.4 hle= 12.9  LG AI Research  EXAONE 4.5 33B (Reasoning)                     reas=True  P=None
+ 45.5 gpqa= 75.3 hle= 15.7  Google          Gemma 4 12B (Reasoning)                        reas=True  P=None
+ 44.0 gpqa= 76.3 hle= 11.8  Google          Gemma 4 31B (Non-reasoning)                    reas=False P=None
+ 44.0 gpqa= 78.6 hle=  9.4  Alibaba         Qwen3.5 9B (Non-reasoning)                     reas=False P=None
+ 43.9 gpqa= 75.8 hle= 12.0  NVIDIA          Nemotron Cascade 2 30B A3B                     reas=True  P=None
+ 43.5 gpqa= 75.7 hle= 11.4  NVIDIA          NVIDIA Nemotron 3 Nano 30B A3B (Reasoning)     reas=True  P=None
+ 43.5 gpqa= 77.1 hle=  9.9  Alibaba         Qwen3.5 4B (Reasoning)                         reas=True  P=None
+ 43.4 gpqa= 75.7 hle= 11.1  Cohere          North Mini Code                                reas=True  P=None
+ 42.7 gpqa= 73.9 hle= 11.4  LG AI Research  EXAONE 4.0 32B (Reasoning)                     reas=True  P=None
+ 42.5 gpqa= 74.3 hle= 10.6  NVIDIA          Nemotron 3.5 Lightning                         reas=True  P=None
+ 42.1 gpqa= 73.3 hle= 10.8  ServiceNow      Apriel-v1.6-15B-Thinker                        reas=True  P=None
+ 41.5 gpqa= 69.2 hle= 13.9  Institute of Fo K2 Horizon 3.7B                                reas=True  P=3.7
+ 41.5 gpqa= 71.4 hle= 11.5  Google          Gemma 4 26B A4B (Non-reasoning)                reas=False P=None
+ 41.4 gpqa= 73.4 hle=  9.3  InclusionAI     Ling 3.0 Tiny                                  reas=True  P=None
+ 40.0 gpqa= 72.6 hle=  7.5  Alibaba         Qwen3 Omni 30B A3B (Reasoning)                 reas=True  P=None
+ 39.9 gpqa= 69.0 hle= 10.8  StepFun         Step3 VL 10B                                   reas=True  P=None
+ 39.9 gpqa= 68.8 hle= 11.0  OpenAI          gpt-oss-20b (High)                             reas=True  P=None
+ 39.6 gpqa= 71.2 hle=  8.0  Alibaba         Qwen3.5 4B (Non-reasoning)                     reas=False P=None
+ 39.6 gpqa= 70.2 hle=  8.9  OpenBMB         MiniCPM5-2B                                    reas=True  P=2.6
+ 38.9 gpqa= 66.9 hle= 10.8  Google          DiffusionGemma 26B A4B                         reas=True  P=None
+ 38.5 gpqa= 66.1 hle= 11.0  TII UAE         Falcon-H1R-7B                                  reas=True  P=None
+ 37.8 gpqa= 64.4 hle= 11.2  IBM             Granite 4.2 30B                                reas=True  P=None
+ 36.4 gpqa= 63.1 hle=  9.7  IBM             Granite 4.2 8B                                 reas=True  P=None
+ 36.4 gpqa= 66.3 hle=  6.4  Mistral         Magistral Small 1.2                            reas=True  P=None
+ 36.2 gpqa= 66.1 hle=  6.3  Google          Gemma 4 12B (Non-reasoning)                    reas=False P=None
+ 35.4 gpqa= 63.3 hle=  7.5  Sarvam          Sarvam 30B (High)                              reas=True  P=None
+ 33.9 gpqa= 62.8 hle=  5.0  LG AI Research  EXAONE 4.0 32B (Non-reasoning)                 reas=False P=None
+ 33.5 gpqa= 61.5 hle=  5.5  Naver           HyperCLOVA X SEED Think (32B)                  reas=True  P=None
+ 33.3 gpqa= 62.0 hle=  4.6  Alibaba         Qwen3 Omni 30B A3B Instruct                    reas=False P=None
+ 33.2 gpqa= 61.1 hle=  5.3  OpenAI          gpt-oss-20b (Low)                              reas=True  P=None
+ 33.0 gpqa= 60.1 hle=  5.9  Trillion Labs   Tri-21B-Think                                  reas=True  P=None
+ 32.7 gpqa= 59.1 hle=  6.3  Allen Institute Olmo 3.1 32B Think                             reas=True  P=None
+ 31.3 gpqa= 57.2 hle=  5.5  NVIDIA          NVIDIA Nemotron Nano 12B v2 VL (Reasoning)     reas=True  P=None
+ 31.2 gpqa= 55.9 hle=  6.6  IBM             Granite 4.2 3B                                 reas=True  P=3
+ 31.0 gpqa= 55.8 hle=  6.2  Liquid AI       LFM2.5-2.6B                                    reas=True  P=2.7
+ 30.9 gpqa= 57.0 hle=  4.9  NVIDIA          NVIDIA Nemotron Nano 9B V2 (Reasoning)         reas=True  P=None
+ 30.9 gpqa= 57.2 hle=  4.6  Mistral         Ministral 3 14B                                reas=False P=None
+ 30.7 gpqa= 57.6 hle=  3.8  Google          Gemma 4 E4B (Reasoning)                        reas=True  P=None
+ 30.6 gpqa= 57.5 hle=  3.8  Microsoft       Phi-4                                          reas=False P=None
+ 30.1 gpqa= 55.7 hle=  4.6  NVIDIA          NVIDIA Nemotron Nano 9B V2 (Non-reasoning)     reas=False P=None
+ 29.9 gpqa= 54.9 hle=  4.8  Google          Gemma 4 E4B (Non-reasoning)                    reas=False P=None
+ 29.5 gpqa= 53.9 hle=  5.0  Allen Institute Olmo 3.1 32B Instruct                          reas=False P=None
+ 29.1 gpqa= 51.3 hle=  6.9  Liquid AI       LFM2.5-8B-A1B                                  reas=True  P=None
+ 28.8 gpqa= 51.6 hle=  6.0  Allen Institute Olmo 3 7B Think                                reas=True  P=None
+ 28.7 gpqa= 51.5 hle=  6.0  LG AI Research  Exaone 4.0 1.2B (Reasoning)                    reas=True  P=1.28
+ 28.7 gpqa= 52.9 hle=  4.4  Reka AI         Reka Flash 3                                   reas=True  P=None
+ 28.1 gpqa= 51.3 hle=  4.9  NVIDIA          NVIDIA Nemotron 3 Nano 4B                      reas=True  P=3.97
+ 25.8 gpqa= 46.9 hle=  4.8  NVIDIA          Nemotron 3 Nano Omni 30B A3B Reasoning         reas=True  P=None
+ 25.8 gpqa= 47.4 hle=  4.2  Liquid AI       LFM2 24B A2B                                   reas=False P=None
+ 25.7 gpqa= 47.1 hle=  4.3  Mistral         Ministral 3 8B                                 reas=False P=None
+ 24.4 gpqa= 43.8 hle=  5.0  Alibaba         Qwen3.5 2B (Non-reasoning)                     reas=False P=2.27
+ 24.2 gpqa= 43.8 hle=  4.5  AI9Stars        G9v3-3B                                        reas=True  P=3
+ 24.1 gpqa= 43.9 hle=  4.3  NVIDIA          NVIDIA Nemotron Nano 12B v2 VL (Non-reasoning) reas=False P=None
+ 24.1 gpqa= 45.6 hle=  2.6  Alibaba         Qwen3.5 2B (Reasoning)                         reas=True  P=2.27
+ 24.1 gpqa= 42.4 hle=  5.7  LG AI Research  Exaone 4.0 1.2B (Non-reasoning)                reas=False P=None
+ 24.1 gpqa= 43.3 hle=  4.8  Google          Gemma 4 E2B (Reasoning)                        reas=True  P=None
+ 23.4 gpqa= 42.5 hle=  4.3  Allen Institute Molmo2-8B                                      reas=False P=None
+ 22.9 gpqa= 40.0 hle=  5.8  Allen Institute Olmo 3 7B Instruct                             reas=False P=None
+ 22.7 gpqa= 41.6 hle=  3.8  IBM             Granite 4.0 H Small                            reas=False P=None
+ 22.6 gpqa= 40.5 hle=  4.7  Google          Gemma 4 E2B (Non-reasoning)                    reas=False P=None
+ 22.2 gpqa= 39.9 hle=  4.6  NVIDIA          NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning) reas=False P=None
+ 21.0 gpqa= 38.2 hle=  3.8  Nous Research   DeepHermes 3 - Mistral 24B Preview (Non-reason reas=False P=None
+ 20.6 gpqa= 35.8 hle=  5.4  Mistral         Ministral 3 3B                                 reas=False P=None
+ 20.1 gpqa= 33.9 hle=  6.2  Liquid AI       LFM2.5-1.2B-Thinking                           reas=True  P=None
+ 19.7 gpqa= 32.6 hle=  6.7  Liquid AI       LFM2.5-1.2B-Instruct                           reas=False P=None
+ 19.3 gpqa= 33.6 hle=  5.0  IBM             Granite 4.0 Micro                              reas=False P=None
+ 18.8 gpqa= 33.1 hle=  4.5  Microsoft       Phi-4 Mini Instruct                            reas=False P=None
+ 18.5 gpqa= 33.3 hle=  3.8  AI21 Labs       Jamba Reasoning 3B                             reas=True  P=None
+ 18.3 gpqa= 31.5 hle=  5.0  Microsoft       Phi-4 Multimodal Instruct                      reas=False P=None
+ 17.9 gpqa= 30.5 hle=  5.2  Cohere          Tiny Aya Global                                reas=False P=None
+ 17.8 gpqa= 30.5 hle=  5.1  OpenBMB         MiniCPM-V 4.6 1.3B                             reas=False P=None
+ 17.3 gpqa= 29.3 hle=  5.4  Institute of Fo K2 Horizon 0.9B                                reas=True  P=None
+ 17.1 gpqa= 27.8 hle=  6.5  OpenBMB         MiniCPM5-1B (Reasoning)                        reas=True  P=1
+ 17.0 gpqa= 28.9 hle=  5.1  Liquid AI       LFM2.5-VL-1.6B                                 reas=False P=None
+ 16.0 gpqa= 25.7 hle=  6.4  IBM             Granite 4.0 H 350M                             reas=False P=None
+ 15.8 gpqa= 26.1 hle=  5.5  IBM             Granite 4.0 350M                               reas=False P=None
+ 15.7 gpqa= 26.9 hle=  4.5  OpenBMB         MiniCPM5-1B (Non-reasoning)                    reas=False P=1
+ 15.6 gpqa= 26.3 hle=  5.0  IBM             Granite 4.0 H 1B                               reas=False P=None
+ 15.6 gpqa= 27.0 hle=  4.3  Nous Research   DeepHermes 3 - Llama-3.1 8B Preview (Non-reaso reas=False P=None
+ 15.3 gpqa= 25.6 hle=  5.0  Swiss AI Initia Apertus 8B Instruct                            reas=False P=None
+ 14.6 gpqa= 24.0 hle=  5.1  Allen Institute Molmo 7B-D                                     reas=False P=None
+ 14.4 gpqa= 23.6 hle=  5.1  Alibaba         Qwen3.5 0.8B (Non-reasoning)                   reas=False P=None
+ 13.8 gpqa= 22.1 hle=  5.5  Meta            Llama 3.2 Instruct 11B (Vision)                reas=False P=None
+ 13.0 gpqa= 22.4 hle=  3.6  Google          Gemma 3 270M                                   reas=False P=None
+  6.1 gpqa= 11.1 hle=  1.1  Alibaba         Qwen3.5 0.8B (Reasoning)                       reas=True  P=None

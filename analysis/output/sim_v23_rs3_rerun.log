@@ -1,0 +1,1 @@
+low_failure|null           labelled 547.0 unfilled 0.00 | det_change_own bias +0.0001 cov 0.945 hw 0.0918 | det_change_own_reg bias +0.0000 cov 0.949 hw 0.0662 | det_change_own_acc bias -0.0001 cov 0.957 hw 0.0892 | fa_change_own bias -0.0001 cov 0.948 hw 0.0543 | fa_change_own_reg bias -0.0001 cov 0.956 hw 0.0414 | det_change_diff_reg bias +0.0004 cov 0.948 hw 0.0913 | 2806s

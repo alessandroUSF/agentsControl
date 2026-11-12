@@ -1,0 +1,460 @@
+{
+ "olt_qwen3.5.html": {
+  "qwen3.5:latest": [
+   "fdf5fd4cd409",
+   "6.6GB"
+  ],
+  "qwen3.5:0.8b": [
+   "6a061203ed02",
+   "1.2GB"
+  ],
+  "qwen3.5:2b": [
+   "0b28bbb3449d",
+   "2.7GB"
+  ],
+  "qwen3.5:4b": [
+   "492e37dc6907",
+   "3.3GB"
+  ],
+  "qwen3.5:27b": [
+   "1476e7035481",
+   "17GB"
+  ],
+  "qwen3.5:35b": [
+   "154688af885e",
+   "22GB"
+  ],
+  "qwen3.5:122b": [
+   "8b9d11d807c5",
+   "81GB"
+  ],
+  "qwen3.5:0.8b-mtp-q8_0": [
+   "de63045f2975",
+   "1.3GB"
+  ],
+  "qwen3.5:0.8b-q8_0": [
+   "7c00f78aed0f",
+   "1.0GB"
+  ],
+  "qwen3.5:0.8b-bf16": [
+   "53aad6f8ef31",
+   "1.8GB"
+  ],
+  "qwen3.5:2b-mtp-q4_K_M": [
+   "f64538b732a5",
+   "2.6GB"
+  ],
+  "qwen3.5:2b-mtp-q8_0": [
+   "d9ed436b38f7",
+   "3.3GB"
+  ],
+  "qwen3.5:2b-q4_K_M": [
+   "1e2d21a4f03a",
+   "1.9GB"
+  ],
+  "qwen3.5:2b-q8_0": [
+   "0689d44085e0",
+   "2.7GB"
+  ],
+  "qwen3.5:2b-bf16": [
+   "48e5fa2a680f",
+   "4.6GB"
+  ],
+  "qwen3.5:4b-mtp-q4_K_M": [
+   "1a672101e149",
+   "4.1GB"
+  ],
+  "qwen3.5:4b-mtp-q8_0": [
+   "477fe1aa30c7",
+   "6.0GB"
+  ],
+  "qwen3.5:4b-q4_K_M": [
+   "d8b0f5e9760c",
+   "3.3GB"
+  ],
+  "qwen3.5:4b-q8_0": [
+   "e15635ee9312",
+   "5.2GB"
+  ],
+  "qwen3.5:4b-bf16": [
+   "530cc2ae9e85",
+   "9.3GB"
+  ],
+  "qwen3.5:9b-mtp-q4_K_M": [
+   "bf0f1496db06",
+   "9.0GB"
+  ],
+  "qwen3.5:9b-mtp-q8_0": [
+   "cebff225d719",
+   "13GB"
+  ],
+  "qwen3.5:9b-q4_K_M": [
+   "56671c2ab938",
+   "6.6GB"
+  ],
+  "qwen3.5:9b-q8_0": [
+   "a8ee95bc3592",
+   "10GB"
+  ],
+  "qwen3.5:9b-bf16": [
+   "5c513fbbcfa8",
+   "19GB"
+  ],
+  "qwen3.5:27b-coding-bf16": [
+   "0a4075181a1f",
+   "55GB"
+  ],
+  "qwen3.5:27b-int4": [
+   "06964f7d5387",
+   "16GB"
+  ],
+  "qwen3.5:27b-int8": [
+   "be0e0062ecdc",
+   "30GB"
+  ],
+  "qwen3.5:27b-mtp-q4_K_M": [
+   "06687a8bf737",
+   "21GB"
+  ],
+  "qwen3.5:27b-q4_K_M": [
+   "64ae5b1d651f",
+   "17GB"
+  ],
+  "qwen3.5:27b-q8_0": [
+   "59b47cf42256",
+   "30GB"
+  ],
+  "qwen3.5:27b-bf16": [
+   "c5bbf5f39766",
+   "56GB"
+  ],
+  "qwen3.5:35b-a3b": [
+   "154688af885e",
+   "22GB"
+  ],
+  "qwen3.5:35b-a3b-coding-bf16": [
+   "37b8d012f58e",
+   "70GB"
+  ],
+  "qwen3.5:35b-a3b-int4": [
+   "39a73d8a124d",
+   "20GB"
+  ],
+  "qwen3.5:35b-a3b-int8": [
+   "fc565b23657b",
+   "38GB"
+  ],
+  "qwen3.5:35b-a3b-mtp-q4_K_M": [
+   "80df2b8514d6",
+   "24GB"
+  ],
+  "qwen3.5:35b-a3b-q4_K_M": [
+   "72aac7c28be8",
+   "22GB"
+  ],
+  "qwen3.5:35b-a3b-q8_0": [
+   "1fa6ef720fcb",
+   "39GB"
+  ],
+  "qwen3.5:35b-a3b-bf16": [
+   "ff8224b615b5",
+   "72GB"
+  ],
+  "qwen3.5:122b-a10b": [
+   "8b9d11d807c5",
+   "81GB"
+  ],
+  "qwen3.5:122b-a10b-q4_K_M": [
+   "8b9d11d807c5",
+   "81GB"
+  ]
+ },
+ "olt_lfm2.5.html": {
+  "lfm2.5:latest": [
+   "9cf756159fc2",
+   "5.2GB"
+  ],
+  "lfm2.5:24b": [
+   "00a755688d0f",
+   "15GB"
+  ],
+  "lfm2.5:8b-a1b-q4_K_M": [
+   "9cf756159fc2",
+   "5.2GB"
+  ],
+  "lfm2.5:8b-a1b-q8_0": [
+   "4fa3787050ca",
+   "9.0GB"
+  ],
+  "lfm2.5:8b-a1b-bf16": [
+   "c6d60dd0c9c3",
+   "17GB"
+  ],
+  "lfm2.5:24b-a2b-q4_0": [
+   "ce54a54c2ce7",
+   "14GB"
+  ],
+  "lfm2.5:24b-a2b-q4_K_M": [
+   "00a755688d0f",
+   "15GB"
+  ],
+  "lfm2.5:24b-a2b-q8_0": [
+   "26bdb85d5401",
+   "25GB"
+  ],
+  "lfm2.5:24b-a2b-bf16": [
+   "92403fbc4a1f",
+   "48GB"
+  ]
+ },
+ "olt_lfm2.5-thinking.html": {
+  "lfm2.5-thinking:latest": [
+   "95bd9d45385f",
+   "731MB"
+  ],
+  "lfm2.5-thinking:1.2b-q4_K_M": [
+   "95bd9d45385f",
+   "731MB"
+  ],
+  "lfm2.5-thinking:1.2b-q8_0": [
+   "10cad872d371",
+   "1.2GB"
+  ],
+  "lfm2.5-thinking:1.2b-bf16": [
+   "7a6bd9bb72a7",
+   "2.3GB"
+  ]
+ },
+ "olt_olmo-3.html": {
+  "olmo-3:latest": [
+   "b8d4c92ac9c1",
+   "4.5GB"
+  ],
+  "olmo-3:32b": [
+   "e9f1ab1d201f",
+   "19GB"
+  ],
+  "olmo-3:7b-instruct": [
+   "ea72df8c85d7",
+   "4.5GB"
+  ],
+  "olmo-3:7b-instruct-q4_K_M": [
+   "ea72df8c85d7",
+   "4.5GB"
+  ],
+  "olmo-3:7b-instruct-q8_0": [
+   "d40368740fe9",
+   "7.8GB"
+  ],
+  "olmo-3:7b-instruct-fp16": [
+   "10bc19cdab78",
+   "15GB"
+  ],
+  "olmo-3:7b-think": [
+   "b8d4c92ac9c1",
+   "4.5GB"
+  ],
+  "olmo-3:7b-think-q4_K_M": [
+   "b8d4c92ac9c1",
+   "4.5GB"
+  ],
+  "olmo-3:7b-think-q8_0": [
+   "84ada4103830",
+   "7.8GB"
+  ],
+  "olmo-3:7b-think-fp16": [
+   "2ab176791f8c",
+   "15GB"
+  ],
+  "olmo-3:32b-think": [
+   "e9f1ab1d201f",
+   "19GB"
+  ],
+  "olmo-3:32b-think-q4_K_M": [
+   "e9f1ab1d201f",
+   "19GB"
+  ],
+  "olmo-3:32b-think-q8_0": [
+   "029b051ac27f",
+   "34GB"
+  ],
+  "olmo-3:32b-think-fp16": [
+   "19507f95f179",
+   "64GB"
+  ]
+ },
+ "olt_phi4-mini.html": {
+  "phi4-mini:latest": [
+   "78fad5d182a7",
+   "2.5GB"
+  ],
+  "phi4-mini:3.8b-q4_K_M": [
+   "78fad5d182a7",
+   "2.5GB"
+  ],
+  "phi4-mini:3.8b-q8_0": [
+   "0be8e6979181",
+   "4.1GB"
+  ],
+  "phi4-mini:3.8b-fp16": [
+   "bd71721a0e80",
+   "7.7GB"
+  ]
+ },
+ "olt_phi4-mini-reasoning.html": {
+  "phi4-mini-reasoning:latest": [
+   "3ca8c2865ce9",
+   "3.2GB"
+  ],
+  "phi4-mini-reasoning:3.8b-q4_K_M": [
+   "3ca8c2865ce9",
+   "3.2GB"
+  ],
+  "phi4-mini-reasoning:3.8b-q8_0": [
+   "e3fffa9f7d91",
+   "4.6GB"
+  ],
+  "phi4-mini-reasoning:3.8b-fp16": [
+   "591788476176",
+   "7.7GB"
+  ]
+ },
+ "olt_ministral-3.html": {
+  "ministral-3:latest": [
+   "1922accd5827",
+   "6.0GB"
+  ],
+  "ministral-3:3b": [
+   "f04aa1c738f6",
+   "3.0GB"
+  ],
+  "ministral-3:14b": [
+   "4760c35aeb9d",
+   "9.1GB"
+  ],
+  "ministral-3:3b-instruct-2512-q4_K_M": [
+   "f04aa1c738f6",
+   "3.0GB"
+  ],
+  "ministral-3:3b-instruct-2512-q8_0": [
+   "c269e5748d11",
+   "4.5GB"
+  ],
+  "ministral-3:3b-instruct-2512-fp16": [
+   "c3575e1e54be",
+   "7.7GB"
+  ],
+  "ministral-3:8b-instruct-2512-q4_K_M": [
+   "1922accd5827",
+   "6.0GB"
+  ],
+  "ministral-3:8b-instruct-2512-q8_0": [
+   "51a27715a326",
+   "9.9GB"
+  ],
+  "ministral-3:8b-instruct-2512-fp16": [
+   "1db367e98f75",
+   "18GB"
+  ],
+  "ministral-3:14b-instruct-2512-q4_K_M": [
+   "4760c35aeb9d",
+   "9.1GB"
+  ],
+  "ministral-3:14b-instruct-2512-q8_0": [
+   "e189ca022343",
+   "15GB"
+  ],
+  "ministral-3:14b-instruct-2512-fp16": [
+   "ba5a5da1e89b",
+   "28GB"
+  ]
+ },
+ "olt_granite4.html": {
+  "granite4:latest": [
+   "4235724a127c",
+   "2.1GB"
+  ],
+  "granite4:micro": [
+   "89962fcc7523",
+   "2.1GB"
+  ],
+  "granite4:350m": [
+   "5eee845b49c4",
+   "708MB"
+  ],
+  "granite4:1b": [
+   "26e4cb132798",
+   "3.3GB"
+  ],
+  "granite4:3b": [
+   "89962fcc7523",
+   "2.1GB"
+  ],
+  "granite4:350m-h": [
+   "7145075ed3d6",
+   "366MB"
+  ],
+  "granite4:350m-h-q8_0": [
+   "7145075ed3d6",
+   "366MB"
+  ],
+  "granite4:350m-bf16": [
+   "5eee845b49c4",
+   "708MB"
+  ],
+  "granite4:1b-h": [
+   "7761ae79cab9",
+   "1.6GB"
+  ],
+  "granite4:1b-h-q8_0": [
+   "7761ae79cab9",
+   "1.6GB"
+  ],
+  "granite4:1b-bf16": [
+   "26e4cb132798",
+   "3.3GB"
+  ],
+  "granite4:3b-h": [
+   "076afb3855dc",
+   "1.9GB"
+  ],
+  "granite4:7b-a1b-h": [
+   "566b725534ea",
+   "4.2GB"
+  ],
+  "granite4:32b-a9b-h": [
+   "2f8a7367d441",
+   "19GB"
+  ],
+  "granite4:micro-h": [
+   "076afb3855dc",
+   "1.9GB"
+  ],
+  "granite4:small-h": [
+   "2f8a7367d441",
+   "19GB"
+  ],
+  "granite4:tiny-h": [
+   "566b725534ea",
+   "4.2GB"
+  ]
+ },
+ "olt_nemotron3.html": {
+  "nemotron3:latest": [
+   "24f5f4a5b3ea",
+   "21GB"
+  ],
+  "nemotron3:33b-q8": [
+   "74d89c84a443",
+   "36GB"
+  ],
+  "nemotron3:33b-q4_K_M": [
+   "baa676a14e13",
+   "28GB"
+  ],
+  "nemotron3:33b-bf16": [
+   "b318f0929784",
+   "66GB"
+  ]
+ }
+}

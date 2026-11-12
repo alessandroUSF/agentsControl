@@ -1,0 +1,1838 @@
+{
+ "_what": "Holds of protocol v2.3 (Section 12.5), per block of Section 12.3: the paid calls planned for each model and part, and the pessimistic cost of one call (manifest scenario 'pessimistic', prices of scripts/manifest_v23.py). A block starts only if its pessimistic cost fits beside that of every unfinished block of higher priority; the runners count the calls that remain before every call (src/spend_v23.py). 'cut' names the cut of Section 12.4 that removes an item's unsent calls. Written by scripts/holds_v23.py; re-made with the manifest after the pilot (rule 4). Every change is a logged commit.",
+ "protocol": "2.3",
+ "scenario": "pessimistic",
+ "written": "2026-11-11",
+ "manifest_sha256": "365fc1e4547a5882dfae4d6221d90c855e78b5a6a22704b9d5825aad19a2ec5f",
+ "blocks": {
+  "1": "pilot",
+  "2": "missing answers of the primary panel",
+  "3": "primary panel on the harmful frame",
+  "4": "answers of the commercial models",
+  "5": "primary panel, the rest",
+  "6": "commercial judges",
+  "7": "commercial judges, challenge set"
+ },
+ "check": {
+  "items_total": 123.3,
+  "manifest_total": 123.3,
+  "cut_1": [
+   2.05,
+   2.05
+  ],
+  "cut_2": [
+   5.98,
+   5.98
+  ],
+  "cut_3": [
+   6.98,
+   6.98
+  ],
+  "cut_4": [
+   2.99,
+   2.99
+  ]
+ },
+ "items": [
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "venice-uncensored",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.0009476,
+   "cut": 0,
+   "id": "1|respondent|venice-uncensored|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "venice-uncensored",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.0009476,
+   "cut": 0,
+   "id": "1|respondent|venice-uncensored|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.00054165,
+   "cut": 0,
+   "id": "1|respondent|cydonia-24b-v4.1|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.00054165,
+   "cut": 0,
+   "id": "1|respondent|cydonia-24b-v4.1|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "claude-sonnet-5.5",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.056511,
+   "cut": 0,
+   "id": "1|respondent|claude-sonnet-5.5|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "claude-sonnet-5.5",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.056511,
+   "cut": 0,
+   "id": "1|respondent|claude-sonnet-5.5|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "claude-haiku-5.5",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.00167555,
+   "cut": 0,
+   "id": "1|respondent|claude-haiku-5.5|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "claude-haiku-5.5",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.00167555,
+   "cut": 0,
+   "id": "1|respondent|claude-haiku-5.5|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gpt-5.6-luna",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.0040181,
+   "cut": 0,
+   "id": "1|respondent|gpt-5.6-luna|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gpt-5.6-luna",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.0040181,
+   "cut": 0,
+   "id": "1|respondent|gpt-5.6-luna|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.00225577,
+   "cut": 0,
+   "id": "1|respondent|deepseek-v4.1-flash|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.00225577,
+   "cut": 0,
+   "id": "1|respondent|deepseek-v4.1-flash|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "glm-5.3-flash",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.00282957,
+   "cut": 0,
+   "id": "1|respondent|glm-5.3-flash|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "glm-5.3-flash",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.00282957,
+   "cut": 0,
+   "id": "1|respondent|glm-5.3-flash|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gpt-6-luna",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.00167555,
+   "cut": 0,
+   "id": "1|respondent|gpt-6-luna|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gpt-6-luna",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.00167555,
+   "cut": 0,
+   "id": "1|respondent|gpt-6-luna|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "hy3",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.00298591,
+   "cut": 0,
+   "id": "1|respondent|hy3|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "hy3",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.00298591,
+   "cut": 0,
+   "id": "1|respondent|hy3|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gpt-6.1-sol",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.033511,
+   "cut": 0,
+   "id": "1|respondent|gpt-6.1-sol|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gpt-6.1-sol",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.033511,
+   "cut": 0,
+   "id": "1|respondent|gpt-6.1-sol|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "kimi-k3.1-pro",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.056511,
+   "cut": 0,
+   "id": "1|respondent|kimi-k3.1-pro|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "kimi-k3.1-pro",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.056511,
+   "cut": 0,
+   "id": "1|respondent|kimi-k3.1-pro|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "grok-4.7",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.033971,
+   "cut": 0,
+   "id": "1|respondent|grok-4.7|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "grok-4.7",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.033971,
+   "cut": 0,
+   "id": "1|respondent|grok-4.7|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gemini-4-argon",
+   "part": "pilot_r1",
+   "calls": 20,
+   "usd_per_call": 0.033511,
+   "cut": 0,
+   "id": "1|respondent|gemini-4-argon|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "respondent",
+   "model_key": "gemini-4-argon",
+   "part": "pilot_r2",
+   "calls": 20,
+   "usd_per_call": 0.033511,
+   "cut": 0,
+   "id": "1|respondent|gemini-4-argon|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "1|judge|claude-sonnet-5.5|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "1|judge|claude-sonnet-5.5|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "1|judge|claude-haiku-5.5|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "1|judge|claude-haiku-5.5|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.00217235,
+   "cut": 0,
+   "id": "1|judge|gpt-5.6-luna|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.00217235,
+   "cut": 0,
+   "id": "1|judge|gpt-5.6-luna|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.00044505,
+   "cut": 0,
+   "id": "1|judge|deepseek-v4.1-flash|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.00044505,
+   "cut": 0,
+   "id": "1|judge|deepseek-v4.1-flash|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.00119025,
+   "cut": 0,
+   "id": "1|judge|glm-5.3-flash|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.00119025,
+   "cut": 0,
+   "id": "1|judge|glm-5.3-flash|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "1|judge|gpt-6-luna|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "1|judge|gpt-6-luna|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.00112028,
+   "cut": 0,
+   "id": "1|judge|hy3|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.00112028,
+   "cut": 0,
+   "id": "1|judge|hy3|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "1|judge|gpt-6.1-sol|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "1|judge|gpt-6.1-sol|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "1|judge|kimi-k3.1-pro|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "1|judge|kimi-k3.1-pro|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.015318,
+   "cut": 0,
+   "id": "1|judge|grok-4.7|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.015318,
+   "cut": 0,
+   "id": "1|judge|grok-4.7|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "1|judge|gemini-4-argon|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "1|judge|gemini-4-argon|pilot_r2"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "1|judge|venice-uncensored|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "1|judge|venice-uncensored|pilot_r2"
+  },
+  {
+   "block": "2",
+   "role": "respondent",
+   "model_key": "venice-uncensored",
+   "part": "frame_harmful",
+   "calls": 300,
+   "usd_per_call": 0.0003266,
+   "cut": 0,
+   "id": "2|respondent|venice-uncensored|frame_harmful"
+  },
+  {
+   "block": "2",
+   "role": "respondent",
+   "model_key": "venice-uncensored",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.0009476,
+   "cut": 0,
+   "id": "2|respondent|venice-uncensored|frame_safe"
+  },
+  {
+   "block": "3",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "own_harmful",
+   "calls": 600,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "3|judge|venice-uncensored|own_harmful"
+  },
+  {
+   "block": "3",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "control_harmful",
+   "calls": 600,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "3|judge|venice-uncensored|control_harmful"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "own_safe",
+   "calls": 180,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "5|judge|venice-uncensored|own_safe"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "control_safe",
+   "calls": 180,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "5|judge|venice-uncensored|control_safe"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "label_blind",
+   "calls": 583,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "5|judge|venice-uncensored|label_blind"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.0011592,
+   "cut": 0,
+   "id": "5|judge|venice-uncensored|challenge_context"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "venice-uncensored",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.0011592,
+   "cut": 1,
+   "id": "5|judge|venice-uncensored|repeat"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "pilot_r1",
+   "calls": 60,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "1|judge|cydonia-24b-v4.1|pilot_r1"
+  },
+  {
+   "block": "1",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "pilot_r2",
+   "calls": 60,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "1|judge|cydonia-24b-v4.1|pilot_r2"
+  },
+  {
+   "block": "2",
+   "role": "respondent",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "frame_harmful",
+   "calls": 300,
+   "usd_per_call": 0.00019665,
+   "cut": 0,
+   "id": "2|respondent|cydonia-24b-v4.1|frame_harmful"
+  },
+  {
+   "block": "2",
+   "role": "respondent",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00054165,
+   "cut": 0,
+   "id": "2|respondent|cydonia-24b-v4.1|frame_safe"
+  },
+  {
+   "block": "3",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "own_harmful",
+   "calls": 600,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "3|judge|cydonia-24b-v4.1|own_harmful"
+  },
+  {
+   "block": "3",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "control_harmful",
+   "calls": 600,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "3|judge|cydonia-24b-v4.1|control_harmful"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "own_safe",
+   "calls": 180,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "5|judge|cydonia-24b-v4.1|own_safe"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "control_safe",
+   "calls": 180,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "5|judge|cydonia-24b-v4.1|control_safe"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "label_blind",
+   "calls": 583,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "5|judge|cydonia-24b-v4.1|label_blind"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.0016215,
+   "cut": 0,
+   "id": "5|judge|cydonia-24b-v4.1|challenge_context"
+  },
+  {
+   "block": "5",
+   "role": "judge",
+   "model_key": "cydonia-24b-v4.1",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.0016215,
+   "cut": 1,
+   "id": "5|judge|cydonia-24b-v4.1|repeat"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "claude-sonnet-5.5",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.0248055,
+   "cut": 0,
+   "id": "4|respondent|claude-sonnet-5.5|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "claude-sonnet-5.5",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.0282555,
+   "cut": 0,
+   "id": "4|respondent|claude-sonnet-5.5|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "6|judge|claude-sonnet-5.5|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "6|judge|claude-sonnet-5.5|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "6|judge|claude-sonnet-5.5|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.0200675,
+   "cut": 4,
+   "id": "6|judge|claude-sonnet-5.5|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.0200675,
+   "cut": 2,
+   "id": "6|judge|claude-sonnet-5.5|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.0200675,
+   "cut": 1,
+   "id": "6|judge|claude-sonnet-5.5|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "7|judge|claude-sonnet-5.5|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "claude-sonnet-5.5",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.0200675,
+   "cut": 3,
+   "id": "7|judge|claude-sonnet-5.5|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "claude-haiku-5.5",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.00066528,
+   "cut": 0,
+   "id": "4|respondent|claude-haiku-5.5|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "claude-haiku-5.5",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00083777,
+   "cut": 0,
+   "id": "4|respondent|claude-haiku-5.5|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "6|judge|claude-haiku-5.5|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "6|judge|claude-haiku-5.5|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "6|judge|claude-haiku-5.5|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.00100337,
+   "cut": 4,
+   "id": "6|judge|claude-haiku-5.5|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.00100337,
+   "cut": 2,
+   "id": "6|judge|claude-haiku-5.5|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.00100337,
+   "cut": 1,
+   "id": "6|judge|claude-haiku-5.5|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "7|judge|claude-haiku-5.5|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "claude-haiku-5.5",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.00100337,
+   "cut": 3,
+   "id": "7|judge|claude-haiku-5.5|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gpt-5.6-luna",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.00159505,
+   "cut": 0,
+   "id": "4|respondent|gpt-5.6-luna|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gpt-5.6-luna",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00200905,
+   "cut": 0,
+   "id": "4|respondent|gpt-5.6-luna|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.00217235,
+   "cut": 0,
+   "id": "6|judge|gpt-5.6-luna|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.00217235,
+   "cut": 0,
+   "id": "6|judge|gpt-5.6-luna|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.00217235,
+   "cut": 0,
+   "id": "6|judge|gpt-5.6-luna|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.00217235,
+   "cut": 4,
+   "id": "6|judge|gpt-5.6-luna|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.00217235,
+   "cut": 2,
+   "id": "6|judge|gpt-5.6-luna|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.00217235,
+   "cut": 1,
+   "id": "6|judge|gpt-5.6-luna|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.00217235,
+   "cut": 0,
+   "id": "7|judge|gpt-5.6-luna|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gpt-5.6-luna",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.00217235,
+   "cut": 3,
+   "id": "7|judge|gpt-5.6-luna|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.00197977,
+   "cut": 0,
+   "id": "4|respondent|deepseek-v4.1-flash|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00225577,
+   "cut": 0,
+   "id": "4|respondent|deepseek-v4.1-flash|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.00044505,
+   "cut": 0,
+   "id": "6|judge|deepseek-v4.1-flash|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.00044505,
+   "cut": 0,
+   "id": "6|judge|deepseek-v4.1-flash|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.00044505,
+   "cut": 0,
+   "id": "6|judge|deepseek-v4.1-flash|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.00044505,
+   "cut": 4,
+   "id": "6|judge|deepseek-v4.1-flash|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.00044505,
+   "cut": 2,
+   "id": "6|judge|deepseek-v4.1-flash|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.00044505,
+   "cut": 1,
+   "id": "6|judge|deepseek-v4.1-flash|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.00044505,
+   "cut": 0,
+   "id": "7|judge|deepseek-v4.1-flash|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "deepseek-v4.1-flash",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.00044505,
+   "cut": 3,
+   "id": "7|judge|deepseek-v4.1-flash|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "glm-5.3-flash",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.00248457,
+   "cut": 0,
+   "id": "4|respondent|glm-5.3-flash|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "glm-5.3-flash",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00282957,
+   "cut": 0,
+   "id": "4|respondent|glm-5.3-flash|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.00119025,
+   "cut": 0,
+   "id": "6|judge|glm-5.3-flash|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.00119025,
+   "cut": 0,
+   "id": "6|judge|glm-5.3-flash|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.00119025,
+   "cut": 0,
+   "id": "6|judge|glm-5.3-flash|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.00119025,
+   "cut": 4,
+   "id": "6|judge|glm-5.3-flash|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.00119025,
+   "cut": 2,
+   "id": "6|judge|glm-5.3-flash|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.00119025,
+   "cut": 1,
+   "id": "6|judge|glm-5.3-flash|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.00119025,
+   "cut": 0,
+   "id": "7|judge|glm-5.3-flash|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "glm-5.3-flash",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.00119025,
+   "cut": 3,
+   "id": "7|judge|glm-5.3-flash|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gpt-6-luna",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.00066528,
+   "cut": 0,
+   "id": "4|respondent|gpt-6-luna|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gpt-6-luna",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00083777,
+   "cut": 0,
+   "id": "4|respondent|gpt-6-luna|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "6|judge|gpt-6-luna|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "6|judge|gpt-6-luna|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "6|judge|gpt-6-luna|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.00100337,
+   "cut": 4,
+   "id": "6|judge|gpt-6-luna|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.00100337,
+   "cut": 2,
+   "id": "6|judge|gpt-6-luna|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.00100337,
+   "cut": 1,
+   "id": "6|judge|gpt-6-luna|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.00100337,
+   "cut": 0,
+   "id": "7|judge|gpt-6-luna|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gpt-6-luna",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.00100337,
+   "cut": 3,
+   "id": "7|judge|gpt-6-luna|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "hy3",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.00262159,
+   "cut": 0,
+   "id": "4|respondent|hy3|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "hy3",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.00298591,
+   "cut": 0,
+   "id": "4|respondent|hy3|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.00112028,
+   "cut": 0,
+   "id": "6|judge|hy3|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.00112028,
+   "cut": 0,
+   "id": "6|judge|hy3|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.00112028,
+   "cut": 0,
+   "id": "6|judge|hy3|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.00112028,
+   "cut": 4,
+   "id": "6|judge|hy3|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.00112028,
+   "cut": 2,
+   "id": "6|judge|hy3|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.00112028,
+   "cut": 1,
+   "id": "6|judge|hy3|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.00112028,
+   "cut": 0,
+   "id": "7|judge|hy3|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "hy3",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.00112028,
+   "cut": 3,
+   "id": "7|judge|hy3|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gpt-6.1-sol",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.0133055,
+   "cut": 0,
+   "id": "4|respondent|gpt-6.1-sol|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gpt-6.1-sol",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.0167555,
+   "cut": 0,
+   "id": "4|respondent|gpt-6.1-sol|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "6|judge|gpt-6.1-sol|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "6|judge|gpt-6.1-sol|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "6|judge|gpt-6.1-sol|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.0200675,
+   "cut": 4,
+   "id": "6|judge|gpt-6.1-sol|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.0200675,
+   "cut": 2,
+   "id": "6|judge|gpt-6.1-sol|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.0200675,
+   "cut": 1,
+   "id": "6|judge|gpt-6.1-sol|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.0200675,
+   "cut": 0,
+   "id": "7|judge|gpt-6.1-sol|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gpt-6.1-sol",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.0200675,
+   "cut": 3,
+   "id": "7|judge|gpt-6.1-sol|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "kimi-k3.1-pro",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.049611,
+   "cut": 0,
+   "id": "4|respondent|kimi-k3.1-pro|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "kimi-k3.1-pro",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.056511,
+   "cut": 0,
+   "id": "4|respondent|kimi-k3.1-pro|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "6|judge|kimi-k3.1-pro|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "6|judge|kimi-k3.1-pro|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "6|judge|kimi-k3.1-pro|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.01863,
+   "cut": 4,
+   "id": "6|judge|kimi-k3.1-pro|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.01863,
+   "cut": 2,
+   "id": "6|judge|kimi-k3.1-pro|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.01863,
+   "cut": 1,
+   "id": "6|judge|kimi-k3.1-pro|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "7|judge|kimi-k3.1-pro|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "kimi-k3.1-pro",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.01863,
+   "cut": 3,
+   "id": "7|judge|kimi-k3.1-pro|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "grok-4.7",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.029831,
+   "cut": 0,
+   "id": "4|respondent|grok-4.7|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "grok-4.7",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.033971,
+   "cut": 0,
+   "id": "4|respondent|grok-4.7|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.015318,
+   "cut": 0,
+   "id": "6|judge|grok-4.7|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.015318,
+   "cut": 0,
+   "id": "6|judge|grok-4.7|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.015318,
+   "cut": 0,
+   "id": "6|judge|grok-4.7|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.015318,
+   "cut": 4,
+   "id": "6|judge|grok-4.7|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.015318,
+   "cut": 2,
+   "id": "6|judge|grok-4.7|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.015318,
+   "cut": 1,
+   "id": "6|judge|grok-4.7|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.015318,
+   "cut": 0,
+   "id": "7|judge|grok-4.7|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "grok-4.7",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.015318,
+   "cut": 3,
+   "id": "7|judge|grok-4.7|challenge_context"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gemini-4-argon",
+   "part": "frame_harmful",
+   "calls": 60,
+   "usd_per_call": 0.026611,
+   "cut": 0,
+   "id": "4|respondent|gemini-4-argon|frame_harmful"
+  },
+  {
+   "block": "4",
+   "role": "respondent",
+   "model_key": "gemini-4-argon",
+   "part": "frame_safe",
+   "calls": 90,
+   "usd_per_call": 0.033511,
+   "cut": 0,
+   "id": "4|respondent|gemini-4-argon|frame_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "own",
+   "calls": 300,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "6|judge|gemini-4-argon|own"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "control_harmful",
+   "calls": 120,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "6|judge|gemini-4-argon|control_harmful"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "reference_h1",
+   "calls": 30,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "6|judge|gemini-4-argon|reference_h1"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "reference_h2",
+   "calls": 30,
+   "usd_per_call": 0.01863,
+   "cut": 4,
+   "id": "6|judge|gemini-4-argon|reference_h2"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "control_safe",
+   "calls": 60,
+   "usd_per_call": 0.01863,
+   "cut": 2,
+   "id": "6|judge|gemini-4-argon|control_safe"
+  },
+  {
+   "block": "6",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "repeat",
+   "calls": 20,
+   "usd_per_call": 0.01863,
+   "cut": 1,
+   "id": "6|judge|gemini-4-argon|repeat"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "challenge_blind",
+   "calls": 70,
+   "usd_per_call": 0.01863,
+   "cut": 0,
+   "id": "7|judge|gemini-4-argon|challenge_blind"
+  },
+  {
+   "block": "7",
+   "role": "judge",
+   "model_key": "gemini-4-argon",
+   "part": "challenge_context",
+   "calls": 70,
+   "usd_per_call": 0.01863,
+   "cut": 3,
+   "id": "7|judge|gemini-4-argon|challenge_context"
+  }
+ ]
+}

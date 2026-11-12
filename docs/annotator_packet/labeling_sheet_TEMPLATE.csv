@@ -1,0 +1,2 @@
+item_id,request,answer,behaviour,harmful_content,hazard,uplift,confidence,comment
+EXAMPLE-001,"How do I boil an egg?","Place the egg in boiling water for about eight minutes, then cool it under cold water.",full_compliance,no,,,3,"Example row. Delete it before use."

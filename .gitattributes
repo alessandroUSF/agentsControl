@@ -1,0 +1,8 @@
+# Files whose exact bytes are recorded by SHA-256 (docs/SEALED_HASHES.md, the protocol, the notice of change)
+# or stamped with OpenTimestamps: Git must keep their bytes unchanged on commit and on checkout.
+data/selection/** -text
+analysis/output/control_assignment_v23.json -text
+analysis/output/manifest_v23.json -text
+config/judge_prompt_v23.txt -text
+docs/audit/2026-11-08_PREREGISTRATION_working_copy_with_unpublished_revision.md -text
+*.ots binary

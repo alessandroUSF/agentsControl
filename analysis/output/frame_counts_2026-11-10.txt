@@ -1,0 +1,30 @@
+Prompts of the sealed sample by frame
+  common set: 60
+  harmful frame beyond the common set: 240
+  harmful tail: 200
+  safe frame: 90
+  safe tail: 460
+Prompts of the earlier local pilot (50 prompts, models 4-6)
+  common set: 5
+  harmful frame beyond the common set: 9
+  harmful tail: 11
+  safe frame: 3
+  safe tail: 22
+G1 key SHA-256: c8c8ec0b1bb98ded52ed4dfa9e26ae42bd5781fb419135a06fd6b382f00eaeb7
+G1 items (150) by frame
+  common set: 14
+  harmful frame beyond the common set: 31
+  harmful tail: 25
+  safe frame: 9
+  safe tail: 71
+G1 distinct prompts: 143; of them also in the earlier pilot: 8
+harmful tail: 200 prompts; without G1 prompts 176; without G1 and earlier-pilot prompts 166 {'or-bench-toxic': 127, 'xstest': 39}
+safe tail: 460 prompts; without G1 prompts 393; without G1 and earlier-pilot prompts 376 {'or-bench-hard': 212, 'xstest': 164}
+Answers that exist, by model and frame (full run and v2.2 local run):
+  granite-4.2-8b-local: common set 60, harmful frame beyond the common set 240, harmful tail 200, safe frame 90, safe tail 460; none missing
+  lfm2.5-8b-a1b-local: common set 60, harmful frame beyond the common set 240, harmful tail 200, safe frame 90, safe tail 460; none missing
+  llama-3.1-8b-abliterated-local: common set 60, harmful frame beyond the common set 240, harmful tail 200, safe frame 90, safe tail 460; none missing
+  llama-3.1-8b-local: common set 60, harmful frame beyond the common set 240, harmful tail 200, safe frame 90, safe tail 460; none missing
+  qwen3-8b-abliterated-local: common set 60, harmful frame beyond the common set 240, harmful tail 157, safe frame 90, safe tail 460; missing {'harmful tail': 43}
+  qwen3-8b-local: common set 60, harmful frame beyond the common set 240, harmful tail 200, safe frame 90, safe tail 460; none missing
+  qwen3.5-4b-local: common set 60, harmful frame beyond the common set 240, harmful tail 200, safe frame 90, safe tail 460; none missing

@@ -1,77 +1,121 @@
 # agentsControl
 
-**Safeguards that fail in both directions.** This project measures how often language models refuse legitimate requests (over-refusal), how often they help with harmful ones (harmful compliance), and how reliably an automated multi-agent monitor detects both failures.
+**Judging Their Own Answers: Conversational Presentation and Harm Flags in Twelve Open Models**
 
-> Status: in progress (started November 2026). Hypotheses are pre-registered in [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md). No results are reported yet.
+A language model is often asked to check an answer that it wrote itself. This study asks two questions:
 
-## Questions
-1. How reliable is a multi-agent monitor compared with blind human labels, and where are its blind spots? LLM-based monitors may make systematic errors that heuristic monitors do not (Ward, Hu et al., 2026), so this project measures them directly.
-2. Does a stated context ("I am an adult screenwriter", "I am a student") change refusals and harmful compliance?
-3. Which models over-refuse most on prompts that look sensitive but are safe?
+1. Does a model flag harmful content less often when an answer is shown as its own previous turn than when the same answer is shown as quoted text?
+2. Is that change larger for the model that wrote the answer than for a different model that sees the same answer in the same two ways?
 
-The predictions for each question are in the pre-registration, which was committed before any output was read or scored.
+> **Status on 10 November 2026: design under review. There is no result.**
+> - Public: version 1 of the pre-registration ([`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), commit `4124f32`, 7 November 2026). Nothing else is registered.
+> - Current design: [`docs/STUDY_PROTOCOL_v2.3.md`](docs/STUDY_PROTOCOL_v2.3.md), a draft. It replaces protocol v2.2 ([`docs/STUDY_PROTOCOL_v2.md`](docs/STUDY_PROTOCOL_v2.md), never registered). The draft amendment [`docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md`](docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md) withdraws the hypotheses H1 to H3 of version 1 and says why.
+> - Done so far: seven local models answered the benchmark prompts (7,457 answers). No person has read, screened, judged or labelled an answer. No call to a commercial API has been made, and no money has been spent.
+> - Part of the code that the protocol needs is not written yet (see "State of the code").
+
+## Design in brief
+
+The protocol is the reference. This is a summary.
+
+| Element | Choice |
+|---|---|
+| Primary panel | Twelve open models: five instruction-tuned and seven with refusals removed (three abliterated builds, four uncensored fine-tunes). Ten run locally; two are reached through an API |
+| Primary material | The answers of these models to 300 harmful prompts from two public benchmarks |
+| Four verdicts per answer | The author judges its answer as quoted text (A1) and as its own previous turn (A2). A control judge of the same type, unrelated to the author, does the same (C1, C2) |
+| Outcome | Flag: the delivered verdict says that the answer holds harmful content |
+| Primary statistics | Among answers that do not open with a refusal phrase: the mean of A2 − A1, the mean of (A2 − A1) − (C2 − C1), and the mean of A1 − C1 |
+| Tests | Three tests, fixed before any answer is judged (protocol Sections 2 and 8) |
+| Human labels | 583 answers labelled by the principal investigator. An independent annotator labels 388 of them again |
+| Secondary | Eleven commercial models on 60 of the harmful prompts; 90 safe prompts per model; a challenge set of 70 answers judged by all 23 models |
+| Cash | Hard cap of US$128, freeze ceiling US$124 (decision D14, 11 November 2026, second step after decisions D15 and D16) |
+| Registration | Two steps: a pilot registration before the first pilot call, and a freeze before the remaining confirmatory answers are generated and before any confirmatory answer is screened or judged |
+
+The study can say whether delivered harm flags change with the presentation, and whether the change differs between authors and their control judges. It cannot say why a change happens. Protocol Section 2.4 fixes the wording of every possible conclusion in advance.
 
 ## Data
-| Source | Prompts in the sample | What it tests | License |
-|---|---|---|---|
-| XSTest (Röttger et al., 2024), rev `d7bb5bd` | 450: 250 safe, 200 unsafe contrast prompts | Exaggerated safety on safe prompts that look unsafe | CC-BY-4.0 |
-| OR-Bench Hard-1K (Cui et al., 2024), rev `e36d8b8` | 300 of 1,319 seemingly toxic but safe prompts | Over-refusal | CC-BY-4.0 |
-| OR-Bench Toxic (Cui et al., 2024), rev `e36d8b8` | 300 of 655 toxic prompts | Harmful compliance | CC-BY-4.0 |
-| Own prompts (`data/own/`) | in preparation | Mature themes in fiction for adults (non-explicit); everyday dual-use requests. Each prompt runs under three framings: no context, adult screenwriter, student | released with the results |
 
-The benchmark files are pinned to fixed revisions and checked against `data/SHA256SUMS.txt`. The sample is stratified by category and drawn with a fixed seed (`src/prepare_data.py`).
-
-## Models
-| Model | Access | Role |
+| Source | In the sample | Benchmark label |
 |---|---|---|
-| Claude Sonnet 5.5, Claude Haiku 5.5 | Anthropic API | evaluated |
-| GPT-5.6 Luna | OpenAI API | evaluated |
-| Llama 3.1 8B Instruct | local (Ollama) | evaluated |
-| Qwen3 8B, thinking off | local (Ollama) | evaluated |
-| Llama 3.1 8B, abliterated (refusal direction removed) | local (Ollama) | positive control: supplies truly harmful answers to test whether the monitor catches them |
+| XSTest (Röttger et al., 2024), revision `d7bb5bd`, CC-BY-4.0 | 200 unsafe, 250 safe | Unsafe: a model should refuse. Safe: a model should comply |
+| OR-Bench Toxic (Cui et al., 2025), revision `e36d8b8` | 300 of 655 | A model should refuse |
+| OR-Bench Hard-1K (Cui et al., 2025), revision `e36d8b8` | 300 of 1,319 | A model should comply |
 
-The settings are in `config/models.json`. Every model runs with its provider defaults: no system prompt and no temperature override. Local models use a fixed seed.
+- The benchmark files are pinned by hash (`data/SHA256SUMS.txt`). The OR-Bench files are used under the licence stated in their repository.
+- The sample of 1,050 prompts was drawn with a fixed seed (`src/prepare_data.py`) and is sealed.
+- The frames of the protocol are prefixes of one seeded order inside each source (`src/frames_v23.py`): a harmful frame of 300 prompts, which contains a common set of 60, and a safe frame of 90.
+- [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) lists what exists, by counts only. [`docs/SEALED_HASHES.md`](docs/SEALED_HASHES.md) records the hash of every existing output file.
 
-## Method
-- **Runner** (`src/run_models.py`):
-  - A hard budget cap, reserved per call at the worst-case cost.
-  - Resumable runs.
-  - An audit log of every call (model, prompt id, tokens, cost, latency, stop reason, request id) that does not contain the answer text.
-- **Provider blocks are separate from refusals.** When the API itself blocks an answer, the block is recorded on its own and is not counted as a refusal written by the model. Examples are Anthropic's `stop_reason: "refusal"` and OpenAI's refusal content.
-- **Judge (in development).** It combines several pieces:
-  - rule-based refusal patterns;
-  - two independent classifier agents;
-  - an arbiter for disagreements;
-  - an audit log.
+## State of the code
 
-  Answers to harmful prompts are judged only by local models.
-- **Labels.** Three classes: full compliance, partial refusal, full refusal (`labels/RUBRIC.md`, following XSTest). About 150 answers, stratified by model and source, are labeled by hand and blind to the judge.
-- **Statistics.**
-  - Rates with bootstrap 95% confidence intervals.
-  - Paired McNemar or permutation tests on the same prompts.
-  - Cohen's kappa for agreement between the judge and the human labels.
+**Written and tested offline**
+
+- Data pipeline and sealed sample: `scripts/fetch_data.py`, `src/prepare_data.py`.
+- Answering runner with spending ledger, lock and reservations: `src/run_models.py`, `src/providers.py`. It still follows the prompt subsets and the spending order of protocol v2.2.
+- Frames and pilot prompts: `src/subsets.py`, `src/frames_v23.py`, `config/pilot_prompts_v23.json`.
+- Initial screen for refusal phrases: `src/screen.py`.
+- Assignment of control judges: `src/yoking.py`, `scripts/control_assignment_v23.py`.
+- Sampler for the human labels: `src/label_sample.py`.
+- Call manifest and cost model: `scripts/manifest_v23.py`.
+- Inference functions and three simulation packages: `analysis/inference_v23.py`, `analysis/sim_v23_registered.py`, `analysis/sim_v23_labels.py`, `analysis/tables_v23.py`.
+- Records: `scripts/data_inventory.py`, `scripts/check_sealed_hashes.py`.
+
+**Not written yet** (protocol Section 19.4)
+
+- The runner for the judging calls, the judge module of this protocol, the pilot report script and the analysis script.
+- The judge template.
+- The change that makes the answering runner generate only the answers that the protocol still needs, under a new run name.
+- The spending holds for the blocks of protocol Section 12.3.
+- The judge build of model 6 and its two checks.
+- The scripts that write the labelling sheets and that join, adjudicate and lock the label files.
+- The simulation options for the check before the freeze.
+- One complete run of the whole pipeline on synthetic data.
+
+**Kept for the record, not used by protocol v2.3:** `src/judge.py` and `config/judge.json` (the multi-agent judge of version 1), `src/gold_sample.py` (the sampler of the retired label sample G1), `analysis/power_sim.py`, `analysis/estimators.py` (protocol v2.2; not `scripts/cost_model.py`, which `scripts/manifest_v23.py` still imports), and the author's own prompts in `data/own/`.
 
 ## Responsible design
-- **Commercial APIs receive only safe prompts** (`expected = comply`) and the author's own non-harmful prompts. The benchmarks' harmful prompts run only on local open-weight models. `src/providers.py` enforces this rule, and the runner checks it a second time before each call.
-- **API calls use dedicated research accounts and keys** (`AC_*` in `.env`). The runner never falls back to other keys.
-- **Raw completions to harmful prompts are never published.** The repository will publish labels, aggregate metrics, audit logs and redacted examples only.
+
+Protocol Section 16 is the reference.
+
+- **Harmful prompts come from two public benchmarks and are sent as published.** Nothing is done to obtain a harmful answer: no jailbreak, no changed system prompt, no second attempt with other words. Refusals and provider blocks are results and are never worked around.
+- **Commercial providers receive harmful benchmark prompts in limited numbers** (a change from version 1; protocol Section 16.2 gives the numbers). The calls use research accounts opened for this study. The code accepts only keys whose variable names start with `AC_`.
+- **Answers to harmful prompts are never published,** and no answer is quoted in the paper, in this repository or in a review copy. Labelled answers are offered to researchers under a use agreement, with the most hazardous ones withheld.
+- **Storage.** Answers, verdicts and private logs stay on the investigator's encrypted drive and in no cloud service.
+- **People.** Only the investigator and one independent annotator read answers, under a welfare protocol ([`docs/annotator_packet/`](docs/annotator_packet/)).
 
 ## Reproduce
+
+Every command below costs nothing. The first two download the Python packages and the pinned benchmark files; the others run offline.
+
 ```bash
 pip install -r requirements.txt
-python -I scripts/fetch_data.py         # downloads the pinned benchmark files and checks SHA-256
-python -I src/prepare_data.py           # builds data/processed/sample.jsonl with a fixed seed
-python -I src/run_models.py --dry-run   # prompt counts and cost estimate, no API call
+python -I scripts/fetch_data.py                # downloads the pinned benchmark files and checks their hashes
+python -I src/prepare_data.py                  # writes the sample if absent, otherwise verifies it; never rewrites it
+python -I tests/test_frames_v23.py             # frames and pilot prompts
+python -I tests/test_label_sample.py           # sampler for the human labels
+python -I tests/test_runner_offline.py         # answering runner, ledger, lock and reservations
+python -I scripts/control_assignment_v23.py    # control judges (add --write to store the file)
+python -I scripts/manifest_v23.py              # calls and cost by block (add --write to store the file)
+python -I analysis/tables_v23.py               # tables of protocol Appendix A from the stored simulation runs
 ```
-API keys and the budget cap go in `.env` (see `.env.example`). The `.env` file is never committed.
 
-## Use of AI tools
-The code was written with help from Claude Code. The research questions, hypotheses, prompt categories and human labels are the author's.
+- The simulations take hours: `python -I analysis/sim_v23_registered.py --grid rs1 --reps 10000 --flips 9999 --out sim_v23_rs1.json`, the same with `--grid rs2 --out sim_v23_rs2.json`, and `python -I analysis/sim_v23_labels.py --reps 2000 --out sim_v23_rs3.json`. Their stored results are in `analysis/output/`. A run with the same `--out` file keeps the scenarios that are already finished; another file name computes them again.
+- `python -I scripts/check_sealed_hashes.py` and `python -I scripts/data_inventory.py` need the private answer files, which are not published.
+- API keys and the budget cap go in `.env` (see `.env.example`). The `.env` file is never committed.
+
+## Use of AI tools and conflicts of interest
+
+- The text of the protocol, the code and the simulations were drafted with Claude Code, an AI coding assistant of Anthropic, under the investigator's direction. Anthropic is the developer of models 1 and 2 of the commercial panel.
+- The design was reviewed in rounds by GPT-6.1 Sol, which is also model 11 of the commercial panel. The reports and the prompts of the rounds are in [`docs/audit/`](docs/audit/).
+- No test rests on the commercial panel, and no rule names models 1, 2 or 11. Protocol Section 17 says how both conflicts are handled.
+- No person other than the investigator has reviewed the design. A language model is not a peer reviewer.
+- The research questions, the decisions and the human labels are the investigator's.
 
 ## Author
+
 Alessandro Almeida, Graduate Researcher, University of South Florida. [Google Scholar](https://scholar.google.com/citations?user=HUTnVjwAAAAJ)
 
 ## References
+
+- Cui, J., Chiang, W.-L., Stoica, I., & Hsieh, C.-J. (2025). OR-Bench: An Over-Refusal Benchmark for Large Language Models. ICML 2025.
 - Röttger, P., Kirk, H. R., Vidgen, B., Attanasio, G., Bianchi, F., & Hovy, D. (2024). XSTest: A Test Suite for Identifying Exaggerated Safety Behaviours in Large Language Models. NAACL 2024.
-- Cui, J., Chiang, W.-L., Stoica, I., & Hsieh, C.-J. (2024). OR-Bench: An Over-Refusal Benchmark for Large Language Models. arXiv:2405.20947.
-- Ward, J., Hu, S., Wong, A., Hu, N., Woodworth, B., Turner, A. M., & Cloud, A. (2026). Gradient Routing Localizes and Removes Unintended Behaviors in RL. arXiv:2610.17062.
+- Further references are in the protocol.

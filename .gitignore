@@ -3,10 +3,15 @@
 # raw benchmark files are re-downloaded by scripts/fetch_data.py
 data/raw/
 data/processed/
-# raw model completions may contain harmful text: never published (see README, Responsible publication)
-results/raw/
-# audit logs are published together with the results
-results/logs/
+# everything under results/ stays private (protocol v2.3, Section 16.7; README, Responsible design):
+# - raw model answers may contain harmful text and are never published
+# - verdict files hold judge reasons, which may paraphrase harmful answers
+# - call logs are published only as a reviewed copy, without answer text and raw error bodies
+results/
+# labelling sheets hold answer text, and label files are private until the release:
+# only the rubric is tracked
+labels/*
+!labels/RUBRIC.md
 # internal working notes
 docs/PLANO.md
 __pycache__/

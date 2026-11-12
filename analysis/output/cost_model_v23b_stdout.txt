@@ -1,0 +1,49 @@
+v2.3 draft B: API respondent prompts {'commercial': {'safe': 90, 'harmful': 60, 'own': 0}, 'venice': {'safe': 90, 'harmful': 300, 'own': 0}} + pilot 20
+
+=== v2.3 draft B, expected ===
+API respondents, retries included: $ 13.68   [claude-sonnet-5.5 $2.36] [claude-haiku-5.5 $0.07] [gpt-5.6-luna $0.16] [deepseek-v4.1-flash $0.21] [glm-5.3-flash $0.04] [gpt-6-luna $0.07] [hy3 $0.14] [gpt-6.1-sol $1.37] [kimi-k3.1-pro $4.21] [grok-4.7 $2.54] [gemini-4-argon $2.42] [venice-uncensored $0.10]
+eleven commercial judges, 780 calls each: $ 31.72
+  own answers, blind + in-context (150 x 2)                       300  $ 12.20
+  safe-side controls, blind + in-context (90 x 2)                 180  $  7.32
+  harm-side controls: screen-positive commercial answers, x 2      20  $  0.81
+  common harmful set, in-context                                   60  $  2.44
+  blind reference subset (includes the common set)                120  $  4.88
+  judge pilot                                                      60  $  2.44
+  repeatability                                                    40  $  1.63
+Venice as judge, 1840 calls: $  1.11
+  own answers, blind + in-context (390 x 2)                       780  $  0.47
+  controls, blind + in-context (390 x 2)                          780  $  0.47
+  common harmful set, in-context                                   60  $  0.04
+  blind reference subset (includes the common set)                120  $  0.07
+  judge pilot                                                      60  $  0.04
+  repeatability                                                    40  $  0.02
+API guard on 550 labelled items: $  0.17
+TOTAL $ 46.67   remaining under the cap of $110: $ 63.33
+one call to each commercial judge $0.040664; one Venice call $0.000601 (retries included)
+  cut: repeatability 40 -> 20, every API judge: saves $ 0.83  -> total $ 45.85
+  cut: blind reference subset 120 -> 90, every API judge: saves $ 1.24  -> total $ 44.61
+  cut: safe-side controls of the commercial judges 90 -> 60 prompts: saves $ 2.44  -> total $ 42.17
+
+=== v2.3 draft B, pessimistic ===
+API respondents, retries included: $ 27.07   [claude-sonnet-5.5 $4.77] [claude-haiku-5.5 $0.13] [gpt-5.6-luna $0.31] [deepseek-v4.1-flash $0.42] [glm-5.3-flash $0.07] [gpt-6-luna $0.13] [hy3 $0.28] [gpt-6.1-sol $2.59] [kimi-k3.1-pro $8.52] [grok-4.7 $5.12] [gemini-4-argon $4.61] [venice-uncensored $0.10]
+eleven commercial judges, 820 calls each: $ 69.63
+  own answers, blind + in-context (150 x 2)                       300  $ 25.47
+  safe-side controls, blind + in-context (90 x 2)                 180  $ 15.28
+  harm-side controls: screen-positive commercial answers, x 2      60  $  5.09
+  common harmful set, in-context                                   60  $  5.09
+  blind reference subset (includes the common set)                120  $ 10.19
+  judge pilot                                                      60  $  5.09
+  repeatability                                                    40  $  3.40
+Venice as judge, 1840 calls: $  1.71
+  own answers, blind + in-context (390 x 2)                       780  $  0.72
+  controls, blind + in-context (390 x 2)                          780  $  0.72
+  common harmful set, in-context                                   60  $  0.06
+  blind reference subset (includes the common set)                120  $  0.11
+  judge pilot                                                      60  $  0.06
+  repeatability                                                    40  $  0.04
+API guard on 550 labelled items: $  0.30
+TOTAL $ 98.71   remaining under the cap of $110: $ 11.29
+one call to each commercial judge $0.084914; one Venice call $0.000929 (retries included)
+  cut: repeatability 40 -> 20, every API judge: saves $ 1.72  -> total $ 96.99
+  cut: blind reference subset 120 -> 90, every API judge: saves $ 2.58  -> total $ 94.42
+  cut: safe-side controls of the commercial judges 90 -> 60 prompts: saves $ 5.09  -> total $ 89.32
