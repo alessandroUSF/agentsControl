@@ -10,7 +10,7 @@ A language model is often asked to check an answer that it wrote itself. This st
 > **Status on 10 November 2026: design under review. There is no result.**
 > - Public: version 1 of the pre-registration ([`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), commit `4124f32`, 7 November 2026). Nothing else is registered.
 > - Current design: [`docs/STUDY_PROTOCOL_v2.3.md`](docs/STUDY_PROTOCOL_v2.3.md), a draft. It replaces protocol v2.2 ([`docs/STUDY_PROTOCOL_v2.md`](docs/STUDY_PROTOCOL_v2.md), never registered). The draft amendment [`docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md`](docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md) withdraws the hypotheses H1 to H3 of version 1 and says why.
-> - Done so far: seven local models answered the benchmark prompts (7,457 answers). No person has read, screened, judged or labelled an answer. No call to a commercial API has been made, and no money has been spent.
+> - Done so far: seven local models answered the benchmark prompts (7,457 answers). No person has read, judged or labelled an answer; on 13 November 2026 commands run by the AI assistant screened the answers of one run and printed counts and three short excerpts (protocol Section 3.4). No call to a commercial API has been made, and no money has been spent.
 > - Part of the code that the protocol needs is not written yet (see "State of the code").
 
 ## Design in brief

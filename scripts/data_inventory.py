@@ -50,6 +50,21 @@ HISTORY = [
      "the G1 key the response identifier. They printed counts. After that the hashes of the `v22_local` files were "
      "recorded and the run name was sealed in the code. `scripts/check_sealed_hashes.py` reads the bytes of each "
      "file to hash them."),
+    ("11 November 2026",
+     "The time of the first call of run `v22_local` was read from its call log (`results/logs/calls_v22_local.jsonl`, "
+     "which holds no answer text) for the dates of protocol Section 3.2. No answer file was opened."),
+    ("12 November 2026",
+     "Decision D18: the answers of the sealed runs are not used; every answer of the study is generated after the "
+     "pilot registration with seed 20261126. The 96 answers of G1 outside the frames stay the training material. No "
+     "answer file was opened."),
+    ("13 November 2026",
+     "While preparing decision D22, the AI assistant ran seven commands on `results/raw/responses_v22_local.jsonl`. "
+     "They counted the reasoning blocks that models 16 and 17 write into their output and measured their length, "
+     "screened the answers with and without the block (counts by model, prompt category and benchmark label; for "
+     "model 17: of 500 answers to harmful prompts, 366 move from screen-positive to screen-negative when the block "
+     "is split off and 2 the other way), and printed in the assistant's session the first 140 characters, and the 60 "
+     "characters from the closing tag, of three answers of model 16 to safe prompts. A command that looked for "
+     "reasoning blocks in stored judge outputs found no such file."),
 ]
 
 
@@ -107,6 +122,10 @@ def build():
       "here (protocol v2.3, Section 15.3). The statement is signed with the pilot registration.")
     w("- The hashes of the files are in `docs/SEALED_HASHES.md`. `python -I scripts/check_sealed_hashes.py` checks "
       "them.")
+    w("- **Decision D18 (12 November 2026).** No answer listed here is an answer of the study. Every answer of the "
+      "pilot and of the frames is generated after the pilot registration, with seed 20261126. The only answers of "
+      "these files that are read are the 96 answers of the retired sample G1 on prompts outside the frames: they "
+      "train the annotators (protocol v2.3, Section 9.6).")
     w("")
 
     # 1 sample
@@ -183,10 +202,12 @@ def build():
     # 4 coverage
     w("## 4. Coverage of the frames")
     w("")
-    w("Answers of the runs `full` and `v22_local`, by model of the primary panel. Each model of the primary panel "
-      f"answers the harmful frame and the safe frame: {len(harmful)} + {len(safe)} = {len(harmful) + len(safe)} prompts.")
+    w("Answers that the sealed runs `full` and `v22_local` hold, by model of the primary panel. Each model of the "
+      f"primary panel answers the harmful frame and the safe frame: {len(harmful)} + {len(safe)} = "
+      f"{len(harmful) + len(safe)} prompts. Since decision D18 none of these answers is used: the last column counts "
+      "the frame answers that the study generates.")
     w("")
-    w("| Model | Harmful frame | Safe frame | Harmful tail | Safe tail | Frame answers still to generate |")
+    w("| Model | Harmful frame | Safe frame | Harmful tail | Safe tail | Frame answers to generate (decision D18) |")
     w("|---|---|---|---|---|---|")
     need = len(harmful) + len(safe)
     exist_total = 0
@@ -195,20 +216,20 @@ def build():
         have = len(got & harmful) + len(got & safe)
         exist_total += have
         w(f"| {n} `{key_of[n]}` | {len(got & harmful)} of {len(harmful)} | {len(got & safe)} of {len(safe)} | "
-          f"{len(got & h_tail)} of {len(h_tail)} | {len(got & s_tail)} of {len(s_tail)} | {need - have} |")
+          f"{len(got & h_tail)} of {len(h_tail)} | {len(got & s_tail)} of {len(s_tail)} | {need} |")
     w("")
     primary_total = need * len(design["primary_panel"])
     com = design["groups"]["commercial"]
     com_need = len(common) + len(safe)
-    w(f"- Primary panel: {exist_total:,} of {primary_total:,} frame answers exist; {primary_total - exist_total:,} are "
-      "still to be generated.")
-    w(f"- Commercial panel ({len(com)} models): each answers the common set and the safe frame, "
-      f"{len(common)} + {len(safe)} = {com_need} prompts; {com_need * len(com):,} answers, none of which exists.")
-    w(f"- All frames: {primary_total + com_need * len(com):,} answers; "
-      f"{primary_total - exist_total + com_need * len(com):,} still to be generated. Pilot answers come on top "
-      "(Section 13 of the protocol).")
-    w("- A model of the list above that has no answer yet is answered under a new run name. The three existing run "
-      "names are sealed.")
+    w(f"- Primary panel: {primary_total:,} frame answers, all to be generated after the freeze. The sealed runs hold "
+      f"{exist_total:,} of them, which are not used (decision D18).")
+    w(f"- Commercial panel ({len(com)} models; model 14 left the study before any call, decision D17 of 12 November "
+      f"2026): each answers the common set and the safe frame, {len(common)} + {len(safe)} = {com_need} prompts; "
+      f"{com_need * len(com):,} answers, none of which exists.")
+    w(f"- All frames: {primary_total + com_need * len(com):,} answers, all still to be generated. Pilot answers come "
+      "on top (Section 13 of the protocol).")
+    w("- Every answer of the study is written under a new run name, with seed 20261126. The three existing run names "
+      "are sealed.")
     w("")
 
     # 5 v1 pilot
@@ -224,8 +245,8 @@ def build():
     for x in places:
         w(f"| {x} | {c.get(x, 0)} |")
     w("")
-    w(f"- {inside} of the {len(v1_pilot_prompts)} prompts lie inside the frames. The answers that the frames use for "
-      "them come from the run `full`, not from this pilot.")
+    w(f"- {inside} of the {len(v1_pilot_prompts)} prompts lie inside the frames. Since decision D18 the frames use no "
+      "answer of a sealed run for them: they are generated after the freeze, like every frame answer.")
     w("- All of these prompts are excluded from the pilot of protocol v2.3.")
     w("")
 
@@ -254,7 +275,8 @@ def build():
             w(f"| {x} | {c.get(x, 0)} |")
         w("")
         w("- G1 is retired: protocol v2.3 draws a new probability sample for the labels (Section 9).")
-        w(f"- The {outside} answers on tail prompts are the training material of the annotators (Section 9.6).")
+        w(f"- The {outside} answers on tail prompts are the training material of the annotators (Section 9.6). They "
+          "are the only answers of the sealed runs that are read (decision D18).")
         w("- The labelling sheet has the hash that was recorded on 8 November 2026, so nothing has been written "
           "into it. No label exists.")
         w("")
@@ -290,8 +312,8 @@ def build():
     for date, text in HISTORY:
         w(f"| {date} | {text} |")
     w("")
-    w("- Apart from the sampler of G1, no script copied an answer text. No script printed, screened, classified or "
-      "summarised one.")
+    w("- Apart from the sampler of G1, no script copied an answer text. Until 12 November no script printed, "
+      "screened, classified or summarised one; the commands of 13 November are in the table.")
     w("- No judging call has been made. No verdict and no label exists.")
     w("- No call to an API has been made. No money has been spent on model calls.")
     w("")

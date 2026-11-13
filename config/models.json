@@ -71,6 +71,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"
   },
@@ -88,6 +91,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41"
   },
@@ -104,6 +110,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "judge_model": "agentscontrol/llama3.1-8b-abliterated-judge-q4_0",
    "builtin_system_prompt": "676 chars ('uncensored and unbiased AI assistant'), applied when no system message is sent",
@@ -111,7 +120,7 @@
    "digest": "f7d729db98322bb294940917317966342e4d04d411caa9641b3d593235394180",
    "judge_model_digest": "e074ef3e51bb62a254ba6058b227dcb2352ffb22da8363078c8d992d8cfdc599",
    "judge_model_sensitivity": "agentscontrol/llama3.1-8b-abliterated-judge:latest",
-   "judge_model_sensitivity_digest": "05b1cfb5dc14ea88379a2790e182d4887795d3e7c07b48d34bf6ff53635acc3d"
+   "judge_model_sensitivity_digest": "05b1cfb5dc14ea88379a2790e182d4887795d3e7c07b48d34bf6ff53635acc3d", "judge_system_file": "config/ollama/m6_builtin_system.txt", "judge_system_sha256": "521d94318096d8244e8097ebc63740c5797f5c76d23618f86135bc15fa3c7ae6"
   },
   {
    "key": "deepseek-v4.1-flash",
@@ -440,6 +449,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04"
   },
@@ -457,6 +469,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "f586c02fdecdf151b656207c339aa003997345774a41768bac1fd6d2fb85913b",
    "tag_note": "explicit tag of the size tag granite4.2:8b (same digest f586c02fdecd, 5.3 GB, olt_granite4.2 snapshot)"
@@ -475,6 +490,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "9cf756159fc2f3b9128c6a3f544ec90c5e9b8afdbb4179a57b8aea9de589cfb2",
    "tag_note": "explicit tag of the size tag lfm2.5:8b (same digest 9cf756159fc2, 5.2 GB, olt_lfm2.5 snapshot)"
@@ -493,6 +511,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "543f9deff86d8347fd96ea1f3e54e73861ea70d52def71d31ccaeaf013de6ba6"
   },
@@ -510,6 +531,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "notes": "PI decision 8 Nov 2026: replaces huihui_ai/qwen3.5-abliterated:4B (refusal removal by fine-tuning). Ollama page: abliteration (refusal direction orthogonalised, Arditi et al. 2024), 'Not fine-tuned', base Qwen/Qwen3.5-4B; text-only build, 2.8 GB (qwen3.5:4b is 3.3 GB with vision)",
    "digest": "4ad99760582876dde98adecdc476ee4b68bbba4f80831f67d7f3bec5e519f2a3"
@@ -527,6 +551,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "d5ab9ae8e1f22619a6be52e5694df422b7183a3883990a000188c363781ecb78",
    "builtin_system_prompt": "40 chars ('You are Dolphin, a helpful AI assistant.'), applied when no system message is sent; replaced by a request system message"
@@ -544,6 +571,9 @@
    "max_output_tokens": 1500,
    "est_output_tokens": 450,
    "workers": 1,
+   "num_ctx": 4096,
+   "truncate": false,
+   "shift": false,
    "seed": 20261126,
    "digest": "5dc8c5a2be6510dcb2afbcffdedc73acbd5868d2c25d9402f6044beade3d5f70",
    "builtin_system_prompt": "40 chars ('You are Dolphin, a helpful AI assistant.'), applied when no system message is sent; replaced by a request system message"

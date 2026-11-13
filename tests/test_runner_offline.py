@@ -1407,8 +1407,27 @@ def t_availability_midnight_rollover():
     ck("incomplete, no facts", c == 3 and "after midnight" in run.out and not avail_facts())
     ck("its test calls are recorded and settled", len(Fake.sent) == 2 and len(led("availability_call")) == 2
        and not S.Books("look", write=False).unsettled())
-    c = run(["--run", "d13b", "--availability-check", "--run-cap", "1"])
-    ck("the check run again uses them", c == 0 and len(Fake.sent) == 2 and len(avail_facts()) == 2)
+    # Review round 10: the run again happens on the new day. The second test call is dated after midnight (its
+    # recorded time is moved to the new day) and is used; the first, of the old day, is sent again.
+    path = R.availability_raw_path()
+    recs = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+    finals = [r for r in recs if r.get("kind") == "attempt" and r.get("final")]
+    late = sorted(finals, key=lambda r: r.get("ts") or "")[-1]
+    new_ts = dt.datetime.fromisoformat(nxt + "T00:00:05").astimezone().isoformat()
+    for r in recs:
+        if r.get("attempt_id") == late["attempt_id"]:
+            r["ts"] = new_ts
+    path.write_text("".join(json.dumps(r) + chr(10) for r in recs), encoding="utf-8")
+    R.today_local = lambda: nxt
+    try:
+        c = run(["--run", "d13b", "--availability-check", "--run-cap", "1"])
+    finally:
+        R.today_local = real
+    f = avail_facts()
+    other = next(k for k in f if k != late["model_key"])
+    ck("on the new day: the answer of the new day is used, that of the old day is sent again",
+       c == 0 and len(Fake.sent) == 3 and len(f) == 2 and len(led("availability_call")) == 3
+       and "not sent again" in fact(f[late["model_key"]], 3)[1] and "not sent again" not in fact(f[other], 3)[1])
     return ck.ok()
 
 
@@ -2177,6 +2196,239 @@ def t_freeze_checks_ceiling():
     return ck.ok()
 
 
+# ---- decision D26: the check of model 22's provider (Sections 3.3 and 13.2) ------------------------------------------
+
+def t_provider_prompt_check():
+    """One harmless sentinel call of model 22 after the pilot registration, reserved and settled outside every
+    block; the input tokens that the provider reports read against the two reference counts; not sent again; the
+    pilot report states it; refused before the registration, after the freeze, and with other options."""
+    import pilot_report_v23 as PR
+    ck = Checks("provider_prompt")
+    tmp, models = setup("provider_prompt")
+    K, M = keymap(models)
+    m22 = M[K[22]]
+    counts = {"request": 12, "template_default": 566, "date": "2026-11-13"}
+    real = R.d26_counts
+    R.d26_counts = lambda d, prompt=R.D26_PROMPT, date=None: dict(counts)
+    argv = ["--run", "d26", "--provider-prompt-check", "--tokenizer-dir", "unused", "--run-cap", "1"]
+    try:
+        c = run(argv)
+        ck("registration first", c == 2 and "registration is not recorded" in run.out and not Fake.sent
+           and not led(R.D26_KIND) and not S.SPEND_LOCK.exists())
+        ledger(kind="registration", tag="t")
+        Fake.rules[m22["model"]] = [{"input_tokens": 566}]
+        c = run(argv)
+        lines = [e for e in jsonl(R.d26_log_path()) if e.get("kind") == "counts"]
+        ck("one sentinel call, of model 22 only, never a benchmark prompt",
+           c == 0 and Fake.sent == [(m22["model"], None)]
+           and all(r["prompt"].strip() != R.D26_PROMPT for r in ROWS.values()))
+        ck("the counts and their reading", len(lines) == 1 and lines[0]["model_key"] == K[22]
+           and lines[0]["reported_input_tokens"] == 566 and lines[0]["request_tokens"] == 12
+           and lines[0]["template_default_tokens"] == 566 and lines[0]["reading"] == "template_default"
+           and "default system message of the published chat template" in run.out)
+        pc, pre = led(R.D26_KIND), [e for e in led("preflight") if e.get("role") == "provider_prompt"]
+        ck("ledger: a preflight line, then one call line outside every block",
+           len(pre) == 1 and pre[0]["ok"] and len(pc) == 1 and pc[0]["role"] == "provider_prompt"
+           and pc[0]["final"] is True and pc[0]["status"] == "ok" and pc[0]["prompt_sha256"] == sha(R.D26_PROMPT)
+           and 0 < pc[0]["spent_usd"] <= pc[0]["reserved_usd"] and not led("call") and not led("availability_call"))
+        books = S.Books("probe", write=False)
+        ck("against the cap, in no holds item", not books.final and abs(books.spent - pc[0]["spent_usd"]) < 1e-9)
+        raw, pub = jsonl(R.d26_raw_path()), jsonl(R.d26_log_path())
+        ck("the answer only in the private record", len(raw) == 1 and raw[0]["text"] == ANSWER
+           and all("text" not in e and "error_body" not in e for e in pub))
+        c = run(argv)
+        ck("recorded: not sent again", c == 0 and len(Fake.sent) == 1 and len(led(R.D26_KIND)) == 1
+           and "not sent again" in run.out)
+        ck("the pilot report states it", PR.provider_prompt(R.LOGS)[K[22]]["reading"] == "template_default"
+           and PR.provider_prompt(R.LOGS)[K[22]]["reported_input_tokens"] == 566)
+        ck("readings", [R.d26_reading(x, counts)[0] for x in (12, 16, 563, 300, 5, None)]
+           == ["none_added", "none_added", "template_default", "other_added", "fewer", "no_count"])
+        ledger(kind="freeze", tag="f")
+        c = run(["--run", "d26b"] + argv[2:])
+        ck("refused after the freeze", c == 2 and "freeze is recorded" in run.out and len(Fake.sent) == 1)
+    finally:
+        R.d26_counts = real
+    bad = tmp / "tok"
+    bad.mkdir()
+    for name in R.D26_TOKENIZER["files"]:
+        (bad / name).write_text("not the pinned file", encoding="utf-8")
+    try:
+        R.d26_counts(bad)
+        pinned = False
+    except SystemExit as e:
+        pinned = "not the pinned file" in str(e)
+    ck("the tokenizer files must be the pinned ones", pinned)
+    for args, words in ((["--run", "x", "--provider-prompt-check", "--block", "1"], "takes --run, --tokenizer-dir"),
+                        (["--run", "x", "--provider-prompt-check", "--models", K[22]], "takes --run, --tokenizer-dir"),
+                        (["--run", "x", "--provider-prompt-check", "--run-cap", "1"], "--tokenizer-dir is required"),
+                        (["--provider-prompt-check"], "--run is required"),
+                        (["--run", "full", "--provider-prompt-check"], "sealed")):
+        c = run(args)
+        ck(f"refused: {words}", isinstance(c, str) and words in c)
+    ck("nothing else sent", len(Fake.sent) == 1 and not S.SPEND_LOCK.exists())
+    ck("no leaks", no_leaks(tmp))
+    return ck.ok()
+
+
+def t_provider_prompt_recovery_and_edges():
+    """Review round 15, decision D26: the exact request and configuration; a check killed before its ledger line,
+    after it, or before its private record (recovered as the test call of D13: a recorded final call is never sent
+    again, an unrecorded one is settled at its reservation and sent again); a reservation that does not fit the cap;
+    an empty answer that reports its input tokens; each pinned tokenizer file checked on its own; the counts through
+    the pilot report's JSON and Markdown."""
+    import pilot_report_v23 as PR
+    ck = Checks("provider_prompt recovery")
+    counts = {"request": 12, "template_default": 566, "date": "2026-11-13"}
+    real = R.d26_counts
+    R.d26_counts = lambda d, prompt=R.D26_PROMPT, date=None: dict(counts)
+    argv = ["--run", "d26", "--provider-prompt-check", "--tokenizer-dir", "unused", "--run-cap", "1"]
+
+    def prepare(name, rules):
+        tmp, models = setup(name)
+        K, M = keymap(models)
+        ledger(kind="registration", tag="t")
+        m22 = M[K[22]]
+        Fake.rules[m22["model"]] = list(rules)
+        return tmp, K, m22
+
+    def counts_lines():
+        return [e for e in jsonl(R.d26_log_path()) if e.get("kind") == "counts"]
+
+    try:
+        # the exact request and configuration
+        tmp, K, m22 = prepare("provider_prompt_exact", [{"input_tokens": 566}])
+        seen, orig_call = [], Fake.call
+
+        def spy(self, prompt):
+            seen.append((copy.deepcopy(self.cfg), prompt))
+            return orig_call(self, prompt)
+        Fake.call = spy
+        try:
+            c = run(argv)
+        finally:
+            Fake.call = orig_call
+        raw = jsonl(R.d26_raw_path())
+        ck("exactly the sentinel request, with the respondent configuration of model 22",
+           c == 0 and len(seen) == 1 and seen[0][1] == R.D26_PROMPT == "Please reply with the single word: ready."
+           and seen[0][0] == m22 and len(raw) == 1 and raw[0]["config_sha256"] == R.config_hash(m22)
+           and raw[0]["pin_sha256"] == R.pin_hash(m22)
+           and raw[0]["request_sha256"] == R.request_hash(m22, R.D26_PROMPT)
+           and raw[0]["output_cap"] == m22["max_output_tokens"])
+        # the counts through the pilot report's JSON and Markdown
+        pp = PR.provider_prompt(R.LOGS)
+        rep = {"round": 1, "rules": {}, "respondents": {}, "judges": {}, "blocks": [],
+               "ledger": {"block1_spent_usd": 0.0}, "provider_prompt": pp}
+        md, back = PR.markdown(rep), json.loads(json.dumps(rep))["provider_prompt"][K[22]]
+        ck("the report: JSON and Markdown state the counts and the reading",
+           back["reported_input_tokens"] == 566 and back["request_tokens"] == 12
+           and back["template_default_tokens"] == 566 and back["reading"] == "template_default"
+           and back["status"] == "ok" and f"{K[22]} (model 22" in md and "input tokens reported 566" in md
+           and "the request alone 12" in md and "default system message 566" in md
+           and PR.D26_TEXT["template_default"] in md and "The check was not made" not in md)
+
+        # killed at three points; run again
+        for name, target, when, resent in (("before the ledger line", "settle_outside_plan", "before", False),
+                                           ("after the ledger line", "settle_outside_plan", "after", False),
+                                           ("before the record", "write_availability_attempt", "before", True)):
+            tmp, K, m22 = prepare("provider_prompt_crash_" + name.replace(" ", "_"),
+                                  [{"input_tokens": 566}, {"input_tokens": 566}])
+            orig = getattr(R, target)
+
+            def wrapped(*args, _orig=orig, _when=when, **kwargs):
+                if _when == "before":
+                    raise Crash()
+                _orig(*args, **kwargs)
+                raise Crash()
+            setattr(R, target, wrapped)
+            try:
+                run(argv)
+                crashed = False
+            except Crash:
+                crashed = True
+            finally:
+                setattr(R, target, orig)
+            S.SPEND_LOCK.unlink(missing_ok=True)
+            ck(f"{name}: killed after one call", crashed and len(Fake.sent) == 1 and not counts_lines())
+            c = run(["--run", "d26r"] + argv[2:])
+            calls = led(R.D26_KIND)
+            rl = [e for e in calls if e.get("reconciled")]
+            raw = {r["attempt_id"]: r for r in jsonl(R.d26_raw_path())}
+            lines = counts_lines()
+            ck(f"{name}: books settled, counts read", c == 0 and not S.Books("look", write=False).unsettled()
+               and len(lines) == 1 and lines[0]["reported_input_tokens"] == 566
+               and lines[0]["reading"] == "template_default")
+            if when == "before" and not resent:
+                ck(f"{name}: settled at the recorded cost, not sent again", len(Fake.sent) == 1 and len(calls) == 1
+                   and len(rl) == 1 and abs(rl[0]["spent_usd"] - raw[rl[0]["attempt_id"]]["cost_usd"]) < 1e-12
+                   and rl[0]["spent_usd"] < rl[0]["reserved_usd"] and "not sent again" in run.out)
+            elif not resent:
+                ck(f"{name}: not sent again", len(Fake.sent) == 1 and len(calls) == 1 and not rl
+                   and "not sent again" in run.out)
+            else:
+                ck(f"{name}: settled at its reservation as interrupted, then sent again",
+                   len(Fake.sent) == 2 and len(calls) == 2 and len(rl) == 1 and rl[0]["status"] == "interrupted"
+                   and rl[0]["final"] is False and rl[0]["spent_usd"] == rl[0]["reserved_usd"]
+                   and rl[0]["attempt_id"] not in raw and len(raw) == 1)
+            c = run(["--run", "d26s"] + argv[2:])
+            ck(f"{name}: a third run sends nothing", c == 0 and len(Fake.sent) == 1 + resent)
+
+        # a reservation that does not fit the run cap
+        tmp, K, m22 = prepare("provider_prompt_cap", [{"input_tokens": 566}])
+        c = run(argv[:-1] + ["0.0000001"])
+        ck("a reservation over the run cap: not sent, nothing settled, incomplete",
+           c == 3 and not Fake.sent and not led(R.D26_KIND) and "not sent" in run.out
+           and not S.Books("look", write=False).unsettled() and not counts_lines())
+
+        # an empty answer that reports its input tokens
+        tmp, K, m22 = prepare("provider_prompt_empty", [{"text": "", "input_tokens": 566}])
+        c = run(argv)
+        lines = counts_lines()
+        ck("an empty answer keeps its count", c == 0 and len(lines) == 1 and lines[0]["status"] == "empty"
+           and lines[0]["reported_input_tokens"] == 566 and lines[0]["reading"] == "template_default")
+        c = run(["--run", "d26e"] + argv[2:])
+        ck("an empty final answer is not sent again", c == 0 and len(Fake.sent) == 1 and len(counts_lines()) == 2
+           and counts_lines()[1]["reported_input_tokens"] == 566)
+    finally:
+        R.d26_counts = real
+
+    # each pinned file is checked on its own
+    pins = copy.deepcopy(R.D26_TOKENIZER)
+    d = tmp / "pins"
+    d.mkdir()
+    good = {name: f"content of {name}" for name in pins["files"]}
+    try:
+        R.D26_TOKENIZER["files"] = {name: sha(text) for name, text in good.items()}
+        for name in good:
+            for how in ("changed", "missing"):
+                for n2, text in good.items():
+                    (d / n2).write_text(text, encoding="utf-8", newline="")
+                if how == "changed":
+                    (d / name).write_text(good[name] + " ", encoding="utf-8", newline="")
+                else:
+                    (d / name).unlink()
+                try:
+                    real(d)
+                    msg = ""
+                except SystemExit as e:
+                    msg = str(e)
+                ck(f"{name} {how}: refused", msg.startswith(f"{name} in ") and "not the pinned file" in msg)
+        for n2, text in good.items():
+            (d / n2).write_text(text, encoding="utf-8", newline="")
+        try:
+            real(d)
+            passed = True
+        except SystemExit:
+            passed = False
+        except Exception:               # past the pins: the stand-in files are not a tokenizer
+            passed = True
+        ck("all three pinned files: past the check", passed)
+    finally:
+        R.D26_TOKENIZER.clear()
+        R.D26_TOKENIZER.update(pins)
+    ck("no leaks", no_leaks(tmp))
+    return ck.ok()
+
+
 TESTS = [t_block1_rounds_sealed_and_close, t_block2_registered_hosted_first, t_block4_batch_lost_reply_and_collect,
          t_batch_item_kinds_overrun_and_stale, t_outcomes_final_suspected_config, t_pending_five_in_a_row_and_resume,
          t_overrun_stops_paid_calls, t_run_cap_and_study_cap, t_preflight_and_d2, t_provider_stop,
@@ -2186,7 +2438,7 @@ TESTS = [t_block1_rounds_sealed_and_close, t_block2_registered_hosted_first, t_b
          t_adapters_offline, t_google_adapter_offline, t_settle_is_atomic, t_crash_recovery_respondent,
          t_freeze_checks_ceiling, t_overrun_survives_crash, t_availability_recovered_after_crash,
          t_availability_reuse_conditions, t_batch_overrun_aggregate_only, t_availability_saved_identity_ignored,
-         t_availability_midnight_rollover]
+         t_availability_midnight_rollover, t_provider_prompt_check, t_provider_prompt_recovery_and_edges]
 
 
 def main():

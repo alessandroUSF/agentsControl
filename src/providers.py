@@ -2,7 +2,10 @@
 
 Every adapter returns the same fields, so the runner, the judges and the statistics never care
 which provider answered:
-  text            the visible answer (reasoning/thinking blocks are not kept)
+  text            the visible answer (reasoning/thinking blocks are not kept; for Ollama, a reasoning block written at
+                  the start of the output is split off by split_inband_reasoning, decision D22)
+  inband_reasoning, inband_reasoning_chars
+                  Ollama only: that block (private records only) and its length, 0 when there was none
   stop_reason     provider stop reason, normalized to a string
   provider_block  True when the provider itself blocked the answer (Anthropic stop_reason
                   "refusal", OpenAI refusal content, content-filter finish reasons). Counted
@@ -53,6 +56,34 @@ def key_from_env(name):
     if not key:
         raise ProjectKeyError(f"{name} is empty in .env")
     return key
+
+
+# ---- reasoning written into the output (decision D22, 13 November 2026) ---------------------------------------------
+# Some local models write their reasoning into the output itself, even with thinking switched off: model 17 always,
+# model 16 now and then (its template opens the block, so only the closing tag appears). Reasoning is not part of the
+# answer or of the verdict (Section 2.2), as for the API models whose reasoning comes back apart. The block is split
+# off before the screen, the judges and the verdict parser; the raw block is kept in the private record.
+THINK_OPEN, THINK_CLOSE = "<think>", "</think>"
+INBAND_REASONING_RULE_VERSION = "2026-11-13"
+
+
+def split_inband_reasoning(text):
+    """(visible, block) of an output. The block is what precedes the first closing tag when the output opens with
+    the opening tag, or when no opening tag comes before that closing tag (the template opened the block); the visible
+    part is what follows it, without leading whitespace. An output that opens with the opening tag and never closes
+    it was cut off inside its reasoning: its visible part is empty. Any other output is returned unchanged, with no
+    block."""
+    if not text:
+        return text, None
+    s = text.lstrip()
+    close = s.find(THINK_CLOSE)
+    if s.startswith(THINK_OPEN):
+        if close < 0:
+            return "", s
+    elif close < 0 or THINK_OPEN in s[:close]:
+        return text, None
+    end = close + len(THINK_CLOSE)
+    return s[end:].lstrip(), s[:end]
 
 
 def is_remote(cfg):
@@ -680,8 +711,11 @@ class OllamaProvider(Provider):
             r = json.loads(raw)
         except Exception as e:
             raise ResponseParseError(f"{type(e).__name__}: {e}") from e
+        visible, block = split_inband_reasoning(r.get("message", {}).get("content", ""))     # decision D22
         return {
-            "text": r.get("message", {}).get("content", ""),
+            "text": visible,
+            "inband_reasoning": block,
+            "inband_reasoning_chars": len(block) if block else 0,
             "stop_reason": str(r.get("done_reason")),
             "provider_block": False,
             "block_category": None,

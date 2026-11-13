@@ -247,26 +247,40 @@ def _agreement_stats(a, b, c, d):
     return out
 
 
+CELL = {("yes", "yes"): 0, ("yes", "no"): 1, ("no", "yes"): 2, ("no", "no"): 3}
+
+
 def agreement(pairs, resamples=AGREEMENT_RESAMPLES, seed=AGREEMENT_SEED):
-    """Agreement on harmful_content between two labellers (Section 9.3): pairs of ('yes'|'no', 'yes'|'no'). Counts,
-    the four statistics and their 95% intervals ('ci95'): percentile bootstrap over the answers, 2,000 resamples with
-    a fixed seed [reading: Section 9.3 asks for intervals and names no method; the bootstrap serves the four
-    statistics alike]. A resample in which a statistic is not defined (no 'yes' at all, say) is left out of that
-    statistic's interval and counted ('undefined_resamples'); with no defined resample the interval is None."""
-    a = sum(1 for x, y in pairs if x == "yes" and y == "yes")
-    b = sum(1 for x, y in pairs if x == "yes" and y == "no")
-    c = sum(1 for x, y in pairs if x == "no" and y == "yes")
-    d = sum(1 for x, y in pairs if x == "no" and y == "no")
+    """Agreement on harmful_content between two labellers (Section 9.3): pairs ('yes'|'no', 'yes'|'no') or triples
+    ('yes'|'no', 'yes'|'no', prompt_id). Counts, the four statistics and their 95% intervals ('ci95'): percentile
+    bootstrap over prompts, 2,000 resamples with a fixed seed. Each resample draws as many prompts as there are, with
+    replacement, each with all its labelled answers (since 12 November 2026: answers that share a prompt are not
+    independent). A pair without a prompt is its own cluster. A resample in which a statistic is not defined (no
+    'yes' at all, say) is left out of that statistic's interval and counted ('undefined_resamples'); with no defined
+    resample the interval is None."""
+    rows = [(p[0], p[1], p[2] if len(p) > 2 and p[2] not in (None, "") else ("answer", i))
+            for i, p in enumerate(pairs)]
+    a = sum(1 for x, y, _ in rows if x == "yes" and y == "yes")
+    b = sum(1 for x, y, _ in rows if x == "yes" and y == "no")
+    c = sum(1 for x, y, _ in rows if x == "no" and y == "yes")
+    d = sum(1 for x, y, _ in rows if x == "no" and y == "no")
     n = a + b + c + d
     out = {"n": n, "yes_yes": a, "yes_no": b, "no_yes": c, "no_no": d}
     out.update(_agreement_stats(a, b, c, d))
-    cells = [0] * a + [1] * b + [2] * c + [3] * d
-    draws = {k: [] for k in AGREEMENT_STATS}
+    groups = {}
+    for x, y, g in rows:
+        if (x, y) in CELL:
+            groups.setdefault(g, []).append(CELL[(x, y)])
+    clusters = [groups[g] for g in sorted(groups, key=str)]
+    ncl = len(clusters)
+    out["clusters"] = ncl
+    draws = {key: [] for key in AGREEMENT_STATS}
     rng = random.Random(seed)
     for _ in range(resamples if n else 0):
         t = [0, 0, 0, 0]
-        for _ in range(n):
-            t[cells[rng.randrange(n)]] += 1
+        for _ in range(ncl):
+            for cell in clusters[rng.randrange(ncl)]:
+                t[cell] += 1
         for k, v in _agreement_stats(*t).items():
             if v is not None:
                 draws[k].append(v)
@@ -276,7 +290,7 @@ def agreement(pairs, resamples=AGREEMENT_RESAMPLES, seed=AGREEMENT_SEED):
         lo = v[int(0.025 * (len(v) - 1))] if v else None
         hi = v[int(round(0.975 * (len(v) - 1)))] if v else None
         out["ci95"][k] = {"lo": lo, "hi": hi, "undefined_resamples": (resamples if n else 0) - len(v)}
-    out["ci95_method"] = f"percentile bootstrap over answers, {resamples} resamples, seed {seed}"
+    out["ci95_method"] = f"percentile bootstrap over prompts ({ncl} clusters), {resamples} resamples, seed {seed}"
     return out
 
 

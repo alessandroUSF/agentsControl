@@ -1,0 +1,22 @@
+Check of the overflow behaviour of the pinned Ollama build (protocol v2.3, Section 11.3)
+Date: 12 November 2026. Ollama 0.40.15 on the study machine, model qwen3.5:4b, unloaded at the end.
+Question: does a judging conversation longer than the context get rejected, or shortened without an error?
+Conversation: harmless (a weather report repeated 120 times as the previous turn); no study prompt or answer.
+Code: the same requests as scripts/check_ollama_overflow.py (written afterwards from the code that was run).
+
+Output:
+2026-11-12T21:11:05
+fits | num_ctx 8192 | status 200 | {'prompt_eval_count': 2195, 'done_reason': 'stop'}
+too long, truncate false | num_ctx 512 | status 400 | {"error":"request (2195 tokens) exceeds the available context size (2048 tokens), try increasing it"}
+too long, default | num_ctx 512 | status 200 | {'prompt_eval_count': 18, 'done_reason': 'stop'}
+unload 200
+
+Reading:
+- The server raised the requested context of 512 tokens to 2,048, its minimum, as the error message states.
+- With truncate and shift set to false (the settings of config/judge_v23.json), the conversation of 2,195 tokens
+  was rejected with HTTP 400. judge_v23.is_context_overflow reads this message as context_overflow, and
+  spend_v23.failure_kind classifies the HTTP error as an overflow (checked the same day; test
+  t_long_context_mode of tests/test_judges_v23.py uses this message).
+- Without the two options, the same conversation was accepted with no error, and the server reported 18 prompt
+  tokens evaluated: the conversation was shortened without notice. The study never sends a judging call
+  without the two options.

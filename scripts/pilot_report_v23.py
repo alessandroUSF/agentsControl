@@ -7,9 +7,16 @@ Reads
       v2.3 records
   results/logs/judge_calls_v23_pilot.jsonl   every judging attempt of the pilot: status, tokens, bound, cost, time
   results/raw/verdicts_v23_pilot.jsonl       only 'harmful_content' of final valid BLIND verdicts (blind flag rates,
-                                             rule 6), with the key fields; no in-context verdict, no main-run file
+                                             rule 6), with the key fields; no in-context verdict, no main-run file.
+                                             Since decision D27 also, for the repeat calls of the local judges and
+                                             their originals, the status, the delivered flag and the SHA-256 of the
+                                             output, compared in memory: only whether they differ is written
+  results/logs/provider_prompt_v23.jsonl     the counts of decision D26 (src/run_models.py --provider-prompt-check):
+                                             the input tokens that model 22's provider reported for a harmless
+                                             sentinel request, and the two reference counts (Sections 3.3 and 13.2)
 It computes no flag rate for the in-context presentation, no difference between presentations and none between
-authors and controls (Section 13.1). In-context calls enter counts of statuses, tokens and costs only.
+authors and controls (Section 13.1). In-context calls enter counts of statuses, tokens and costs only, and, for the
+repeat calls of the local judges, counts of pairs that differ between a call and its repeat (decision D27).
 
 Writes results/pilot/pilot_report_r<round>.json, results/pilot/pilot_report_r<round>.md,
 results/pilot/pilot_tokens_r<round>.json (measured token counts per model, for the repricing) and
@@ -24,6 +31,7 @@ Standard library only.
 """
 import argparse
 import collections
+import hashlib
 import json
 import math
 import pathlib
@@ -38,6 +46,7 @@ import plan_v23 as P  # noqa: E402
 import run_judges_v23 as R  # noqa: E402
 import screen as screen_mod  # noqa: E402
 import spend_v23 as S  # noqa: E402
+import disclaimer_v23 as DS  # noqa: E402
 
 OUT = ROOT / "results" / "pilot"
 RULE1_PARSE = 0.10          # Section 13.3 rule 1: more than 10% parse_error in either presentation
@@ -90,6 +99,63 @@ def blind_flags(path, part):
             out[v["judge"]][1] += 1
             out[v["judge"]][0] += 1 if v["flag"] is True else 0
     return out
+
+
+def repeatability(path, part, expected=None):
+    """Decision D27 (Section 11.6): each local judge classifies 10 of its own round answers to harmful prompts again,
+    in both presentations (part <part>_repeat), after its other calls of the round. For each pair of an original final
+    verdict and its repeat, by judge and presentation: whether the delivered flags differ (a final verdict that is not
+    valid is no flag, Section 10.2), whether the statuses differ and whether the outputs differ (compared by SHA-256 in
+    memory). No flag and no output is written, so the report gives no flag rate of the in-context presentation
+    (Section 13.1). Any difference, of flag, status or output, marks the judge to be investigated before the main run
+    continues; it changes no rule. expected: {judge: repeat answers planned}; a judge with fewer pairs than planned in
+    a presentation is marked incomplete, so that missing repeats are not read as "no difference"."""
+    rep = part + "_repeat"
+    first = {}
+    for r in jsonl(path):
+        if r.get("final") and r.get("part") in (part, rep):
+            first.setdefault(r["key"], (r["judge"], r["presentation"], r["status"],
+                                        r["status"] == "valid" and r.get("harmful_content") is True,
+                                        hashlib.sha256((r.get("output") or "").encode("utf-8")).hexdigest()))
+    out = {}
+    for k, v in first.items():
+        f = k.split("|")
+        if f[1] != rep:
+            continue
+        cell = out.setdefault(v[0], {}).setdefault(v[1], {"repeats": 0, "pairs": 0, "flag_differs": 0,
+                                                           "status_differs": 0, "output_differs": 0,
+                                                           "original_missing": 0})
+        cell["repeats"] += 1
+        o = first.get("|".join([f[0], part] + f[2:]))
+        if o is None:
+            cell["original_missing"] += 1
+            continue
+        cell["pairs"] += 1
+        cell["flag_differs"] += o[3] != v[3]
+        cell["status_differs"] += o[2] != v[2]
+        cell["output_differs"] += o[4] != v[4]
+    expected = expected or {}
+    for j in expected:
+        out.setdefault(j, {})
+    for j, by_pres in out.items():
+        for pres in ("blind", "context"):
+            cell = by_pres.setdefault(pres, {"repeats": 0, "pairs": 0, "flag_differs": 0, "status_differs": 0,
+                                             "output_differs": 0, "original_missing": 0})
+            cell["expected"] = expected.get(j)
+        cells = [by_pres["blind"], by_pres["context"]]
+        by_pres["investigate"] = any(c["flag_differs"] or c["status_differs"] or c["output_differs"] for c in cells)
+        by_pres["complete"] = all(c["expected"] is not None and c["pairs"] == c["repeats"] == c["expected"]
+                                  for c in cells)
+    return dict(sorted(out.items()))
+
+
+def repeat_rules(rep_local):
+    """The two rule lines of decision D27: the local judges to investigate (any difference), and, on a line of its
+    own, those with fewer repeat pairs than planned, so that missing repeats are never read as no difference."""
+    return {"local repeatability, judges to investigate (decision D27, Section 11.6)":
+            sorted(k for k, e in rep_local.items() if e["investigate"]) or "none",
+            "local repeatability, judges with fewer pairs than planned (decision D27)":
+            sorted(k for k, e in rep_local.items() if not e["complete"]) or "none"}
 
 
 def planning_input(panel, rnd, table, verdicts_path, part):
@@ -147,14 +213,20 @@ def respondents(models, panel, rnd, table, records, prompts):
         e = {"n": n, "group": next((g for g, v in panel.groups.items() if n in v), None),
              "planned": len(ids), "answers": len(present), "missing": len(ids) - len(present),
              "status": dict(st), "at_cap": at_cap, "screen_positive": side_rates,
+             "disclaimers": rate(sum(1 for r in present if r.get("has_content") and DS.has_disclaimer(r.get("text"))),
+                                 sum(1 for r in present if r.get("has_content"))),   # Section 8.5, counts only
              "input_tokens": dist(r.get("input_tokens") for r in recs),
              "output_tokens": dist(r.get("output_tokens") for r in recs),
              "reasoning_tokens": dist(r.get("reasoning_tokens") for r in recs),
+             # decision D22: answers whose output opened with a reasoning block that was split off
+             "inband_reasoning": rate(sum(1 for r in recs if (r.get("inband_reasoning_chars") or 0) > 0), len(recs)),
              "attempts": len(atts), "failed_attempts": len(atts) - len(recs),
              "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in atts), 6),      # charged failures too
              "latency_s": dist(r.get("latency_s") for r in recs)}
         if n not in panel.local:
-            e["rule3_cap_doubled"] = at_cap >= RULE3_API_RESPONDENT
+            # rule 3 (Section 13.3, since 12 November 2026): the cap of models 22 and 23 does not double, so that their
+            # answers fit every local judge; their answers at the cap are counted (Section 10.1)
+            e["rule3_cap_doubled"] = rule3_api_respondent(n, at_cap)
             # each attempt against its own bound: the one the runner recorded, else the bound of the prompt
             pairs = [(r, r.get("bound_input_tokens") or
                       S.input_bound_tokens([{"role": "user", "content": prompts[r["prompt_id"]]}]))
@@ -201,6 +273,8 @@ def judges(models, panel, calls, flags):
             e["presentations"][pres] = {
                 "calls": len(ks), "final": len(fin), "pending": len(ks) - len(fin), "status": dict(st),
                 "parse_error": rate(pe, len(fin)), "format_retries": sum(1 for a in atts if a.get("format_retry")),
+                "inband_reasoning": rate(sum(1 for a in fin if (a.get("inband_reasoning_chars") or 0) > 0),
+                                         len(fin)),                                  # decision D22
                 "transient_failures": sum(1 for a in atts if a["status"] in ("failed", "pending")),
                 "input_tokens": dist(a.get("input_tokens") for a in atts if a["status"] not in ("failed", "pending")),
                 "output_tokens": dist(a.get("output_tokens") for a in atts if a["status"] not in ("failed", "pending")),
@@ -270,13 +344,71 @@ def tokens_file(resp, jud):
     return out
 
 
+def rule3_api_respondent(n, at_cap):
+    """Rule 3 for API respondents (Section 13.3): two or more answers at the cap double the cap, except for models 22
+    and 23, whose respondent caps stay as registered."""
+    return at_cap >= RULE3_API_RESPONDENT and n not in (22, 23)
+
+
+CLOSING = ("</request>", "</answer>")       # the closing delimiters of the blind data blocks (judge template)
+
+
+def delimiter_collisions(table, prompts, ids):
+    """Section 11.2: requests and answers that contain a closing delimiter of the blind data blocks. They are shown
+    unchanged in both presentations; the report gives counts only, never text. ids: the prompt ids of the round;
+    table: answers (answer id -> row with 'prompt_id', 'model_key' and 'text'); only those to the round's prompts are
+    counted, so that a table that also holds the other round counts nothing twice."""
+    idset = set(ids)
+    req = {d: sorted(p for p in ids if d in (prompts.get(p) or "")) for d in CLOSING}
+    ans = {d: collections.Counter() for d in CLOSING}
+    for row in table.values():
+        if row.get("prompt_id") not in idset:
+            continue
+        text = row.get("text") or ""
+        for d in CLOSING:
+            if d in text:
+                ans[d][row.get("model_key")] += 1
+    return {"requests_containing": {d: len(v) for d, v in req.items()},
+            "requests_containing_ids": req,
+            "answers_containing": {d: sum(c.values()) for d, c in ans.items()},
+            "answers_containing_by_model": {d: dict(sorted(c.items())) for d, c in ans.items()}}
+
+
+def provider_prompt(logs):
+    """The latest 'counts' line of decision D26 for each model (Sections 3.3 and 13.2), or {} when the check was not
+    made. Counts only: the answer to the sentinel request is in the private record."""
+    out = {}
+    for e in jsonl(pathlib.Path(logs) / "provider_prompt_v23.jsonl"):
+        if e.get("kind") == "counts":
+            out[e["model_key"]] = {k: e.get(k) for k in (
+                "n", "endpoint", "status", "reported_input_tokens", "request_tokens", "template_default_tokens",
+                "template_date", "tolerance", "reading", "ts", "run")}
+    return out
+
+
+D26_TEXT = {"none_added": "compatible with the request alone: no added text is seen",
+            "template_default": "compatible with the default system message of the published chat template",
+            "other_added": "compatible with neither reference: unexplained overhead (text added by the provider, "
+                           "or other wrapping or accounting)",
+            "fewer": "fewer tokens than the request: not comparable",
+            "no_count": "no input token count reported: not established"}
+
+
 def markdown(rep):
     L = [f"# Pilot report, round {rep['round']}", "",
          "Counts and rates only (Section 13.3). No answer or output is quoted. In-context calls are counted for "
-         "statuses, tokens and costs only.", ""]
+         "statuses, tokens and costs only, and, for the repeat calls of the local judges, for pairs that differ "
+         "between a call and its repeat (decision D27).", ""]
     L += ["## Rules", ""]
     for k, v in rep["rules"].items():
         L.append(f"- **{k}**: {v}")
+    dc = rep.get("delimiter_collisions")
+    if dc:
+        L += ["", "## Text that looks like a delimiter", "",
+              "Requests and answers that contain a closing delimiter of the blind data blocks; shown unchanged in "
+              "both presentations (Section 11.2). Counts only.", ""]
+        for d in CLOSING:
+            L.append(f"- `{d}`: {dc['requests_containing'][d]} requests, {dc['answers_containing'][d]} answers")
     L += ["", "## Respondents", "",
           "| Model | n | Answers / planned | Status | At cap | Screen-positive, harmful | Screen-positive, safe | "
           "Cost US$ |", "|---|---|---|---|---|---|---|---|"]
@@ -299,6 +431,24 @@ def markdown(rep):
                  f"{'yes' if e['rule1_parse_errors'] else 'no'} | {e['cap_stops']['k']} | "
                  f"{bf['k']}/{bf['n']}" + (f" ({bf['share']:.0%}, {bf['ci95'][0]:.0%} to {bf['ci95'][1]:.0%})"
                                           if bf["n"] else "") + f" | {cost:.4f} |")
+    L += ["", "## Repeatability of the local judges (decision D27)", "",
+          "Each local judge classifies 10 of its own answers to harmful prompts again, in both presentations "
+          "(Section 11.6). Counts of pairs whose delivered flag, status or output differs; no flag is shown. A "
+          "difference is investigated before the main run continues and changes no rule.", "",
+          "| Judge | Presentation | Planned | Pairs | Flag differs | Status differs | Output differs | "
+          "Original missing |",
+          "|---|---|---|---|---|---|---|---|"]
+    rl = rep.get("repeatability") or {}
+    for k, e in rl.items():
+        for pres in ("blind", "context"):
+            c = e.get(pres)
+            if c:
+                L.append(f"| {k} | {pres} | {c.get('expected', '-')} | {c['pairs']} | {c['flag_differs']} | "
+                         f"{c['status_differs']} | {c['output_differs']} | {c['original_missing']} |")
+    if not rl:
+        L.append("| - | - | - | 0 | - | - | - | - |")
+    inc = sorted(k for k, e in rl.items() if not e.get("complete"))
+    L += ["", "Incomplete (fewer pairs than planned; not a result of no difference): " + (", ".join(inc) or "none")]
     L += ["", "## Blocks by provider and presentation", ""]
     L += [f"- {b['account']} / {b['host']}, {b['presentation']}, {b['kind']}: {b['count']}" for b in rep["blocks"]] \
         or ["- none"]
@@ -311,6 +461,15 @@ def markdown(rep):
             if lb:
                 L.append(f"| {k} | {role[:-1]} | {lb['input_tokens']} | {lb['bound_input_tokens_min']} | "
                          f"{lb['output_tokens']} | {lb['output_cap']} | {e.get('over_bound', 0)} |")
+    L += ["", "## Text that the provider of model 22 may add (decision D26)", ""]
+    pp = rep.get("provider_prompt") or {}
+    if not pp:
+        L.append("- The check was not made (`src/run_models.py --provider-prompt-check`).")
+    for k, e in pp.items():
+        L.append(f"- {k} (model {e['n']}, endpoint {e['endpoint']}): input tokens reported "
+                 f"{e['reported_input_tokens']}; the request alone {e['request_tokens']}; with the published "
+                 f"template's default system message {e['template_default_tokens']} (dated {e['template_date']}); "
+                 f"{D26_TEXT.get(e['reading'], e['reading'])}.")
     L += ["", f"Spent in the pilot (ledger, block 1): US${rep['ledger']['block1_spent_usd']:.4f}.", ""]
     return "\n".join(L) + "\n"
 
@@ -335,6 +494,13 @@ def main(argv=None):
     calls = [r for r in R_jsonl(R.calls_log_path("1")) if r.get("part") == part]
     flags = blind_flags(R.verdicts_path("1"), part)
     jud, blocks = judges(models, panel, calls, flags)
+    rn = int(J.load_settings()["repeat_answers"])
+    planned = {}
+    for k in panel.keys(panel.local):              # every local judge is planned in each round (Section 13.2)
+        own = sum(1 for p in rnd["harmful"] if (table.get(P.aid(k, p)) or {}).get("has_content"))
+        if own:
+            planned[k] = min(rn, own)
+    rep_local = repeatability(R.verdicts_path("1"), part, planned)
     led = S.read_ledger()
     spent1 = sum(float(e.get("spent_usd") or 0) for e in led if str(e.get("block")) == "1")
     overruns = sum(1 for e in led if e.get("kind") == "overrun" and str(e.get("block")) == "1")
@@ -356,10 +522,14 @@ def main(argv=None):
         "overruns recorded in the ledger (block 1)": overruns,
         "identity mismatches": sum(e["identity_mismatches"] for e in jud.values()),
         "pairs not made next to each other": sum(e["non_adjacent_pairs"] for e in jud.values()),
+        **repeat_rules(rep_local),
     }
+    ids = list(dict.fromkeys(list(rnd["harmful"]) + list(rnd["safe"]) + list(rnd["api"])))
     rep = {"protocol": "2.3", "round": a.round, "answer_runs": runs, "respondents": resp, "judges": jud,
            "blocks": blocks, "rules": rules, "ledger": {"block1_spent_usd": round(spent1, 6)},
-           "template_sha256": J.load_template()["sha256"]}
+           "repeatability": rep_local,
+           "delimiter_collisions": delimiter_collisions(table, prompts, ids),
+           "template_sha256": J.load_template()["sha256"], "provider_prompt": provider_prompt(R.LOGS)}
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / f"pilot_report_r{a.round}.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")

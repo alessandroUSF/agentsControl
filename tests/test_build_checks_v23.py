@@ -241,8 +241,8 @@ def t_reference_comparison():
 
 
 def t_faults_found():
-    expect = {"twice": {"system_sentinel_once"},
-              "sticky": {"no_unexplained_text"},
+    expect = {"twice": {"system_sentinel_once", "judge_layout_builtin_once"},
+              "sticky": {"no_unexplained_text", "judge_layout_nothing_else"},
               "keep": {"builtin_absent_with_system", "no_unexplained_text"},
               "dropmulti": {"multi_turn_system_whole", "multi_turn_nothing_else"}}
     ok = True
@@ -320,14 +320,14 @@ def t_alias_builds():
 def t_thinking_switch():
     """The check sends the judge's thinking setting; only the template's own "/no_think" is accepted, with thinking off."""
     code, res = check("qthink", think="unset")       # thinking left on: "/think" is unexplained text
-    ok = code == 1 and failed(res) == ["no_unexplained_text"]
+    ok = code == 1 and failed(res) == ["judge_layout_nothing_else", "no_unexplained_text"]
     ok &= res["informational"]["residual_by_layout"]["SU"] == "/think"
     code, res = check("qthink", think="off")
     ok &= code == 0 and res["pass_v23"] and res["think"] is False
     ok &= res["informational"]["thinking_switch_accepted"] == "/no_think"
     ok &= res["informational"]["residual_by_layout"]["SU"] == "/no_think"
     code, res = check("qextra", think="off")         # the switch word plus anything else still fails
-    ok &= code == 1 and failed(res) == ["no_unexplained_text"]
+    ok &= code == 1 and failed(res) == ["judge_layout_nothing_else", "no_unexplained_text"]
     code, res = check("ref", think="off")            # no switch word in the template: nothing more is accepted
     ok &= code == 0 and res["informational"]["thinking_switch_accepted"] is None
     cfg = TMP / "think_models.json"                  # --think config follows the entry of the build, as judge_cfg does
@@ -341,8 +341,93 @@ def t_thinking_switch():
     return ok
 
 
-TESTS = [t_decoders, t_gguf_reader, t_clean_builds_pass, t_reference_comparison, t_faults_found,
-         t_no_context_and_vocab_fallback, t_alias_builds, t_thinking_switch]
+def t_judge_system():
+    """Section 11.2 as revised on 12 November 2026: a build whose config entry names a judge system file is checked
+    with that text as the system message (once and whole, nothing else); a build with a built-in prompt and no
+    supplied text must render its own prompt once; a wrong hash stops the check."""
+    import hashlib as _h
+    text = "Sentinel AC23-JSYS-4R7T. You are a careful assistant. Keep to the request."
+    f = TMP / "judge_system.txt"
+    f.write_bytes(text.encode("utf-8"))
+    sha = _h.sha256(text.encode("utf-8")).hexdigest()
+    cfg = TMP / "judge_system_models.json"
+    cfg.write_text(json.dumps({"models": [
+        {"n": 6, "key": "m6", "model": "x", "judge_model": "judge", "judge_system_file": str(f), "judge_system_sha256": sha},
+        {"n": 9, "key": "m9", "model": "twice:latest", "judge_system_file": str(f), "judge_system_sha256": sha},
+        {"n": 20, "key": "m20", "model": "builtin:latest"}]}), encoding="utf-8")
+    code, res = check("judge", models_config=cfg)
+    ok = code == 0 and res["checks"]["judge_system_once_whole"] and res["judge_system"]["sha256"] == sha
+    ok &= "judge_layout_builtin_once" not in res["checks"]
+    code, res = check("twice:latest", models_config=cfg)
+    ok &= code == 1 and "judge_system_once_whole" in failed(res)
+    code, res = check("builtin:latest", models_config=cfg)
+    ok &= code == 0 and res["checks"]["judge_layout_builtin_once"] and res["judge_system"] is None
+    bad = TMP / "judge_system_bad.json"
+    bad.write_text(cfg.read_text(encoding="utf-8").replace(sha, "0" * 64), encoding="utf-8")
+    try:
+        check("judge", models_config=bad)
+        ok = False
+    except SystemExit as e:
+        ok &= "differs" in str(e)
+    return ok
+
+
+def t_reconstruction_offline():
+    """scripts/check_reconstruction_v23.py without a server (code review round 11): the parts of the original that
+    the reconstruction is expected not to hold, found by decoding; and the whitespace step, with a fake server whose
+    reconstruction holds two newlines where the original holds three."""
+    import check_reconstruction_v23 as CR
+    nl = "\u010a"
+    toks = ["<|u|>", "<|a|>", "<|e|>", "hi", "\u0120/", "no", "_think", "<think>", "</think>", nl + nl, nl,
+            "Hello", ".", "plan", nl + nl + nl]
+    types = [3, 3, 3] + [1] * 12
+    V = C.Vocab("gpt2", toks, types)
+    ix = {t: i for i, t in enumerate(toks)}
+    # a request with the switch word, then an empty thinking block and the answer
+    ids = [ix[t] for t in ("<|u|>", "hi", "\u0120/", "no", "_think", "<|e|>", "<|a|>", "<think>", nl + nl, "</think>",
+                           nl + nl, "Hello", ".")]
+    sp = CR.expected_spans(V, ids, first_generated=11, answer="Hello.")
+    ok = [w for _, _, w in sp] == ["switch word", "empty thinking block"]
+    ok &= sp[0][:2] == (2, 5) and sp[1][:2] == (7, 11)
+    # reasoning written into the output (decision D22), split off; whitespace generated before an answer
+    ids2 = [ix[t] for t in ("<|u|>", "hi", "<|e|>", "<|a|>", "<think>", "plan", "</think>", nl, "Hello", ".")]
+    sp2 = CR.expected_spans(V, ids2, first_generated=4, answer="Hello.", reasoning="<think>plan</think>")
+    ok &= sp2 == [(4, 8, "reasoning written into the output, split off (decision D22)")]
+    ids3 = [ix[t] for t in ("<|u|>", "hi", "<|e|>", "<|a|>", nl, "Hello", ".")]
+    ok &= CR.expected_spans(V, ids3, first_generated=4, answer="Hello.")[0][2].startswith("whitespace generated")
+    # a block of the template repeated right after itself
+    ids4 = [ix[t] for t in ("<|u|>", "hi", "hi", "hi", "hi", "hi", "hi", "hi", "<|u|>", "hi", "hi", "hi", "hi", "hi",
+                            "hi", "hi", "<|u|>", "<|a|>")]
+    ok &= CR.expected_spans(V, ids4) == [(8, 16, "repeated block of the template")]
+    ok &= CR.leading_ws_variants("\n\n\nHello.") == ["\n\nHello.", "\nHello.", "Hello."]
+    ok &= CR.leading_ws_variants("Hello.") == []
+    if not ok:
+        print("reconstruction spans:", sp, sp2)
+        return False
+    # the whitespace step: the original ends "<|a|>" + three newlines + "Hello."; the reconstruction holds two
+    recon = "<|u|>hi<|e|><|a|>\n\nHello.<|e|>"
+    held = {"text": ""}
+    saved = CR.unload, CR.raw, CR.judging_call
+    CR.unload = lambda base, model: held.update(text="")
+    CR.raw = lambda base, model, text, opts: (held.update(text=text) or (len(text), None))
+    CR.judging_call = lambda base, jc, msgs: (len(recon), next(
+        (i for i, (a, b) in enumerate(zip(held["text"], recon)) if a != b), min(len(held["text"]), len(recon))))
+    try:
+        cand = [ix[t] for t in ("<|u|>", "hi", "<|e|>", "<|a|>", nl + nl + nl, "Hello", ".")]
+        ws = CR.whitespace_check("b", "m", {"_opts": {}}, [], V, cand, 0, 4)
+        ok &= ws is not None and ws["original"] == "\n\n\n" and ws["reconstruction"] == "\n\n"
+        bad = [ix[t] for t in ("<|u|>", "hi", "<|e|>", "<|a|>", nl + nl + nl, "hi", ".")]
+        ok &= CR.whitespace_check("b", "m", {"_opts": {}}, [], V, bad, 0, 4) is None    # not whitespace only
+        ok &= CR.whitespace_check("b", "m", {"_opts": {}}, [], V, cand, 0, 5) is None   # no whitespace there
+    finally:
+        CR.unload, CR.raw, CR.judging_call = saved
+    if not ok:
+        print("reconstruction whitespace:", ws)
+    return ok
+
+
+TESTS = [t_judge_system, t_decoders, t_gguf_reader, t_clean_builds_pass, t_reference_comparison, t_faults_found,
+         t_no_context_and_vocab_fallback, t_alias_builds, t_thinking_switch, t_reconstruction_offline]
 
 
 def main():

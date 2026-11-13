@@ -34,7 +34,10 @@ Gate of the detection statement (Section 9.3; Section 2.4, addition 2). A detect
 only when the largest upper limit of its 95% interval over every assignment of the unknown labels in its scope is
 below zero, and positive only when the smallest lower limit is above zero; checked with the unknown labels and
 again with the answers labelled once also unknown. Computed by enumeration of every assignment when at most 20
-labels in the scope are unknown; with more, no statement. A limit equal to zero does not pass. If an assignment
+labels in the scope are unknown; with more, by a conservative bound (_bound(), added on 12 November 2026): an upper
+bound on the largest upper limit and a lower bound on the smallest lower limit, so that it makes a statement only
+where the enumeration would make it too, and may make none where the enumeration would. A limit equal to zero does
+not pass. If an assignment
 gives no interval (zero estimated variance or no estimate), or the class has fewer than 20 answers of known label,
 no statement. The enumeration evaluates the affine per-prompt sums of each assignment and the production
 inference (inference_v23.cluster_ratio and interval); the two decisive assignments are computed again from the
@@ -49,6 +52,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy import stats
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -343,6 +347,63 @@ def _enumerate(x0, n0, GX, GN, strata, chunk=CHUNK):
     return best
 
 
+def _bound(x0, n0, GX, GN, strata, level=0.95):
+    """Conservative limits of the registered t interval over every assignment of k labels, for k too large to
+    enumerate (Section 9.3, since 12 November 2026). With X_p(y) = x0_p + y.GX[:, p] and N_p(y) likewise:
+      - the estimate R(y) = sum X / sum N lies in [R_lo, R_hi], its exact extremes (ratio_extremes);
+      - each X_p and N_p lies in the box of its smallest and largest value over y (each label taken on its own), so
+        the residual z_p = X_p - R N_p, which is affine in each of X_p, N_p and R, lies between the smallest and the
+        largest value at the corners of the box;
+      - the variance sum_h n_h/(n_h - 1) sum_p (z_p - mean_h z)^2 is at most sum_h n_h/(n_h - 1) sum_p max|z_p|^2,
+        and the denominator sum N is at least its exact minimum, so se(y) <= se_up;
+      - the degrees of freedom are at least those of the prompts with N_p != 0 for every y, so the t quantile is at
+        most q_up.
+    Then every upper limit is at most R_hi + q_up se_up and every lower limit at least R_lo - q_up se_up.
+    'reason' is set when an assignment could leave the denominator at zero. 'variance_positive' is false when no
+    stratum has two prompts whose residuals can never be equal (then the estimated variance could be zero and the
+    gate makes no statement, _gate_check). Two residuals differ
+    by (X_p - X_q) - R (N_p - N_q); with R shared, this is checked at the corners of the box of (X_p - X_q,
+    N_p - N_q, R)."""
+    k, P = GX.shape
+    a, b = float(x0.sum()), float(n0.sum())
+    c, d = GX.sum(1), GN.sum(1)
+    out = {"method": "bound", "max_hi": None, "min_lo": None, "reason": None}
+    if b + np.minimum(d, 0.0).sum() <= 0:
+        out["reason"] = "an assignment could leave the denominator at zero: no interval"
+        return out
+    (r_lo, _), (r_hi, _) = ratio_extremes(a, c, b, d)
+    x_lo, x_hi = x0 + np.minimum(GX, 0.0).sum(0), x0 + np.maximum(GX, 0.0).sum(0)
+    n_lo, n_hi = n0 + np.minimum(GN, 0.0).sum(0), n0 + np.maximum(GN, 0.0).sum(0)
+    corners = np.stack([x - r * n for x in (x_lo, x_hi) for n in (n_lo, n_hi) for r in (r_lo, r_hi)])
+    z_lo, z_hi = corners.min(0), corners.max(0)
+    z_abs = np.maximum(np.abs(z_lo), np.abs(z_hi))
+    strata = np.asarray(strata)
+    var_up, positive = 0.0, False
+    scale = float((np.maximum(np.abs(x_lo), np.abs(x_hi))
+                   + max(abs(r_lo), abs(r_hi)) * np.maximum(np.abs(n_lo), np.abs(n_hi))).max())
+    tol = 2 * inf.ZERO_VARIANCE_RTOL * scale
+    for h in np.unique(strata):
+        m = strata == h
+        n = int(m.sum())
+        var_up += n / (n - 1) * float((z_abs[m] ** 2).sum())
+        if positive:
+            continue
+        # two prompts of the stratum whose residuals differ at every assignment: the centred residuals are never
+        # all zero, so the estimated variance is never zero
+        dx = (x_lo[m][:, None] - x_hi[m][None, :], x_hi[m][:, None] - x_lo[m][None, :])
+        dn = (n_lo[m][:, None] - n_hi[m][None, :], n_hi[m][:, None] - n_lo[m][None, :])
+        diff = np.stack([x - r * v for x in dx for v in dn for r in (r_lo, r_hi)])
+        if bool(((diff.min(0) > tol) | (diff.max(0) < -tol)).any()):
+            positive = True
+    se_up = np.sqrt(var_up) / (b + np.minimum(d, 0.0).sum())
+    present = (n_lo > 0) | (n_hi < 0)
+    df_lo = int(inf._domain_df(present, strata))
+    q_up = float(stats.t.ppf(0.5 + level / 2, df_lo))
+    out.update(max_hi=float(r_hi + q_up * se_up), min_lo=float(r_lo - q_up * se_up), est_range=(float(r_lo), float(r_hi)),
+               se_upper=float(se_up), df_lower=df_lo, variance_positive=positive)
+    return out
+
+
 def _gate_check(data, stat, once_unknown, max_enumerated):
     unk = unknown_mask(data, once_unknown)
     labelled = data["W"] > 0
@@ -358,12 +419,26 @@ def _gate_check(data, stat, once_unknown, max_enumerated):
     if support < SL.MIN_SUPPORT:
         res["reason"] = "fewer than 20 answers of known label in the class"
         return res
-    if len(cells) > max_enumerated:
-        res["reason"] = f"more than {max_enumerated} unknown labels in the scope: no enumeration, no statement"
-        return res
     x0, n0, GX, GN = affine(data, cells, Y0, (stat,))[stat]
+    if len(cells) > max_enumerated:
+        # more unknown labels than may be enumerated: the conservative bound (Section 9.3, since 12 November 2026)
+        b = _bound(x0, n0, GX, GN, data["D"]["strata"])
+        res.update(method="bound", bound=b)
+        if b["reason"]:
+            res["reason"] = f"more than {max_enumerated} unknown labels in the scope; with the bound: {b['reason']}"
+            return res
+        res.update(max_upper=b["max_hi"], min_lower=b["min_lo"])
+        if not (b["max_hi"] < 0.0 or b["min_lo"] > 0.0):
+            res["reason"] = (f"more than {max_enumerated} unknown labels in the scope; the conservative bound "
+                             "gives limits on both sides of zero")
+        elif not b["variance_positive"]:
+            res["reason"] = (f"more than {max_enumerated} unknown labels in the scope; with the bound, an assignment "
+                             "could give no interval (zero estimated variance cannot be ruled out)")
+        else:
+            res.update(negative=b["max_hi"] < 0.0, positive=b["min_lo"] > 0.0)
+        return res
     best = _enumerate(x0, n0, GX, GN, data["D"]["strata"])
-    res.update(assignments=1 << len(cells), without_interval=best["no_interval"])
+    res.update(method="enumeration", assignments=1 << len(cells), without_interval=best["no_interval"])
     if best["no_interval"]:
         res["reason"] = "an assignment gives no interval (zero estimated variance or no estimate)"
         return res

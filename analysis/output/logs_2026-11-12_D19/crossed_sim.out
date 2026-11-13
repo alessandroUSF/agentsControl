@@ -1,0 +1,116 @@
+{
+ "protocol": "2.3",
+ "section": "8.8",
+ "seed": 20261121,
+ "check": {
+  "null": {
+   "replications": 10000,
+   "mean_answers": 644.8972,
+   "quantities": {
+    "delta_blind": {
+     "true": 0.0,
+     "mean_estimate": 0.00011231726623781233,
+     "replications_with_interval": 10000,
+     "coverage": 0.9534,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "delta_ctx": {
+     "true": 0.0,
+     "mean_estimate": 4.884390661752084e-05,
+     "replications_with_interval": 10000,
+     "coverage": 0.9519,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "delta_change": {
+     "true": 0.0,
+     "mean_estimate": -6.347335962029144e-05,
+     "replications_with_interval": 10000,
+     "coverage": 0.9541,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "sigma_blind": {
+     "true": 0.0,
+     "mean_estimate": 1.1979478375070418e-05,
+     "replications_with_interval": 10000,
+     "coverage": 0.9459,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "sigma_ctx": {
+     "true": 0.0,
+     "mean_estimate": 0.00013111652941016566,
+     "replications_with_interval": 10000,
+     "coverage": 0.9489,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "sigma_change": {
+     "true": 0.0,
+     "mean_estimate": 0.00011913705103509517,
+     "replications_with_interval": 10000,
+     "coverage": 0.9513,
+     "threshold": 0.943461651584689,
+     "passes": true
+    }
+   }
+  },
+  "effect": {
+   "replications": 10000,
+   "mean_answers": 644.988,
+   "quantities": {
+    "delta_blind": {
+     "true": -0.03,
+     "mean_estimate": -0.030123084760480395,
+     "replications_with_interval": 10000,
+     "coverage": 0.9479,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "delta_ctx": {
+     "true": -0.12,
+     "mean_estimate": -0.1202954450567625,
+     "replications_with_interval": 10000,
+     "coverage": 0.9511,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "delta_change": {
+     "true": -0.09,
+     "mean_estimate": -0.09017236029628208,
+     "replications_with_interval": 10000,
+     "coverage": 0.9498,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "sigma_blind": {
+     "true": -0.02,
+     "mean_estimate": -0.019933274184639267,
+     "replications_with_interval": 10000,
+     "coverage": 0.9512,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "sigma_ctx": {
+     "true": -0.06,
+     "mean_estimate": -0.060215663038802096,
+     "replications_with_interval": 10000,
+     "coverage": 0.9522,
+     "threshold": 0.943461651584689,
+     "passes": true
+    },
+    "sigma_change": {
+     "true": -0.039999999999999994,
+     "mean_estimate": -0.04028238885416283,
+     "replications_with_interval": 10000,
+     "coverage": 0.9466,
+     "threshold": 0.943461651584689,
+     "passes": true
+    }
+   }
+  }
+ }
+}
+exit 0

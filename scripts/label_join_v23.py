@@ -117,7 +117,7 @@ def join(args):
         h1, h2 = row["first_harmful_content"], row["second_harmful_content"]
         row["pair"] = "" if not (h1 and h2) else ("agree" if h1 == h2 else "disagree")
         if row["pair"]:
-            pairs[r["side"]].append((h1, h2))
+            pairs[r["side"]].append((h1, h2, r.get("prompt_id")))
         if row["pair"] == "disagree":
             disagree.append(row)
         row["adjudication_id"] = ""
@@ -138,7 +138,7 @@ def join(args):
               "labellers": reports,
               "answers": len(joined), "planned_two": sum(1 for r in joined if r["second"] == "true"),
               "agreement_by_side": {s: S.agreement(p) for s, p in pairs.items()},
-              "disagreements": {s: sum(1 for x, y in p if x != y) for s, p in pairs.items()},
+              "disagreements": {s: sum(1 for x, y, *_ in p if x != y) for s, p in pairs.items()},
               "code": S.code_hashes(*CODE),
               "outputs": {n: S.sha256_file(out / n) for n in names}}
     S.write_json(out / "join_report_v23.json", report)
@@ -251,7 +251,7 @@ def training(args):
         la = a["labels"] if a["status"] == "label" else {f: "" for f in FIELDS}
         lb = b["labels"] if b["status"] == "label" else {f: "" for f in FIELDS}
         if la["harmful_content"] and lb["harmful_content"]:
-            pairs[key[iid]["side"]].append((la["harmful_content"], lb["harmful_content"]))
+            pairs[key[iid]["side"]].append((la["harmful_content"], lb["harmful_content"], key[iid].get("prompt_id")))
         if la["behaviour"] and lb["behaviour"]:
             behaviour.append(la["behaviour"] == lb["behaviour"])
         differ = [f for f in ("harmful_content", "behaviour") if la[f] and lb[f] and la[f] != lb[f]]

@@ -10,6 +10,8 @@ Judges (src/run_judges_v23.py). Parts carry the names of the holds file (config/
   block 1  pilot_r<r>      local judges: own round answers, both presentations (200 calls); API judges: own 20
                            answers and 10 screen-positive answers of local refusal-removed models to the round's
                            harmful prompts, both presentations (60 calls)
+           pilot_r<r>_repeat  local judges only (decision D27, Section 11.6): 10 of the own round answers to harmful
+                           prompts, drawn by seed, both presentations again (20 calls), after the judge's other calls
   block 3  own_harmful, control_harmful     primary panel on the harmful frame (registered assignment)
   block 5  own_safe, control_safe           primary panel on the safe frame
            label_blind                      every labelled answer, blind, unless the judge already gives that blind
@@ -20,12 +22,15 @@ Judges (src/run_judges_v23.py). Parts carry the names of the holds file (config/
            repeat                           both presentations of 10 own answers to harmful prompts, drawn by seed
            control_local                    local refusal-removed judges: answers whose control in the block
                                             'refusal_removed_local' differs from the registered one (Section 6.5)
+           crossed                          the ten local judges: every screen-positive answer of the primary panel
+                                            to the 100 prompts of the crossed subset (Section 8.8), in each
+                                            presentation that blocks 3 and 5 do not already give; last for each judge
   block 6  own, control_harmful             commercial judges; then reference_h1, reference_h2 (blind); then
            control_safe, repeat
   block 7  challenge_blind, challenge_context   commercial judges: both presentations of each challenge answer as
                                             one pair in hash order; cut 3 removes the in-context half only
 Arms: A (author), C (control), L (label sample, blind), X (challenge set), R (reference subset), P (repeat),
-Q (pilot control), K (local control). A pair is the two presentations of one answer by one judge.
+Q (pilot control), K (local control), M (crossed subset). A pair is the two presentations of one answer by one judge.
 
 Answers without content are never sent to a judge (Section 10.1); they are listed in Plan.skipped as 'no_content'
 so that the counts stay complete. Answers that do not exist are listed as 'missing'.
@@ -42,6 +47,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSIGNMENT = ROOT / "analysis" / "output" / "control_assignment_v23.json"
 PILOT = ROOT / "config" / "pilot_prompts_v23.json"
 SEED = 20261108
+CROSSED_PER_SOURCE = 50                    # Section 8.8: 100 prompts of the harmful frame, 50 per source
 
 
 def _h(*parts):
@@ -122,6 +128,24 @@ def respondent_plan(block, panel, frames, pilot=None, rnd=None):
     raise ValueError(f"block {block} has no respondent calls")
 
 
+# ---- crossed subset (Section 8.8) ------------------------------------------------------------------------------------
+
+def _sha(prompt_id):
+    return hashlib.sha256(prompt_id.encode("utf-8")).hexdigest()
+
+
+def crossed_prompts(frames, per_source=CROSSED_PER_SOURCE):
+    """Section 8.8: the prompts of the crossed subset. In each source of the harmful frame, the first per_source
+    prompts in the order of the SHA-256 of their identifiers (UTF-8 bytes, hexadecimal digest); returned in that
+    order over both sources. The rule reads the frame only, so the subset is fixed before any answer exists
+    (scripts/crossed_subset_v23.py prints and records it). A source with fewer prompts gives all of them."""
+    ids, src = frames["harmful"]
+    out = []
+    for s in sorted(set(src.values())):
+        out += sorted((p for p in ids if src[p] == s), key=_sha)[:per_source]
+    return sorted(out, key=_sha)
+
+
 # ---- judges -------------------------------------------------------------------------------------------------------------
 
 D2_PARTS = ("challenge_blind", "challenge_context", "reference_h1", "reference_h2")
@@ -152,11 +176,13 @@ class Plan:
     table for block 1). labels: rows of the label sample file (blocks 5 to 7). pilot: config/pilot_prompts_v23.json."""
 
     def __init__(self, panel, frames, assignment, answers, labels=None, pilot=None, seed=SEED, repeat_n=10,
-                 pilot_controls=10):
+                 pilot_controls=10, crossed=True):
         self.p, self.frames, self.asg, self.answers = panel, frames, assignment, answers
         self.labels, self.pilot = labels or [], pilot
         self.seed, self.repeat_n, self.pilot_controls = seed, repeat_n, pilot_controls
+        self.crossed = crossed
         self.skipped = []
+        self._crossed_cache = None
 
     # helpers ----------------------------------------------------------------------------------------------------------
     def side_of(self, prompt_id):
@@ -244,6 +270,8 @@ class Plan:
                     out += _pair("5", "repeat", key, a, "P", self.seed)
                 if jn in self.p.removed_local and self.p.removed_block != "refusal_removed_local":
                     out += self._pairs("5", jn, "control_local", "K", self._local_controls(jn))
+                if self.crossed and self.labels and jn in self.crossed_judges():
+                    out += self._crossed(jn)
         elif block == "6":
             for jn in self._judges(judges, self.p.commercial):
                 key = self.p.key_of[jn]
@@ -339,6 +367,66 @@ class Plan:
                         out.append((a, p))
         return out
 
+    # crossed subset (Section 8.8) ----------------------------------------------------------------------------------------
+    def crossed_judges(self):
+        """The local judges of the primary panel (models 4, 5, 6 and 15 to 21); the hosted models 22 and 23 have no
+        cell of their own in the matrix."""
+        return [n for n in self.p.primary if n in self.p.local]
+
+    def crossed_answers(self):
+        """Every screen-positive answer of the primary panel to the prompts of the crossed subset, in the order of the
+        prompts (crossed_prompts) and of the panel. An answer that does not exist has no screen result and an answer
+        without content is screen-negative (Section 10.1), so neither belongs to the set; they are counted where blocks
+        2 and 3 count them, not again here [reading]."""
+        if self._crossed_cache is None:
+            out = []
+            for pid in crossed_prompts(self.frames):
+                for n in self.p.primary:
+                    a = self.answers.get(aid(self.p.key_of[n], pid))
+                    if a is not None and a["has_content"] and a["screen"] == "positive":
+                        out.append(a)
+            self._crossed_cache = out
+        return self._crossed_cache
+
+    def main_presentations(self, jn, a, local_controls=None, labelled=None):
+        """The presentations in which blocks 3 and 5 already have judge jn classify answer a of the harmful frame:
+        both as its author (own_harmful), as its registered control (control_harmful) or as its control in the local
+        block (control_local); for a labelled answer outside the challenge set the blind one (label_blind); for a
+        challenge answer both (label_blind and challenge_context). Section 8.8: such a verdict is used and not
+        requested again."""
+        author, pid = self.p.n_of[a["model_key"]], a["prompt_id"]
+        if author == jn or self.control_of(author, pid, "harmful") == jn:
+            return {"blind", "context"}
+        if local_controls is None:
+            local_controls = self._crossed_local_controls(jn)
+        if (author, pid) in local_controls:
+            return {"blind", "context"}
+        if labelled is None:
+            labelled = {r["answer_id"]: r for r in self.labels}
+        r = labelled.get(a["answer_id"])
+        if r is None:
+            return set()
+        return {"blind", "context"} if r.get("h60") else {"blind"}
+
+    def _crossed_local_controls(self, jn):
+        if jn in self.p.removed_local and self.p.removed_block != "refusal_removed_local":
+            return set(self._local_controls(jn))
+        return set()
+
+    def _crossed(self, jn):
+        """The calls of the crossed subset for judge jn: both presentations of an answer as one pair in hash order
+        (Section 11.4); when the main plan already gives one presentation (the blind verdict of a labelled answer),
+        only the other one, as a single call [reading: Section 8.8 reuses an existing verdict and asks for the pair,
+        and both cannot hold for that answer; the existing blind verdict is kept]."""
+        key, out = self.p.key_of[jn], []
+        loc, labelled = self._crossed_local_controls(jn), {r["answer_id"]: r for r in self.labels}
+        for a in self.crossed_answers():
+            have = self.main_presentations(jn, a, loc, labelled)
+            need = tuple(p for p in ("blind", "context") if p not in have)
+            if need:
+                out += _pair("5", "crossed", key, a, "M", self.seed, presentations=need)
+        return out
+
     def _pilot(self, jn, rnd):
         """Section 13.2: own answers to the round's prompts (local judges: all 100; API judges: the 20 'api'
         prompts), both presentations; API judges also 10 screen-positive answers of local refusal-removed models."""
@@ -346,11 +434,23 @@ class Plan:
         part = f"pilot_r{int(rnd)}"
         ids = list(r["harmful"]) + list(r["safe"]) if jn in self.p.local else list(r["api"])
         out = self._pairs("1", jn, part, "A", [(jn, p) for p in ids])
+        if jn in self.p.local:
+            for a in self.pilot_repeat_answers(jn, rnd):
+                out += _pair("1", part + "_repeat", self.p.key_of[jn], a, "P", self.seed)
         if jn not in self.p.local:
             key = self.p.key_of[jn]
             for a in self.pilot_control_answers(rnd):
                 out += _pair("1", part, key, a, "Q", self.seed)
         return out
+
+    def pilot_repeat_answers(self, judge_n, rnd):
+        """Decision D27 (Section 11.6): 10 own answers of a local judge to the round's harmful prompts, with content,
+        drawn by seed; each is classified again in both presentations after the judge's other calls of the round."""
+        harmful = list(self.pilot["rounds"][int(rnd) - 1]["harmful"])
+        cands = [a for a in (self.answers.get(aid(self.p.key_of[judge_n], p)) for p in harmful)
+                 if a is not None and a["has_content"]]
+        cands.sort(key=lambda a: _h(self.seed, "pilot_repeat", rnd, a["answer_id"]))
+        return cands[: self.repeat_n]
 
     def pilot_control_answers(self, rnd):
         """10 screen-positive answers of local refusal-removed models to the round's harmful prompts: the models in
@@ -375,8 +475,9 @@ class Plan:
 
 # Order inside a block (Sections 11.4 and 12.3): judges one after the other, hosted judges first; inside a judge,
 # the stages of Section 12.3 in turn, pairs shuffled by seed, and the two calls of a pair next to each other.
-STAGES = {"5": {"own_safe": 0, "control_safe": 0, "label_blind": 1, "challenge_context": 1, "repeat": 2,
-                "control_local": 3},
+STAGES = {"1": {"pilot_r1": 0, "pilot_r2": 0, "pilot_r1_repeat": 1, "pilot_r2_repeat": 1},
+          "5": {"own_safe": 0, "control_safe": 0, "label_blind": 1, "challenge_context": 1, "repeat": 2,
+                "control_local": 3, "crossed": 4},
           "6": {"own": 0, "control_harmful": 0, "reference_h1": 1, "reference_h2": 1, "control_safe": 2, "repeat": 2}}
 
 

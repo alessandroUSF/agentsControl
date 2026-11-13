@@ -417,9 +417,9 @@ def test_detection_gate():
     assert max(max(v) for v in in_scope.values()) == 15
     data, _ = small_data(15, 5, 0, flat=True)                     # no flag changes: zero estimated variance
     assert "no interval" in ML.detection_gate(data, "det_change_own_reg|all")["checks"][0]["reason"]
-    data, _ = small_data(16, 15, 0, effect=0.35, positive_only=True)  # more unknown labels than may be enumerated
-    g = ML.detection_gate(data, "det_change_own_reg|all", max_enumerated=12)
-    assert g["statement"] is None and "more than 12" in g["checks"][0]["reason"]
+    data, _ = small_data(16, 15, 0, effect=0.35, positive_only=True)  # more unknown labels than may be enumerated:
+    g = ML.detection_gate(data, "det_change_own_reg|all", max_enumerated=12)  # the conservative bound (12 November)
+    assert all(c["method"] == "bound" for c in g["checks"]) and g["statement"] == "negative", g
     data, _ = small_data(11, 3, 2, effect=0.45, p_label=0.08)     # fewer than 20 known harmful answers
     g = ML.detection_gate(data, "det_change_own_reg|all")
     assert g["statement"] is None and "fewer than 20" in g["checks"][0]["reason"]
@@ -430,6 +430,42 @@ def test_detection_gate():
     else:
         raise AssertionError("the gate accepted a quantity that is not a detection change")
     SUMMARY["gate outcomes (own, all)"] = {t: outcomes[(t, "det_change_own_reg|all")] for t, _ in cases}
+
+
+def test_gate_bound():
+    """The conservative bound of the gate (Section 9.3, since 12 November 2026), used with more than 20 unknown labels
+    in the scope: forced here on worlds with at most 15, it never makes a statement that the enumeration does not
+    make, its upper limit is never below the largest upper limit of the enumeration and its lower limit never above
+    the smallest lower limit; it is not empty (it makes the statement of the strong cases); and with 30 unknown labels
+    it states its reason."""
+    cases = [("strong", dict(seed=11, n_unknown=3, n_once=2, effect=0.45)),
+             ("weak", dict(seed=13, n_unknown=10, n_once=5, effect=0.02)),
+             ("positive", dict(seed=14, n_unknown=4, n_once=4, effect=0.45, positive=True)),
+             ("flat", dict(seed=15, n_unknown=5, n_once=0, flat=True)),
+             ("fifteen", dict(seed=16, n_unknown=15, n_once=0, effect=0.35, positive_only=True))]
+    made = {}
+    for tag, kw in cases:
+        seed, n_unknown, n_once = kw.pop("seed"), kw.pop("n_unknown"), kw.pop("n_once")
+        data, _ = small_data(seed, n_unknown, n_once, **kw)
+        for stat in ML.GATED:
+            for once in (False, True):
+                b = ML._gate_check(data, stat, once, 0)
+                ex = ML._gate_check(data, stat, once, ML.MAX_ENUMERATED)
+                assert ex.get("method") in (None, "enumeration")
+                if b["unknown_in_scope"] and not (b["reason"] or "").startswith("fewer than 20"):
+                    assert b["method"] == "bound", b
+                assert (not b["negative"] or ex["negative"]) and (not b["positive"] or ex["positive"]), (tag, stat, b, ex)
+                if b.get("max_upper") is not None and ex.get("max_upper") is not None:
+                    assert b["max_upper"] >= ex["max_upper"] - 1e-12 and b["min_lower"] <= ex["min_lower"] + 1e-12,                         (tag, stat, once, b["max_upper"], ex["max_upper"], b["min_lower"], ex["min_lower"])
+                if stat == "det_change_own_reg|all":
+                    made[(tag, once)] = "negative" if b["negative"] else "positive" if b["positive"] else None
+    assert made[("strong", False)] == made[("strong", True)] == "negative"
+    assert made[("positive", False)] == made[("positive", True)] == "positive"
+    assert made[("fifteen", False)] == "negative" and made[("weak", False)] is None and made[("flat", False)] is None
+    data, _ = small_data(16, 30, 0, effect=0.45, positive_only=True)
+    c = ML.detection_gate(data, "det_change_own_reg|all")["checks"][0]
+    assert c["unknown_in_scope"] == 30 and c["method"] == "bound" and c["reason"].startswith("more than 20"), c
+    SUMMARY["gate bound (own, all)"] = {t: made[(t, False)] for t, _ in cases}
 
 
 def test_counts_small():
@@ -1070,7 +1106,28 @@ def test_no_content_in_screen_negative_share():
     SUMMARY["no-content answers in the screen-negative share"] = "1/3 with the empty answer, 1/2 without"
 
 
-TESTS = [test_ratio_extremes, test_scope_and_linearity, test_identification_range, test_detection_gate,
+def test_agreement_prompt_bootstrap():
+    """Section 9.3 (since 12 November 2026): the agreement interval resamples prompts with all their answers. Twenty
+    prompts, each with five answers that the two labellers judge alike within the prompt: the clustered interval of raw
+    agreement is wider than the interval that treats the 100 answers as independent; pairs without a prompt are their
+    own clusters and reproduce the answer-level bootstrap."""
+    pairs, plain = [], []
+    for k in range(20):
+        cell = ("yes", "yes") if k % 4 == 0 else (("yes", "no") if k % 5 == 1 else ("no", "no"))
+        for _ in range(5):
+            pairs.append(cell + (f"p{k}",))
+            plain.append(cell)
+    a, b = S.agreement(pairs), S.agreement(plain)
+    assert a["n"] == b["n"] == 100 and a["clusters"] == 20 and b["clusters"] == 100
+    assert a["raw"] == b["raw"]
+    wa = a["ci95"]["raw"]["hi"] - a["ci95"]["raw"]["lo"]
+    wb = b["ci95"]["raw"]["hi"] - b["ci95"]["raw"]["lo"]
+    assert wa > wb, (wa, wb)
+    assert "over prompts (20 clusters)" in a["ci95_method"]
+    assert S.agreement([p + (None,) for p in plain]) == b
+
+
+TESTS = [test_agreement_prompt_bootstrap, test_ratio_extremes, test_scope_and_linearity, test_identification_range, test_detection_gate, test_gate_bound,
          test_counts_small, test_training_sheets, test_sample_draw, test_sample_draw_with_empty_cells,
          test_join_and_lock, test_missing_labels_end_to_end, test_reading_draw, test_revision_rules_ties,
          test_withdrawn_interval, test_no_content_in_screen_negative_share]

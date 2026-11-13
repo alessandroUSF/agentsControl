@@ -3,10 +3,15 @@
 Every API call that the protocol allows, in blocks. The counts come from config/panel_v23.json (frames, label
 sample, call blocks); none is typed here. Prices: the 8 November 2026 snapshot and the token assumptions of
 scripts/cost_model.py. Two scenarios:
-  expected      judge prompt 3,300 tokens, 380 output tokens with reasoning, 5% retries, cache hits
-  pessimistic   judge prompt 4,500 tokens, 720 output tokens, 15% retries, no cache hits; the respondents'
+  expected      judge prompt 3,550 tokens, 380 output tokens with reasoning, 5% retries
+  pessimistic   judge prompt 4,800 tokens, 720 output tokens, 15% retries, no cache hits; the respondents'
                 reasoning AND visible answer doubled
 The judge prompt is longer than in scripts/cost_model.py because Part A of labels/RUBRIC.md grew (RUBRIC_GROWTH).
+Caching (Section 11.3 as revised on 12 November 2026): none, in either presentation. Every request opens with the
+request and the answer under judgment and puts the rubric after them, so no request opens with a repeated prefix
+that a provider could cache; no cache is requested from Anthropic (no system block is sent) and every call is priced
+uncached (CACHED_PROVIDERS is empty). The scenario keys of scripts/cost_model.py that describe caching stay in the
+table and have no effect. A row of calls in both presentations is half blind (judge_rows).
 Reservations use the pessimistic figures. Both pilot rounds are reserved in full; the second one runs only
 under the adaptation rule of the pilot plan. A block marked "cut n" is the n-th block dropped if repricing
 after the pilot puts the pessimistic total above the freeze ceiling; blocks of the primary panel are never cut.
@@ -40,12 +45,14 @@ MODELS_CFG = ROOT / "config" / "models.json"
 SNAP11 = ROOT / "data" / "selection" / "2026-11-11" / "raw"
 SCENARIOS = {"expected": dict(cm.SCENARIOS["expected"]),
              "pessimistic": dict(cm.SCENARIOS["pessimistic"], vis_mult=2.0)}
-# Part A of labels/RUBRIC.md is the fixed start of every judge prompt. As decided by the PI on 11 November 2026
-# (decision D12) it has 7,178 characters; the text of 9 November, on which scripts/cost_model.py rests, had 4,165.
-# The 3,013 further characters count as 800 tokens in the expected scenario (about 3.75 characters per token) and
-# as 1,000 in the pessimistic one (about 3.0). The decision added 5 characters to the revision of 10 November
-# (7,173), which leaves both rounded counts unchanged. If Part A changes again (training amendment), they change.
-RUBRIC_GROWTH = {"expected": 800, "pessimistic": 1000}
+# Part A of labels/RUBRIC.md is in every judge prompt. As decided by the PI on 11 November 2026 (decision D12) it had
+# 7,176 characters; the text of 9 November, on which scripts/cost_model.py rests, had 4,165. On 13 November 2026 the
+# PI added two sentences (decisions D12 and D21) and the class clarification (decision D25): it had 7,943. The
+# 3,778 further characters count as 1,050 tokens in the expected scenario (about 3.75 characters per token: 1,008,
+# rounded up to 50) and as 1,300 in the pessimistic one (about 3.0: 1,260, rounded up to 50). The same day the PI
+# removed two phrases (decision D27): 7,878 characters; the counts for 7,943 are kept, a small overestimate. If
+# Part A changes again (training amendment), they change.
+RUBRIC_GROWTH = {"expected": 1050, "pessimistic": 1300}
 for _name, _tokens in RUBRIC_GROWTH.items():
     SCENARIOS[_name]["judge_in"] += _tokens
     SCENARIOS[_name]["prefix"] += _tokens
@@ -193,6 +200,37 @@ def counts(d):
     return {"commercial": com, "hosted": ven, "resp": resp, "labelled": labelled, "pilot_rounds": rounds}
 
 
+# Prompt caching (Section 11.3, since 12 November 2026): the rubric follows the answer in both presentations, so no
+# request opens with a repeated prefix long enough for a provider's cache, and no provider is priced with one.
+CACHED_PROVIDERS = ()
+
+
+def blind_share(label):
+    """Share of a block's judge calls made in the blind presentation (Sections 11.2 and 11.4)."""
+    if "blind and in context" in label or label.startswith(("judge pilot", "repeatability")):
+        return 0.5
+    if label.endswith("in context"):
+        return 0.0
+    if "blind" in label:
+        return 1.0
+    raise ValueError(f"no presentation for the block '{label}'")
+
+
+def judge_rows(prices, sc, label, calls, keys):
+    """(model key, US$) of one block of judge calls. A provider in CACHED_PROVIDERS (none since 12 November 2026)
+    would have its blind calls priced with a cached prefix."""
+    b, n, rows = blind_share(label), calls * (1 + sc["retry"]), []
+    for m in cm.api_models():
+        if m["key"] not in keys:
+            continue
+        pr, _ = cm.price(prices, cm.SNAP_ID.get(m["key"], m["model"]), batch=False)
+        r = m.get("effort") is not None
+        c = n * (b * cm.judge_call_cost(pr, sc, reasoning=r, cache=m["provider"] in CACHED_PROVIDERS)
+                 + (1 - b) * cm.judge_call_cost(pr, sc, reasoning=r, cache=False))
+        rows.append((m["key"], c))
+    return rows
+
+
 def build(prices=None, design=None, without=(), repricing=None):
     """repricing: load_repricing() of the repricing file; its prices and scenarios replace the registered ones."""
     if repricing:
@@ -235,7 +273,7 @@ def build(prices=None, design=None, without=(), repricing=None):
         for i, (label, calls, cut) in enumerate(k[who]):
             if calls:
                 add(f"judge.{who}.{i + 1}", f"{who} judges", label, calls, keys, cut,
-                    {n: cm.judges(prices, sc, {label: calls}, batch=False, only=keys)[1] for n, sc in scen.items()})
+                    {n: judge_rows(prices, sc, label, calls, keys) for n, sc in scen.items()})
     totals = {n: round(sum(b[n] for b in blocks), 2) for n in scen}
     by_provider = {}
     for key, c in per_model.items():

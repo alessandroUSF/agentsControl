@@ -14,7 +14,8 @@ Blocks (Section 12.3) and parts:
   6 commercial     own (300), control_harmful (120), reference_h1, reference_h2 (cut 4), control_safe (cut 2),
                    repeat (cut 1)
   7 commercial     challenge_blind, challenge_context (cut 3)
-The sum of the items equals the pessimistic total of the manifest (checked here, block by block).
+The sum of the items equals the pessimistic total of the manifest (checked here, block by block). The cost of one
+judging call is priced with the manifest row it belongs to (manifest_v23.judge_rows).
 
 Usage: python -I scripts/holds_v23.py            print the items and the check
        python -I scripts/holds_v23.py --write    also write config/stage_holds.json
@@ -42,11 +43,17 @@ SC = "pessimistic"
 
 
 def per_call_costs(prices, sc, keys):
-    """US$ of one judging call, of one main-run answer (harmful, safe) and of one pilot answer, per model."""
+    """US$ of one judging call by manifest row ('judge': label -> US$), of one main-run answer (harmful, safe), of one
+    pilot answer, per model."""
     out = {}
     zero = {"safe": 0, "harmful": 0, "own": 0}
+    labels = ("own answers, blind and in context", "controls on harmful prompts, blind and in context",
+              "controls on safe prompts, blind and in context", "blind reference: challenge set",
+              "blind reference: other labelled answers, first half",
+              "blind reference: other labelled answers, second half", "challenge set, in context",
+              "judge pilot, round 1", "repeatability", "controls, blind and in context", "labelled answers, blind")
     for key in keys:
-        judge = cm.judges(prices, sc, {"one call": 1}, batch=False, only=[key])[1][0][1]
+        judge = {label: mv.judge_rows(prices, sc, label, 1, [key])[0][1] for label in labels}
         resp = {}
         for kind in ("harmful", "safe"):
             one = dict(zero, **{kind: 1})
@@ -89,38 +96,46 @@ def build(design=None, without=(), repricing=None):
     for key in com:
         for r in range(1, k["pilot_rounds"] + 1):
             label = "judge pilot, round 1" if r == 1 else f"judge pilot, round {r} (reserved)"
-            add("1", "judge", key, f"pilot_r{r}", cl[label][0], cost[key]["judge"])
+            add("1", "judge", key, f"pilot_r{r}", cl[label][0], cost[key]["judge"]["judge pilot, round 1"])
     for key in hosted:
         for r in range(1, k["pilot_rounds"] + 1):
             label = "judge pilot, round 1" if r == 1 else f"judge pilot, round {r} (reserved)"
-            add("1", "judge", key, f"pilot_r{r}", hl[label][0], cost[key]["judge"])
+            add("1", "judge", key, f"pilot_r{r}", hl[label][0], cost[key]["judge"]["judge pilot, round 1"])
+        j = cost[key]["judge"]
         add("2", "respondent", key, "frame_harmful", harmful, cost[key]["harmful"])
         add("2", "respondent", key, "frame_safe", safe, cost[key]["safe"])
-        add("3", "judge", key, "own_harmful", 2 * harmful, cost[key]["judge"])
-        add("3", "judge", key, "control_harmful", 2 * harmful, cost[key]["judge"])
+        add("3", "judge", key, "own_harmful", 2 * harmful, j["own answers, blind and in context"])
+        add("3", "judge", key, "control_harmful", 2 * harmful, j["controls, blind and in context"])
         assert hl["own answers, blind and in context"][0] == 2 * (harmful + safe)
         assert hl["controls, blind and in context"][0] == 2 * (harmful + safe)
-        add("5", "judge", key, "own_safe", 2 * safe, cost[key]["judge"])
-        add("5", "judge", key, "control_safe", 2 * safe, cost[key]["judge"])
-        add("5", "judge", key, "label_blind", hl["labelled answers, blind"][0], cost[key]["judge"])
-        add("5", "judge", key, "challenge_context", hl["challenge set, in context"][0], cost[key]["judge"])
-        add("5", "judge", key, "repeat", hl["repeatability"][0], cost[key]["judge"], hl["repeatability"][1])
+        add("5", "judge", key, "own_safe", 2 * safe, j["own answers, blind and in context"])
+        add("5", "judge", key, "control_safe", 2 * safe, j["controls, blind and in context"])
+        add("5", "judge", key, "label_blind", hl["labelled answers, blind"][0], j["labelled answers, blind"])
+        add("5", "judge", key, "challenge_context", hl["challenge set, in context"][0], j["challenge set, in context"])
+        add("5", "judge", key, "repeat", hl["repeatability"][0], j["repeatability"], hl["repeatability"][1])
+
     for key in com:
         add("4", "respondent", key, "frame_harmful", common, cost[key]["harmful"])
         add("4", "respondent", key, "frame_safe", safe, cost[key]["safe"])
         c = cost[key]["judge"]
-        add("6", "judge", key, "own", *cl["own answers, blind and in context"][:1], c)
-        add("6", "judge", key, "control_harmful", cl["controls on harmful prompts, blind and in context"][0], c)
-        add("6", "judge", key, "reference_h1", cl["blind reference: other labelled answers, first half"][0], c)
-        n, cut = cl["blind reference: other labelled answers, second half"]
-        add("6", "judge", key, "reference_h2", n, c, cut)
-        n, cut = cl["controls on safe prompts, blind and in context"]
-        add("6", "judge", key, "control_safe", n, c, cut)
+        own = "own answers, blind and in context"
+        add("6", "judge", key, "own", cl[own][0], c[own])
+        lab_h = "controls on harmful prompts, blind and in context"
+        add("6", "judge", key, "control_harmful", cl[lab_h][0], c[lab_h])
+        lab_r1 = "blind reference: other labelled answers, first half"
+        add("6", "judge", key, "reference_h1", cl[lab_r1][0], c[lab_r1])
+        lab_r2 = "blind reference: other labelled answers, second half"
+        n, cut = cl[lab_r2]
+        add("6", "judge", key, "reference_h2", n, c[lab_r2], cut)
+        lab_s = "controls on safe prompts, blind and in context"
+        n, cut = cl[lab_s]
+        add("6", "judge", key, "control_safe", n, c[lab_s], cut)
         n, cut = cl["repeatability"]
-        add("6", "judge", key, "repeat", n, c, cut)
-        add("7", "judge", key, "challenge_blind", cl["blind reference: challenge set"][0], c)
+        add("6", "judge", key, "repeat", n, c["repeatability"], cut)
+        add("7", "judge", key, "challenge_blind", cl["blind reference: challenge set"][0],
+            c["blind reference: challenge set"])
         n, cut = cl["challenge set, in context"]
-        add("7", "judge", key, "challenge_context", n, c, cut)
+        add("7", "judge", key, "challenge_context", n, c["challenge set, in context"], cut)
     for it in items:
         it["id"] = f"{it['block']}|{it['role']}|{it['model_key']}|{it['part']}"
     return items, d

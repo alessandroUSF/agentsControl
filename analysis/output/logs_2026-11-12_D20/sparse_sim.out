@@ -1,0 +1,103 @@
+family s=2 lambda=0.5  bg=0.0: registered 0.0003, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.01), P(no spike) 0.607
+family s=2 lambda=0.5  bg=0.1: registered 0.0208, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.10), P(no spike) 0.607
+family s=2 lambda=0.5  bg=0.2: registered 0.0188, surviving one bound prompt 0.0004, with D20 0.0000 (share 0.20), P(no spike) 0.607
+family s=2 lambda=0.5  bg=0.3: registered 0.0211, surviving one bound prompt 0.0022, with D20 0.0128 (share 0.30), P(no spike) 0.607
+family s=2 lambda=0.5  bg=0.4: registered 0.0186, surviving one bound prompt 0.0034, with D20 0.0186 (share 0.40), P(no spike) 0.607
+family s=2 lambda=1    bg=0.0: registered 0.0070, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.01), P(no spike) 0.368
+family s=2 lambda=1    bg=0.1: registered 0.0211, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.11), P(no spike) 0.368
+family s=2 lambda=1    bg=0.2: registered 0.0203, surviving one bound prompt 0.0012, with D20 0.0000 (share 0.21), P(no spike) 0.368
+family s=2 lambda=1    bg=0.3: registered 0.0188, surviving one bound prompt 0.0024, with D20 0.0120 (share 0.31), P(no spike) 0.368
+family s=2 lambda=1    bg=0.4: registered 0.0198, surviving one bound prompt 0.0042, with D20 0.0198 (share 0.40), P(no spike) 0.368
+family s=2 lambda=2    bg=0.0: registered 0.0310, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.02), P(no spike) 0.135
+family s=2 lambda=2    bg=0.1: registered 0.0199, surviving one bound prompt 0.0001, with D20 0.0000 (share 0.12), P(no spike) 0.135
+family s=2 lambda=2    bg=0.2: registered 0.0192, surviving one bound prompt 0.0008, with D20 0.0000 (share 0.21), P(no spike) 0.135
+family s=2 lambda=2    bg=0.3: registered 0.0195, surviving one bound prompt 0.0022, with D20 0.0132 (share 0.31), P(no spike) 0.135
+family s=2 lambda=2    bg=0.4: registered 0.0194, surviving one bound prompt 0.0046, with D20 0.0194 (share 0.41), P(no spike) 0.135
+family s=2 lambda=3    bg=0.0: registered 0.0342, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.03), P(no spike) 0.050
+family s=2 lambda=3    bg=0.1: registered 0.0193, surviving one bound prompt 0.0002, with D20 0.0000 (share 0.13), P(no spike) 0.050
+family s=2 lambda=3    bg=0.2: registered 0.0211, surviving one bound prompt 0.0010, with D20 0.0000 (share 0.22), P(no spike) 0.050
+family s=2 lambda=3    bg=0.3: registered 0.0188, surviving one bound prompt 0.0027, with D20 0.0149 (share 0.32), P(no spike) 0.050
+family s=2 lambda=3    bg=0.4: registered 0.0205, surviving one bound prompt 0.0043, with D20 0.0205 (share 0.41), P(no spike) 0.050
+family s=2 lambda=5    bg=0.0: registered 0.0284, surviving one bound prompt 0.0001, with D20 0.0000 (share 0.05), P(no spike) 0.007
+family s=2 lambda=5    bg=0.1: registered 0.0198, surviving one bound prompt 0.0008, with D20 0.0000 (share 0.14), P(no spike) 0.007
+family s=2 lambda=5    bg=0.2: registered 0.0200, surviving one bound prompt 0.0014, with D20 0.0001 (share 0.24), P(no spike) 0.007
+family s=2 lambda=5    bg=0.3: registered 0.0204, surviving one bound prompt 0.0036, with D20 0.0178 (share 0.33), P(no spike) 0.007
+family s=2 lambda=5    bg=0.4: registered 0.0218, surviving one bound prompt 0.0059, with D20 0.0218 (share 0.42), P(no spike) 0.007
+family s=2 lambda=10   bg=0.0: registered 0.0244, surviving one bound prompt 0.0007, with D20 0.0000 (share 0.10), P(no spike) 0.000
+family s=2 lambda=10   bg=0.1: registered 0.0208, surviving one bound prompt 0.0021, with D20 0.0000 (share 0.19), P(no spike) 0.000
+family s=2 lambda=10   bg=0.2: registered 0.0217, surviving one bound prompt 0.0034, with D20 0.0038 (share 0.27), P(no spike) 0.000
+family s=2 lambda=10   bg=0.3: registered 0.0192, surviving one bound prompt 0.0043, with D20 0.0190 (share 0.36), P(no spike) 0.000
+family s=2 lambda=10   bg=0.4: registered 0.0207, surviving one bound prompt 0.0077, with D20 0.0207 (share 0.45), P(no spike) 0.000
+family s=3 lambda=0.5  bg=0.0: registered 0.0024, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.01), P(no spike) 0.607
+family s=3 lambda=0.5  bg=0.1: registered 0.0207, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.11), P(no spike) 0.607
+family s=3 lambda=0.5  bg=0.2: registered 0.0193, surviving one bound prompt 0.0009, with D20 0.0000 (share 0.21), P(no spike) 0.607
+family s=3 lambda=0.5  bg=0.3: registered 0.0202, surviving one bound prompt 0.0024, with D20 0.0108 (share 0.30), P(no spike) 0.607
+family s=3 lambda=0.5  bg=0.4: registered 0.0196, surviving one bound prompt 0.0043, with D20 0.0196 (share 0.40), P(no spike) 0.607
+family s=3 lambda=1    bg=0.0: registered 0.0319, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.01), P(no spike) 0.368
+family s=3 lambda=1    bg=0.1: registered 0.0199, surviving one bound prompt 0.0001, with D20 0.0000 (share 0.11), P(no spike) 0.368
+family s=3 lambda=1    bg=0.2: registered 0.0207, surviving one bound prompt 0.0018, with D20 0.0000 (share 0.21), P(no spike) 0.368
+family s=3 lambda=1    bg=0.3: registered 0.0191, surviving one bound prompt 0.0029, with D20 0.0127 (share 0.31), P(no spike) 0.368
+family s=3 lambda=1    bg=0.4: registered 0.0196, surviving one bound prompt 0.0042, with D20 0.0196 (share 0.41), P(no spike) 0.368
+family s=3 lambda=2    bg=0.0: registered 0.0802, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.03), P(no spike) 0.135
+family s=3 lambda=2    bg=0.1: registered 0.0213, surviving one bound prompt 0.0004, with D20 0.0000 (share 0.12), P(no spike) 0.135
+family s=3 lambda=2    bg=0.2: registered 0.0202, surviving one bound prompt 0.0018, with D20 0.0000 (share 0.22), P(no spike) 0.135
+family s=3 lambda=2    bg=0.3: registered 0.0222, surviving one bound prompt 0.0032, with D20 0.0167 (share 0.32), P(no spike) 0.135
+family s=3 lambda=2    bg=0.4: registered 0.0201, surviving one bound prompt 0.0050, with D20 0.0201 (share 0.41), P(no spike) 0.135
+family s=3 lambda=3    bg=0.0: registered 0.0519, surviving one bound prompt 0.0001, with D20 0.0000 (share 0.04), P(no spike) 0.050
+family s=3 lambda=3    bg=0.1: registered 0.0232, surviving one bound prompt 0.0011, with D20 0.0000 (share 0.13), P(no spike) 0.050
+family s=3 lambda=3    bg=0.2: registered 0.0202, surviving one bound prompt 0.0026, with D20 0.0001 (share 0.23), P(no spike) 0.050
+family s=3 lambda=3    bg=0.3: registered 0.0197, surviving one bound prompt 0.0031, with D20 0.0158 (share 0.32), P(no spike) 0.050
+family s=3 lambda=3    bg=0.4: registered 0.0215, surviving one bound prompt 0.0066, with D20 0.0215 (share 0.42), P(no spike) 0.050
+family s=3 lambda=5    bg=0.0: registered 0.0341, surviving one bound prompt 0.0008, with D20 0.0000 (share 0.07), P(no spike) 0.007
+family s=3 lambda=5    bg=0.1: registered 0.0232, surviving one bound prompt 0.0018, with D20 0.0000 (share 0.16), P(no spike) 0.007
+family s=3 lambda=5    bg=0.2: registered 0.0201, surviving one bound prompt 0.0035, with D20 0.0003 (share 0.25), P(no spike) 0.007
+family s=3 lambda=5    bg=0.3: registered 0.0212, surviving one bound prompt 0.0054, with D20 0.0196 (share 0.34), P(no spike) 0.007
+family s=3 lambda=5    bg=0.4: registered 0.0239, surviving one bound prompt 0.0083, with D20 0.0239 (share 0.43), P(no spike) 0.007
+family s=3 lambda=10   bg=0.0: registered 0.0287, surviving one bound prompt 0.0054, with D20 0.0000 (share 0.13), P(no spike) 0.000
+family s=3 lambda=10   bg=0.1: registered 0.0241, surviving one bound prompt 0.0062, with D20 0.0000 (share 0.21), P(no spike) 0.000
+family s=3 lambda=10   bg=0.2: registered 0.0219, surviving one bound prompt 0.0069, with D20 0.0106 (share 0.30), P(no spike) 0.000
+family s=3 lambda=10   bg=0.3: registered 0.0214, surviving one bound prompt 0.0093, with D20 0.0214 (share 0.38), P(no spike) 0.000
+family s=3 lambda=10   bg=0.4: registered 0.0216, surviving one bound prompt 0.0097, with D20 0.0216 (share 0.46), P(no spike) 0.000
+family s=6 lambda=0.5  bg=0.0: registered 0.0505, surviving one bound prompt 0.0000, with D20 0.0000 (share 0.01), P(no spike) 0.607
+family s=6 lambda=0.5  bg=0.1: registered 0.0244, surviving one bound prompt 0.0001, with D20 0.0000 (share 0.11), P(no spike) 0.607
+family s=6 lambda=0.5  bg=0.2: registered 0.0207, surviving one bound prompt 0.0009, with D20 0.0000 (share 0.21), P(no spike) 0.607
+family s=6 lambda=0.5  bg=0.3: registered 0.0197, surviving one bound prompt 0.0027, with D20 0.0119 (share 0.31), P(no spike) 0.607
+family s=6 lambda=0.5  bg=0.4: registered 0.0221, surviving one bound prompt 0.0053, with D20 0.0221 (share 0.41), P(no spike) 0.607
+family s=6 lambda=1    bg=0.0: registered 0.2053, surviving one bound prompt 0.0001, with D20 0.0000 (share 0.02), P(no spike) 0.368
+family s=6 lambda=1    bg=0.1: registered 0.0341, surviving one bound prompt 0.0003, with D20 0.0000 (share 0.12), P(no spike) 0.368
+family s=6 lambda=1    bg=0.2: registered 0.0239, surviving one bound prompt 0.0022, with D20 0.0000 (share 0.22), P(no spike) 0.368
+family s=6 lambda=1    bg=0.3: registered 0.0214, surviving one bound prompt 0.0031, with D20 0.0144 (share 0.31), P(no spike) 0.368
+family s=6 lambda=1    bg=0.4: registered 0.0205, surviving one bound prompt 0.0056, with D20 0.0205 (share 0.41), P(no spike) 0.368
+family s=6 lambda=2    bg=0.0: registered 0.1331, surviving one bound prompt 0.0009, with D20 0.0000 (share 0.05), P(no spike) 0.135
+family s=6 lambda=2    bg=0.1: registered 0.0464, surviving one bound prompt 0.0037, with D20 0.0000 (share 0.14), P(no spike) 0.135
+family s=6 lambda=2    bg=0.2: registered 0.0311, surviving one bound prompt 0.0060, with D20 0.0001 (share 0.23), P(no spike) 0.135
+family s=6 lambda=2    bg=0.3: registered 0.0252, surviving one bound prompt 0.0070, with D20 0.0219 (share 0.33), P(no spike) 0.135
+family s=6 lambda=2    bg=0.4: registered 0.0237, surviving one bound prompt 0.0084, with D20 0.0237 (share 0.42), P(no spike) 0.135
+family s=6 lambda=3    bg=0.0: registered 0.0628, surviving one bound prompt 0.0103, with D20 0.0000 (share 0.07), P(no spike) 0.050
+family s=6 lambda=3    bg=0.1: registered 0.0468, surviving one bound prompt 0.0092, with D20 0.0000 (share 0.16), P(no spike) 0.050
+family s=6 lambda=3    bg=0.2: registered 0.0319, surviving one bound prompt 0.0083, with D20 0.0008 (share 0.25), P(no spike) 0.050
+family s=6 lambda=3    bg=0.3: registered 0.0272, surviving one bound prompt 0.0095, with D20 0.0252 (share 0.34), P(no spike) 0.050
+family s=6 lambda=3    bg=0.4: registered 0.0244, surviving one bound prompt 0.0115, with D20 0.0244 (share 0.43), P(no spike) 0.050
+family s=6 lambda=5    bg=0.0: registered 0.0474, surviving one bound prompt 0.0163, with D20 0.0000 (share 0.12), P(no spike) 0.007
+family s=6 lambda=5    bg=0.1: registered 0.0389, surviving one bound prompt 0.0160, with D20 0.0000 (share 0.20), P(no spike) 0.007
+family s=6 lambda=5    bg=0.2: registered 0.0353, surviving one bound prompt 0.0166, with D20 0.0092 (share 0.28), P(no spike) 0.007
+family s=6 lambda=5    bg=0.3: registered 0.0280, surviving one bound prompt 0.0154, with D20 0.0279 (share 0.37), P(no spike) 0.007
+family s=6 lambda=5    bg=0.4: registered 0.0284, surviving one bound prompt 0.0170, with D20 0.0284 (share 0.45), P(no spike) 0.007
+family s=6 lambda=10   bg=0.0: registered 0.0348, surviving one bound prompt 0.0251, with D20 0.0001 (share 0.23), P(no spike) 0.000
+family s=6 lambda=10   bg=0.1: registered 0.0314, surviving one bound prompt 0.0216, with D20 0.0160 (share 0.30), P(no spike) 0.000
+family s=6 lambda=10   bg=0.2: registered 0.0299, surviving one bound prompt 0.0215, with D20 0.0297 (share 0.37), P(no spike) 0.000
+family s=6 lambda=10   bg=0.3: registered 0.0277, surviving one bound prompt 0.0201, with D20 0.0277 (share 0.43), P(no spike) 0.000
+family s=6 lambda=10   bg=0.4: registered 0.0266, surviving one bound prompt 0.0207, with D20 0.0266 (share 0.50), P(no spike) 0.000
+R-S1 baseline|null            p1 0.026 D20 0.026 >=2 0.001 | p2 0.027 D20 0.027 >=2 0.000 | p3 1.000 D20 1.000 >=2 0.990 | carried out p1 1.000 p2 1.000 | 11.4s
+R-S1 baseline|theta           p1 1.000 D20 1.000 >=2 0.976 | p2 0.040 D20 0.040 >=2 0.000 | p3 1.000 D20 1.000 >=2 0.994 | carried out p1 1.000 p2 1.000 | 10.1s
+R-S1 baseline|iota            p1 0.037 D20 0.037 >=2 0.001 | p2 0.977 D20 0.977 >=2 0.465 | p3 0.999 D20 0.999 >=2 0.993 | carried out p1 1.000 p2 1.000 | 10.5s
+R-S1 baseline|both            p1 1.000 D20 1.000 >=2 0.988 | p2 0.986 D20 0.986 >=2 0.615 | p3 1.000 D20 1.000 >=2 0.998 | carried out p1 1.000 p2 1.000 | 10.6s
+R-S1 baseline|bound           p1 0.024 D20 0.024 >=2 0.001 | p2 0.017 D20 0.017 >=2 0.000 | p3 0.006 D20 0.006 >=2 0.001 | carried out p1 1.000 p2 1.000 | 10.2s
+R-S1 baseline|beta0           p1 0.018 D20 0.018 >=2 0.001 | p2 0.018 D20 0.018 >=2 0.000 | p3 1.000 D20 1.000 >=2 0.994 | carried out p1 1.000 p2 1.000 | 10.5s
+R-S1 discordance_0.20|iota    p1 0.026 D20 0.026 >=2 0.003 | p2 0.808 D20 0.808 >=2 0.292 | p3 1.000 D20 1.000 >=2 0.994 | carried out p1 1.000 p2 1.000 | 10.9s
+R-S1 low_failure|iota         p1 0.033 D20 0.030 >=2 0.000 | p2 0.802 D20 0.802 >=2 0.097 | p3 0.989 D20 0.989 >=2 0.917 | carried out p1 0.837 p2 1.000 | 11.2s
+R-S1 removed_se_0.30|iota     p1 0.032 D20 0.032 >=2 0.001 | p2 0.972 D20 0.972 >=2 0.456 | p3 0.997 D20 0.997 >=2 0.989 | carried out p1 1.000 p2 1.000 | 10.4s
+largest rate of the registered decision in the family: 0.2053 (s=6, lambda=1, bg=0.0; nominal .02); 286s
+largest rate with the condition of D20: 0.0297 (s=6, lambda=10, bg=0.2, mean share 0.37)
+written C:\agentes\controle_agentes\agentsControl\analysis\output\sim_v23_sparse.json
+exit 0

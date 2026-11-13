@@ -17,12 +17,14 @@ sys.path.insert(0, str(ROOT / "analysis"))
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 import control_assignment_v23 as CA  # noqa: E402  (production assignment script, read-only use)
+import density_v23 as DN  # noqa: E402
 import inference_v23 as inf  # noqa: E402
 import pilot_planning_v23 as PL  # noqa: E402
 import sim_v23_dgp as dgp  # noqa: E402
 import sim_v23_labels as SL  # noqa: E402
 import sim_v23_registered as SR  # noqa: E402
 import sim_v23_safe as SS  # noqa: E402
+import sim_v23_tails as TL  # noqa: E402
 import yoking  # noqa: E402
 
 PANEL = yoking.load_panel()
@@ -417,6 +419,54 @@ def test_registered_interval():
     none = SL.estimates(Wt, np.zeros_like(S), Y, A1, A2, C1, C2, D)[0]          # no screen-positive answer
     r = SL.registered_interval(none, "det_blind_own|all", st)
     assert np.isnan(r["est"]) and np.isnan(r["lo"]) and r["no_interval"].startswith("not estimable")
+
+
+def test_tails_p3_support():
+    """Run (k), part 1 (code review round 12): in every row the totals stay within |X_p| <= N_p = 6 and have mean
+    -0.42 (beta_S = -0.07); the background change is disjoint from the deficit, so -7 cannot occur; a row that is not
+    a distribution is refused."""
+    rng = np.random.default_rng(12)
+    for row in TL.P3_ROWS:
+        X = TL.p3_draw(rng, 400, 300, row["m"], row["bg"])
+        assert np.abs(X).max() <= 6 and abs(X.mean() + 0.42) < 0.02, (row, X.min(), X.mean())
+        if row["bg"]:
+            assert set(np.unique(X)) == {-float(row["m"]), -1.0, 0.0, 1.0}
+    try:
+        TL.p3_draw(rng, 2, 300, 1, 0.7)
+        raise AssertionError("pi + bg > 1 accepted")
+    except ValueError:
+        pass
+
+
+def test_tails_carried_out_not_dense():
+    """Run (k), part 3 (code review round 12): constant totals X = 1 with N = 6 on every prompt are dense (share of
+    nonzero totals 1) but have no variance, so P1 and P2 are not carried out; the count of carried-out tests reads
+    p*_carried_out, not p*_dense."""
+    st = np.asarray(D["strata"])
+    X, N = np.ones((1, D["P"])), np.full((1, D["P"]), 6.0)
+    r = inf.cluster_ratio(X, N, st)
+    zero = inf.cluster_ratio(np.zeros((1, D["P"])), N, st)
+    c = TL.d20_counts(DN.decide(r, r, zero, X, X, N))
+    assert c == {"p1": (0, 1, 1.0), "p2": (0, 1, 1.0)}, c
+
+
+def test_tails_rs1_targets_reached():
+    """Run (k), part 3 (code review round 12): with the shocks of RS1_SD the target discordance is reached (floor 0
+    at q0 = 0, below 0.025 at q0 = 0.025), and a row at the baseline shocks with q0 = 0 is refused instead of running
+    at the floor."""
+    for name in ("q0_0.0|theta", "q0_0.025|null"):
+        sc, q, g, rho, cal = TL.calibrated(D, name, np.random.default_rng(3), reps=200)
+        assert cal["unreached"] == [] and cal["q0_floor"] <= cal["q0_target"] and 0 <= rho <= 1, (name, cal)
+        if cal["q0_target"] == 0:
+            assert cal["q0_floor"] == 0 and rho == 1
+    TL.RS1["_baseline_q0_0"] = dict(q0=0.0)
+    try:
+        TL.calibrated(D, "_baseline_q0_0", np.random.default_rng(3), reps=200)
+        raise AssertionError("an unreached q0 was accepted")
+    except ValueError as e:
+        assert "q0" in str(e)
+    finally:
+        del TL.RS1["_baseline_q0_0"]
 
 
 for name, fn in sorted(globals().items()):

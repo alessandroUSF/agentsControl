@@ -102,6 +102,29 @@ def think_setting(build, cfg_path):
     return None
 
 
+def judge_system_of(build, cfg_path):
+    """The system message that a judging call supplies to this build (Section 11.2 as revised on 12 November 2026):
+    the text of the file named by 'judge_system_file' in its entry of config/models.json (the built-in prompt of model
+    6, for its two judge builds), checked against 'judge_system_sha256'. None when the entry names no file, or when no
+    entry lists the build. A path is read relative to the project of the config file. A missing ':latest' tag counts
+    as ':latest'."""
+    try:
+        models = json.loads(pathlib.Path(cfg_path).read_text(encoding="utf-8"))["models"]
+    except (OSError, ValueError, KeyError):
+        return None
+    tag = lambda s: s if not s or ":" in s.split("/")[-1] else s + ":latest"
+    for m in models:
+        builds = {tag(m.get("judge_model") or m.get("model")), tag(m.get("judge_model_sensitivity"))}
+        if tag(build) in builds and m.get("judge_system_file"):
+            p = pathlib.Path(m["judge_system_file"])
+            p = p if p.is_absolute() else pathlib.Path(cfg_path).resolve().parents[1] / p
+            raw = p.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != m.get("judge_system_sha256"):
+                raise SystemExit(f"check_system_override: {p} differs from judge_system_sha256 of {m.get('key')}")
+            return raw.decode("utf-8")
+    return None
+
+
 def with_think(body, think):
     if think is not None:
         body["think"] = think
@@ -237,9 +260,12 @@ def residual(text, contents):
     return re.sub(r"\s+", "", ROLE_WORDS.sub(" ", t))
 
 
-def rendered(base, model, vocab, think=None):
+def rendered(base, model, vocab, think=None, judge_system=None):
+    """Rendered single-turn conversations: the layouts of SINGLE, and 'J' (the system message a judging call supplies,
+    with the user sentinel) when the build gets one."""
     out = {}
-    for name, system in SINGLE.items():
+    layouts = dict(SINGLE, **({"J": judge_system} if judge_system else {}))
+    for name, system in layouts.items():
         body = {"model": model, "prompt": U1, "stream": False, "keep_alive": 0, "options": OPTIONS}
         if system is not None:
             body["system"] = system
@@ -257,7 +283,7 @@ def rendered(base, model, vocab, think=None):
     return out
 
 
-def content_checks(rend, show_d, think=None):
+def content_checks(rend, show_d, think=None, judge_system=None):
     pr = builtin_probes(show_d.get("system"))
     switch = THINK_OFF_SWITCH if think is False and THINK_OFF_SWITCH in (show_d.get("template") or "") else None
     explained = {"", switch} if switch else {""}
@@ -271,6 +297,16 @@ def content_checks(rend, show_d, think=None):
         "builtin_absent_with_system": not any(has_builtin(rend[k]["text"]) for k in ("SU", "SLU")),
         "no_unexplained_text": all(residual(rend[k]["text"], (SINGLE[k], U1)) in explained for k in ("SU", "SLU")),
     }
+    # The system slot of a judging call (Section 11.2 as revised on 12 November 2026): the supplied text once and whole
+    # (model 6), or the build's own built-in prompt once (models 20 and 21), or nothing; and no other text.
+    if judge_system:
+        c["judge_system_once_whole"] = norm(rend["J"]["text"]).count(norm(judge_system)) == 1
+        c["judge_layout_nothing_else"] = residual(rend["J"]["text"], (judge_system, U1)) in explained
+    elif pr:
+        c["judge_layout_builtin_once"] = all(norm(rend["U"]["text"]).count(p) == 1 for p in pr)
+        c["judge_layout_nothing_else"] = residual(rend["U"]["text"], (show_d.get("system"), U1)) in explained
+    else:
+        c["judge_layout_nothing_else"] = residual(rend["U"]["text"], (U1,)) in explained
     info = {"builtin_prompt": bool(pr), "think": think, "thinking_switch_accepted": switch,
             "builtin_used_without_system": bool(pr) and has_builtin(rend["U"]["text"]),
             "residual_by_layout": {k: residual(rend[k]["text"], (SINGLE[k], U1)) for k in SINGLE}}
@@ -283,11 +319,11 @@ def count_checks(rend, cnt):
             "multi_turn_nothing_else": cnt["SUAU"] - cnt["SU"] == cnt["UAU"] - cnt["U"]}
 
 
-def examine(base, model, models_dir, think=None):
+def examine(base, model, models_dir, think=None, judge_system=None):
     show = post(base, "/api/show", {"model": model})
     vocab, source = vocab_of(post(base, "/api/show", {"model": model, "verbose": True}), models_dir, model)
     t = {"hashes": hashes(show), "counts": counts(base, model, think), "vocabulary": source, "think": think}
-    t["rendered"] = rendered(base, model, vocab, think) if vocab else None
+    t["rendered"] = rendered(base, model, vocab, think, judge_system) if vocab else None
     if t["rendered"] is None:
         t["content_note"] = (source if not vocab else "/api/generate returned no token sequence ('context'): this "
                              "Ollama version cannot show the rendered conversation")
@@ -304,20 +340,26 @@ def main(argv=None):
     ap.add_argument("--think", choices=["config", "off", "unset"], default="config",
                     help="thinking setting sent with every request; 'config' follows config/models.json as a judge run")
     ap.add_argument("--models-config", default=str(PROJECT / "config" / "models.json"))
+    ap.add_argument("--judge-system", choices=["config", "none"], default="config",
+                    help="system message of the judging layout: 'config' as judge_v23.judge_cfg supplies it")
     a = ap.parse_args(argv)
+    judge_system = judge_system_of(a.test, a.models_config) if a.judge_system == "config" else None
     pick = lambda b: {"off": False, "unset": None}.get(a.think) if a.think != "config" else think_setting(b, a.models_config)
     think, ref_think = pick(a.test), (pick(a.ref) if a.ref else None)
     res = {"protocol": "2.3", "checked_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "test": a.test,
            "ref": a.ref, "texts": {"system": SYSTEM, "system_long": SYSTEM_LONG, "user": U1, "assistant": A1,
-                                   "user2": U2}, "think_mode": a.think, "think": think}
-    t, show = examine(a.base, a.test, a.models_dir, think)
+                                   "user2": U2}, "think_mode": a.think, "think": think,
+           "judge_system": ({"chars": len(judge_system),
+                             "sha256": hashlib.sha256(judge_system.encode("utf-8")).hexdigest()}
+                            if judge_system else None)}
+    t, show = examine(a.base, a.test, a.models_dir, think, judge_system)
     res["test_model"] = t
     c = t["counts"]
     res["system_rendered"] = c["SLU"] > c["SU"] and c["SLUAU"] > c["SUAU"]
     res["builtin_system_replaced"] = bool(t["hashes"]["system_sha256"]) and c["SU"] != c["U"]
     checks = {}
     if t["rendered"]:
-        cc, info = content_checks(t["rendered"], show, think)
+        cc, info = content_checks(t["rendered"], show, think, judge_system)
         checks.update(cc)
         checks.update(count_checks(t["rendered"], c))
         res["informational"] = info

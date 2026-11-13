@@ -554,8 +554,11 @@ def checks(tmp, models, panel, judges, keys, labels, small):
                     members[r["pair"]][r["position"]] = r["key"]
             pairs_bad += sum(1 for pm in members.values() if 0 in pm and 1 in pm
                              and abs(last[pm[0]] - last[pm[1]]) != 1)
+    crossed = collections.Counter()        # Section 8.8: counted apart from the limits of Section 12.1
     for r in finals.values():
-        if r["build"] == "primary":
+        if r["build"] == "primary" and r.get("part") == "crossed":
+            crossed[r["judge"]] += 1
+        elif r["build"] == "primary":
             per_judge[r["judge"]] += 1
     # Section 11.4 (review round 6): every challenge answer that a primary judge classifies in context in block 5
     # has its blind verdict right next to it, whatever pair identifiers the calls declare
@@ -574,9 +577,9 @@ def checks(tmp, models, panel, judges, keys, labels, small):
     c3 = pub_bad == 0 and pairs_bad == 0
     say("check: public logs without text, labels or reasons; pairs next to each other:", c3, pub_bad, pairs_bad)
     ok &= c3
-    # Section 12.1: 820 per commercial judge, 2,337 per hosted judge, 2,617 per local judge, and up to 2,974
+    # Section 12.1: 820 per commercial judge, 2,337 per hosted judge, 2,657 per local judge, and up to 2,974
     # further control calls shared by the five local refusal-removed judges (6, 18, 19, 20, 21)
-    base = {j: 820 if GROUP_OF[panel.n_of[j]] == "commercial" else 2337 if panel.n_of[j] in (22, 23) else 2617
+    base = {j: 820 if GROUP_OF[panel.n_of[j]] == "commercial" else 2337 if panel.n_of[j] in (22, 23) else 2657
             for j in per_judge}
     extra = {j: per_judge[j] - base[j] for j in per_judge if per_judge[j] > base[j]}
     controls = sum(n for j, n in extra.items() if panel.n_of[j] in (6, 18, 19, 20, 21))
@@ -584,8 +587,13 @@ def checks(tmp, models, panel, judges, keys, labels, small):
     say("check: final calls per judge (primary build):", dict(sorted(per_judge.items())))
     c4 = not over and controls <= 2974 and set(per_judge) == set(judges)
     say("check: every judge has calls, none above the limits of Section 12.1:", c4, over,
-        f"(control calls above 2,617 for the five local refusal-removed judges: {controls} of at most 2,974)")
+        f"(control calls above 2,657 for the five local refusal-removed judges: {controls} of at most 2,974)")
     ok &= c4
+    local = {j for j in judges if panel.n_of[j] in (4, 5, 6, 15, 16, 17, 18, 19, 20, 21)}
+    c4b = set(crossed) == local and 0 < sum(crossed.values()) <= 12800
+    say("check: crossed calls (Section 8.8) by the ten local judges only, at most 12,800 in all:", c4b,
+        sum(crossed.values()), dict(sorted(crossed.items())))
+    ok &= c4b
     st = collections.Counter(r["status"] for r in finals.values())
     say("check: final statuses:", dict(st))
     # the stub's rates, recovered from blind valid verdicts on harmful answers of other authors

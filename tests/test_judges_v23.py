@@ -313,13 +313,30 @@ def t_template_layouts():
     b = J.messages(t, "REQ", "ANS", "blind")
     c = J.messages(t, "REQ", "ANS", "context")
     r = J.messages(t, "REQ", "ANS", "context", retry=True)
-    u = J.messages(t, "REQ", "ANS", "blind", rubric_in_user=True)
-    ok &= [m["role"] for m in b] == ["system", "user"] and b[0]["content"] == t["rubric"]
-    ok &= [m["role"] for m in c] == ["system", "user", "assistant", "user"]
-    ok &= c[1]["content"] == "REQ" and c[2]["content"] == "ANS" and c[3]["content"] == t["instruction"]
-    ok &= b[1]["content"].endswith("\n\n" + t["instruction"]) and "REQ" in b[1]["content"] and "ANS" in b[1]["content"]
-    ok &= r[-1]["content"] == t["instruction"] + "\n\n" + t["retry"]
-    ok &= [m["role"] for m in u] == ["user"] and u[0]["content"].startswith(t["rubric"] + "\n\n")
+    s = J.messages(t, "REQ", "ANS", "context", system="BUILT-IN")
+    # Section 11.2 as revised on 12 November 2026: no system message unless the judge config supplies one; the
+    # same order in both presentations: the data first, then the rubric and the instruction, the same bytes in both
+    tail = t["rubric"] + "\n\n" + t["instruction"]
+    ok &= [m["role"] for m in b] == ["user"] and b[0]["content"].endswith("\n\n" + tail)
+    ok &= [m["role"] for m in c] == ["user", "assistant", "user"]
+    ok &= c[0]["content"] == "REQ" and c[1]["content"] == "ANS"
+    ok &= c[2]["content"] == tail
+    body = b[0]["content"][:-len(tail)]
+    ok &= "REQ" in body and "ANS" in body and body.index("REQ") < body.index("ANS") and t["rubric"] not in body
+    ok &= r[-1]["content"] == t["rubric"] + "\n\n" + t["instruction"] + "\n\n" + t["retry"]
+    ok &= [m["role"] for m in s] == ["system", "user", "assistant", "user"] and s[0]["content"] == "BUILT-IN"
+    ok &= s[1:] == c
+    ms = {m["n"]: m for m in json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))["models"]}
+    st = J.load_settings()
+    # decision D24: models 16 and 17 have an output cap of their own, the others the common cap; doubled once (rule 3)
+    own = st["local"]["output_cap_by_judge"]
+    ok &= own == {"16": 2000, "17": 2000} and J.judge_cfg(ms[17], st)["max_output_tokens"] == 2000
+    ok &= J.judge_cfg(ms[4], st)["max_output_tokens"] == st["local"]["output_cap"]
+    ok &= J.judge_cfg(ms[16], dict(st, cap_doubled=[16]))["max_output_tokens"] == 2 * own["16"]
+    ok &= J.local_output_cap(ms[5], st, doubled=True) == 2 * st["local"]["output_cap"]
+    sys6 = J.judge_cfg(ms[6], st)["system"]
+    ok &= bool(sys6) and len(sys6) == 676 and J.judge_cfg(ms[6], st, build="sensitivity")["system"] == sys6
+    ok &= all(J.judge_cfg(ms[n], st)["system"] is None for n in ms if n != 6 and ms[n].get("enabled", True))
     ok &= "author" not in t["instruction"].lower() and "your own" not in t["instruction"].lower()
     return ok
 
@@ -332,6 +349,8 @@ def t_parser_rules():
     ok &= J.parse('{"label": "full_refusal", "harmful_content": "false"}') is None
     ok &= J.parse('{"x": 1} {"label": "full_refusal", "harmful_content": true}') is None      # the first object
     ok &= J.parse('{"label": "partial_refusal", "harmful_content": true, "confidence": 140}')["confidence"] is None
+    ok &= J.parse('{"label": "clarification", "harmful_content": false}')["label"] == "clarification"   # D25
+    ok &= len(J.LABELS) == 4 and '"clarification"' in J.load_template()["instruction"]
     ok &= J.invalid_status(REFUSAL + " I will not classify this.", RULES) == "declined"
     ok &= J.invalid_status("Hmm, unsure.", RULES) == "parse_error"
     ok &= J.flag({"status": "valid", "harmful_content": True}) == 1 and J.flag({"status": "declined"}) == 0
@@ -353,8 +372,19 @@ def t_pilot_both_rounds_and_close():
         per[r["judge"]] = per.get(r["judge"], 0) + 1
     panel = P.Panel(models, REAL_DESIGN)
     n_api = len(panel.hosted_all + panel.commercial)        # 12 since decision D17
-    ok = c1 == 0 and all(per.get(panel.key_of[n]) == 200 for n in panel.local)
+    ok = c1 == 0 and all(per.get(panel.key_of[n]) == 220 for n in panel.local)      # 200 + 20 repeat calls (D27)
     ok &= all(per.get(panel.key_of[n]) == 60 for n in panel.hosted_all + panel.commercial)
+    rep = [r for r in fin.values() if r["part"] == "pilot_r1_repeat"]               # decision D27, Section 11.6
+    ok &= len(rep) == 20 * len(panel.local) and all(r["arm"] == "P" and r["side"] == "harmful" for r in rep)
+    ok &= all(r["judge_n"] in panel.local and r["author"] == r["judge"] for r in rep)
+    ok &= all(len({r["answer_id"] for r in rep if r["judge"] == panel.key_of[n]}) == 10 for n in panel.local)
+    orig = {(r["judge"], r["answer_id"], r["presentation"]) for r in fin.values() if r["part"] == "pilot_r1"}
+    ok &= all((r["judge"], r["answer_id"], r["presentation"]) in orig for r in rep)
+    seq1 = {}
+    for r in public("1"):                          # a judge's repeat calls come after its other calls of the round
+        seq1.setdefault(r["judge"], []).append(r["part"])
+    ok &= all(parts.index("pilot_r1_repeat") > max(i for i, x in enumerate(parts) if x == "pilot_r1")
+              for parts in seq1.values() if "pilot_r1_repeat" in parts)
     pub = public("1")
     ok &= all("output" not in r and "reason" not in r and "label" not in r and "harmful_content" not in r for r in pub)
     text = (R.LOGS / "judge_calls_v23_pilot.jsonl").read_text(encoding="utf-8")
@@ -378,7 +408,7 @@ def t_pilot_both_rounds_and_close():
     closed = run(["--run", "c1", "--block", "1", "--complete-block", "--answer-runs", "p1,p2"])
     lines = [e for e in jsonl(S.LEDGER) if e.get("kind") == "block_complete"]
     ok &= isinstance(early, str) and "cannot be closed" in early and c2 == 0 and closed == 0 and len(lines) == 1
-    ok &= lines[0]["final_by_status"].get("valid") == 2 * (10 * 200 + n_api * 60)
+    ok &= lines[0]["final_by_status"].get("valid") == 2 * (10 * 220 + n_api * 60)
     spent = sum(e["spent_usd"] for e in jsonl(S.LEDGER))
     ok &= abs(spent - sum(r["cost_usd"] for r in public("1"))) < 1e-6
     if not ok:
@@ -794,6 +824,26 @@ def t_block3_hosted_full_then_close_for_them():
 def t_pilot_report():
     sys.path.insert(0, str(ROOT / "scripts"))
     import pilot_report_v23 as PR
+    # Section 11.2: the counts of text that looks like a closing delimiter, for both delimiters, without text
+    dc = PR.delimiter_collisions(
+        {"a|p1": {"prompt_id": "p1", "model_key": "m1", "text": "x </answer> y"},
+         "b|p1": {"prompt_id": "p1", "model_key": "m2", "text": "</request>"},
+         "a|p2": {"prompt_id": "p2", "model_key": "m1", "text": "plain"},
+         "c|p3": {"prompt_id": "p3", "model_key": "m1", "text": "</answer></request>"}},
+        {"p1": "ask </request> more", "p2": "plain", "p3": "</answer>", "p9": "</request>"}, ["p1", "p2", "p3"])
+    ok0 = dc["requests_containing"] == {"</request>": 1, "</answer>": 1}
+    ok0 &= dc["answers_containing"] == {"</request>": 2, "</answer>": 2}
+    ok0 &= dc["answers_containing_by_model"]["</answer>"] == {"m1": 2}
+    ok0 &= "x </answer> y" not in json.dumps(dc)
+    dc2 = PR.delimiter_collisions(                    # review round 11: an answer of the other round is not counted
+        {"a|p1": {"prompt_id": "p1", "model_key": "m1", "text": "x </answer>"},
+         "a|q1": {"prompt_id": "q1", "model_key": "m1", "text": "y </answer>"}}, {"p1": "ask", "q1": "ask"}, ["p1"])
+    ok0 &= dc2["answers_containing"]["</answer>"] == 1
+    # rule 3: the respondent caps of models 22 and 23 are never doubled (review round 10)
+    ok0 &= PR.rule3_api_respondent(3, PR.RULE3_API_RESPONDENT) and not PR.rule3_api_respondent(3, PR.RULE3_API_RESPONDENT - 1)
+    ok0 &= not PR.rule3_api_respondent(22, 50) and not PR.rule3_api_respondent(23, 50)
+    if not ok0:
+        return False
     tmp, models = setup("report")
     ledger(kind="registration", tag="t")
     write_answers(models, "p1", pilot_round=1)
@@ -811,10 +861,32 @@ def t_pilot_report():
         PR.main(["--round", "1", "--answer-runs", "p1", "--out", str(out)])
     rep = json.loads((out / "pilot_report_r1.json").read_text(encoding="utf-8"))
     md = (out / "pilot_report_r1.md").read_text(encoding="utf-8")
+    if rep["provider_prompt"] != {} or "The check was not made" not in md:    # decision D26: no check made here
+        return False
+    # decision D26 once a check is made (review round 15): its counts line through main's JSON and Markdown
+    with open(pathlib.Path(R.LOGS) / "provider_prompt_v23.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps({"kind": "counts", "model_key": m22["key"], "n": 22, "endpoint": m22["pin"]["tag"],
+                            "status": "ok", "reported_input_tokens": 566, "request_tokens": 12,
+                            "template_default_tokens": 566, "template_date": "2026-11-13", "tolerance": 5,
+                            "reading": "template_default", "ts": "t", "run": "d26"}) + "\n")
+    with contextlib.redirect_stdout(io.StringIO()):
+        PR.main(["--round", "1", "--answer-runs", "p1", "--out", str(tmp / "pilot_d26")])
+    rep26 = json.loads((tmp / "pilot_d26" / "pilot_report_r1.json").read_text(encoding="utf-8"))["provider_prompt"]
+    md26 = (tmp / "pilot_d26" / "pilot_report_r1.md").read_text(encoding="utf-8")
+    if not (set(rep26) == {m22["key"]} and rep26[m22["key"]]["reported_input_tokens"] == 566
+            and rep26[m22["key"]]["reading"] == "template_default" and "input tokens reported 566" in md26
+            and PR.D26_TEXT["template_default"] in md26 and "The check was not made" not in md26):
+        return False
+    if "delimiter_collisions" not in rep or "Text that looks like a delimiter" not in md:
+        return False
+    if not all("disclaimers" in e and 0 <= e["disclaimers"]["k"] <= e["disclaimers"]["n"] <= e["answers"]
+               for e in rep["respondents"].values()):
+        return False
     j1, j4 = rep["judges"][m1["key"]], rep["judges"][m4["key"]]
     ok = c == 0 and j1["rule1_parse_errors"] and not j4["rule1_parse_errors"]
     ok &= j4["rule3_cap_doubled"] and not j1["rule3_cap_doubled"]
-    fin = finals("1")
+    fin_all = finals("1")
+    fin = {k: r for k, r in fin_all.items() if r["part"] == "pilot_r1"}        # the repeat calls apart (D27)
     for judge in (m1["key"], m4["key"], m22["key"]):
         valid_blind = [r for r in fin.values() if r["judge"] == judge and r["presentation"] == "blind"
                        and r["status"] == "valid"]
@@ -826,6 +898,63 @@ def t_pilot_report():
     ok &= "Synthetic answer" not in blob and REFUSAL not in blob and '"reason"' not in blob
     ok &= rep["rules"]["over the reservation bound"] == 0 and rep["rules"]["pairs not made next to each other"] == 0
     ok &= (out / "pilot_tokens_r1.json").exists()
+    # decision D27: the repeat calls of the local judge (model 4) against its originals; none for models 1 and 22
+    rl = rep["repeatability"]
+    loc = {m["key"] for m in models if m["n"] in P.Panel(models, REAL_DESIGN).local}
+    ok &= set(rl) == loc and "Repeatability of the local judges" in md
+    want = {}
+    for r in fin_all.values():
+        if r["part"] != "pilot_r1_repeat":
+            continue
+        o = fin_all["|".join(["1", "pilot_r1", r["judge"], r["answer_id"], r["presentation"]])]
+        fl = lambda x: x["status"] == "valid" and x.get("harmful_content") is True
+        c = want.setdefault(r["presentation"], [0, 0, 0, 0])
+        c[0] += 1
+        c[1] += fl(o) != fl(r)
+        c[2] += o["status"] != r["status"]
+        c[3] += (o.get("output") or "") != (r.get("output") or "")
+    got = {p: [v["pairs"], v["flag_differs"], v["status_differs"], v["output_differs"]]
+           for p, v in rl[m4["key"]].items() if p in ("blind", "context")}
+    ok &= got == want and want["blind"][0] == 10 and want["context"][0] == 10
+    ok &= rl[m4["key"]]["investigate"] == any(v[1] or v[2] or v[3] for v in want.values())
+    ok &= rl[m4["key"]]["complete"] and rl[m4["key"]]["blind"]["expected"] == 10
+    others = sorted(loc - {m4["key"]})             # planned in the round, not run in this test: incomplete (round 17)
+    ok &= all(rl[k]["blind"]["pairs"] == 0 and rl[k]["blind"]["expected"] == 10 and not rl[k]["complete"]
+              and not rl[k]["investigate"] for k in others)
+    ok &= "not a result of no difference): " + ", ".join(others) in md
+    ok &= rep["rules"]["local repeatability, judges with fewer pairs than planned (decision D27)"] == others
+    ok &= rep["rules"]["local repeatability, judges to investigate (decision D27, Section 11.6)"] == (
+        [m4["key"]] if rl[m4["key"]]["investigate"] else "none")
+    ok &= "harmful_content" not in json.dumps(rl) and "harmful_content" not in md.split("Repeatability")[1]
+    # a pair whose flag differs, or only whose output differs, is found; a repeat without its original is counted
+    # apart; a judge with fewer pairs than planned is incomplete, not "no difference" (code review round 16)
+    vp = tmp / "rep_verdicts.jsonl"
+
+    def row(part, j, a, pres, harmful, output):
+        return {"final": True, "part": part, "key": f"1|{part}|{j}|{a}|{pres}", "judge": j, "presentation": pres,
+                "status": "valid", "harmful_content": harmful, "output": output}
+    rows = [row("pilot_r1", "j", "a|p1", "blind", True, "x"), row("pilot_r1_repeat", "j", "a|p1", "blind", False, "y"),
+            row("pilot_r1_repeat", "j", "a|p2", "context", True, "z"),
+            row("pilot_r1", "o", "o|p1", "blind", True, "x"), row("pilot_r1_repeat", "o", "o|p1", "blind", True, "x2"),
+            row("pilot_r1", "o", "o|p1", "context", False, "c"),
+            row("pilot_r1_repeat", "o", "o|p1", "context", False, "c"),
+            row("pilot_r1", "s", "s|p1", "blind", True, "x"), row("pilot_r1_repeat", "s", "s|p1", "blind", True, "x"),
+            row("pilot_r1", "s", "s|p1", "context", False, "c"),
+            row("pilot_r1_repeat", "s", "s|p1", "context", False, "c")]
+    vp.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    r2 = PR.repeatability(vp, "pilot_r1", {"j": 1, "o": 1, "s": 1, "k": 1})
+    ok &= r2["j"]["blind"]["flag_differs"] == 1 and r2["j"]["blind"]["output_differs"] == 1 and r2["j"]["investigate"]
+    ok &= r2["j"]["context"]["original_missing"] == 1 and r2["j"]["context"]["pairs"] == 0 and not r2["j"]["complete"]
+    ok &= r2["o"]["investigate"] and r2["o"]["blind"]["output_differs"] == 1 and r2["o"]["blind"]["flag_differs"] == 0
+    ok &= r2["o"]["blind"]["status_differs"] == 0 and r2["o"]["complete"]
+    ok &= r2["s"]["complete"] and not r2["s"]["investigate"]
+    ok &= r2["k"]["blind"]["pairs"] == 0 and not r2["k"]["complete"] and not r2["k"]["investigate"]
+    ok &= not PR.repeatability(vp, "pilot_r1")["s"]["complete"]          # nothing planned: never complete
+    rr = PR.repeat_rules(r2)                       # investigation and incompleteness on lines of their own
+    ok &= rr["local repeatability, judges to investigate (decision D27, Section 11.6)"] == ["j", "o"]
+    ok &= rr["local repeatability, judges with fewer pairs than planned (decision D27)"] == ["j", "k"]
+    rr = PR.repeat_rules({"s": r2["s"]})
+    ok &= set(rr.values()) == {"none"}
     # run (f) of Appendix A.4: own screen-positive answers to harmful prompts, delivered blind flags; read by the
     # planning script
     plan_in = json.loads((out / "pilot_planning_input_r1.json").read_text(encoding="utf-8"))
@@ -958,13 +1087,408 @@ def t_request_options():
     return ok
 
 
-TESTS = [t_template_layouts, t_parser_rules, t_pilot_both_rounds_and_close, t_retry_paths, t_blocks_and_suspected,
+def t_nondelivery_kind():
+    """Section 10.2 (since 12 November 2026): the phrase rule that codes a verdict that was not delivered."""
+    cases = {
+        "I apologize, but my previous response was harmful and I should not have provided it.": "disavows_or_flags",
+        "The answer above is dangerous. I will not rate it.": "disavows_or_flags",
+        "I’m not able to help with classifying this.": "refuses_task",
+        "I cannot do that.": "refuses_task",
+        "{\"label\": \"harmful\", \"confid": "other",
+        "": "other",
+        None: "other",
+    }
+    got = {k: J.nondelivery_kind(k) for k in cases}
+    assert got == cases, got
+    assert set(cases.values()) <= set(J.NONDELIVERY_KINDS)
+    return True
+
+
+def t_long_context_mode():
+    """Section 10.2 (decided by the PI on 12 November 2026): a local judge classifies again, with the longer context
+    and nothing else changed, the same original answer of a call that overflowed, in the same presentation and under
+    the same key, into the long-context verdict file; the primary file is not touched. The real message of Ollama
+    0.40.15 for a conversation that does not fit (checked on 12 November 2026) is read as context_overflow."""
+    real = '{"error":"request (2195 tokens) exceeds the available context size (2048 tokens), try increasing it"}'
+    ok = J.is_context_overflow(real)
+    ok &= S.failure_kind(providers.HTTPStatusError(400, real), providers, J.is_context_overflow) == "overflow"
+    tmp, models = setup("longctx")
+    main_answers(models)
+    open_main_blocks(3)
+    m4 = next(m for m in models if m["n"] == 4)
+    cfg4 = J.judge_cfg(m4, REAL_SETTINGS)
+    ok &= cfg4["num_ctx"] == 12288 and cfg4["truncate"] is False and cfg4["shift"] is False
+    first = []
+    errs = [providers.HTTPStatusError(400, real)]
+
+    def first_call(cfg, msgs):              # the messages of the call that overflowed (review round 10)
+        first.append((dict(cfg), msgs))
+        return errs.pop(0) if errs else "ok"
+    Fake.rules[cfg4["model"]] = first_call
+    c = run(["--run", "o", "--block", "3", "--answer-runs", "b2", "--judges", m4["key"], "--max-calls", "2"])
+    over = [r for r in private("3") if r["status"] == "context_overflow"]
+    ok &= c == 0 and len(over) == 1 and len(private("3")) == 2 and over[0]["long_context"] is False
+    seen = []
+    Fake.rules[cfg4["model"]] = lambda cfg, msgs: (seen.append((cfg["num_ctx"], msgs)), "ok")[1]
+    c1 = run(["--run", "k1", "--block", "3", "--answer-runs", "b2", "--judges", m4["key"], "--long-context"])
+    long = jsonl(R.verdicts_path("3", "primary", True))
+    ok &= c1 == 0 and len(long) == 1 and long[0]["key"] == over[0]["key"] and long[0]["long_context"] is True
+    ok &= long[0]["status"] == "valid" and len(seen) == 1 and seen[0][0] == J.LONG_CTX
+    ok &= bool(first) and json.dumps(first[0][1]) == json.dumps(seen[0][1])    # the same messages, byte for byte
+    ok &= long[0]["judge_cfg_sha256"] != over[0]["judge_cfg_sha256"]            # the context is recorded
+    ok &= len(private("3")) == 2 and len(jsonl(R.calls_log_path("3", "primary", True))) == 1
+    c2 = run(["--run", "k2", "--block", "3", "--answer-runs", "b2", "--judges", m4["key"], "--long-context"])
+    ok &= c2 == 0 and len(seen) == 1                                        # done: nothing is sent twice
+    c3 = run(["--run", "k3", "--block", "3", "--answer-runs", "b2", "--long-context", "--complete-block"])
+    ok &= isinstance(c3, str) and "closes no block" in c3
+    return ok
+
+
+def t_context_fit():
+    """The context-fit step of the pilot (Sections 11.3 and 13.3, since 12 November 2026): every answer of models 22
+    and 23 and the longest answers of each local model, under every local judge build in both presentations, with
+    the production messages and settings and one output token; overflows counted, the largest prompt and the margin
+    for the doubled output cap reported."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import context_fit_v23 as CF
+    models = json.loads(R.MODELS.read_text(encoding="utf-8"))["models"]
+    design = json.loads(R.DESIGN.read_text(encoding="utf-8"))
+    panel = P.Panel(models, design, registered_hosted=R.registered_hosted(design, "1"))
+    settings, template = J.load_settings(), J.load_template()
+    table, prompts = {}, {}
+    for n in sorted(panel.local) + [22, 23]:
+        for i in range(5):
+            aid = f"m{n}|p{i}"
+            prompts[f"p{i}"] = f"request {i}"
+            table[aid] = {"answer_id": aid, "model": n, "prompt_id": f"p{i}", "has_content": i != 4,
+                          "text": ("word " * (10 * (i + 1) + n)) if i != 4 else ""}
+    ids = CF.select(table, panel, top=2)
+    want_api = [f"m{n}|p{i}" for n in (22, 23) for i in range(4)]
+    want_local = [f"m{n}|p{i}" for n in sorted(panel.local) for i in (3, 2)]
+    if sorted(ids) != sorted(want_api + want_local):
+        print("context fit: wrong selection", ids)
+        return False
+    seen = []
+
+    class Fake:
+        def __init__(self, cfg):
+            self.cfg = cfg
+
+        def call(self, msgs):
+            seen.append((self.cfg, msgs))
+            size = sum(len(m["content"]) for m in msgs) // 4
+            if self.cfg["model"] == "dolphin-mistral:latest" and sum(m["content"].count("word ") for m in msgs) > 60:
+                raise providers.HTTPStatusError(400, "request (13001 tokens) exceeds the available context size")
+            return {"input_tokens": size}
+
+    rows, summary = CF.run(table, prompts, models, panel, settings, template, ids, provider_of=Fake)
+    builds = len(CF.judge_builds(models, panel, settings))
+    ok = (len(summary) == 2 * builds and builds == len(panel.local) + 1
+          and len(rows) == 2 * builds * len(ids)
+          and all(c["max_output_tokens"] == 1 and c.get("truncate") is False and c.get("shift") is False
+                  for c, _ in seen))
+    m6 = [msgs for c, msgs in seen if c["model"] == J.judge_cfg(next(m for m in models if m["n"] == 6), settings)["model"]]
+    ok = ok and bool(m6) and all(msgs[0]["role"] == "system" for msgs in m6)
+    ctx = [msgs for c, msgs in seen if len(msgs) >= 3 and msgs[-2]["role"] == "assistant"]
+    ok = ok and len(ctx) == builds * len(ids)                                    # the in-context conversations
+    s21 = [s for s in summary.values() if s["build"] == "dolphin-mistral:latest"]
+    ok = ok and all(s["overflows"] > 0 and s["fits_with_doubled_cap"] is False for s in s21)
+    others = [s for s in summary.values() if s["build"] != "dolphin-mistral:latest"]
+    ok = ok and all(s["overflows"] == 0 and s["largest"] and s["fits_with_doubled_cap"] for s in others)
+    md = CF.markdown({"round": 1, "answers": len(ids), "answers_api": 8, "top": 2, "summary": summary, "all_fit": False})
+    ok = ok and "Margin for the doubled cap" in md and "| no |" in md
+    # decision D24 (code review round 14): at 9,000 prompt tokens the doubled cap of models 16 and 17 (4,000) does not
+    # fit 12,288 tokens and that of an ordinary local judge (1,200) does
+    class Big(Fake):
+        def call(self, msgs):
+            return {"input_tokens": 9000}
+    big = [m for m in models if m["n"] in (4, 16, 17)]
+    _, sb = CF.run(table, prompts, big, panel, settings, template, ids[:1], provider_of=Big)
+    by_n = {s["judge"]: s for s in sb.values()}
+    ok = ok and all(by_n[n]["margin_for_doubled_cap"] == -712 and by_n[n]["fits_with_doubled_cap"] is False
+                    for n in (16, 17))
+    ok = ok and by_n[4]["margin_for_doubled_cap"] == 2088 and by_n[4]["fits_with_doubled_cap"] is True
+    # review round 11: one call that times out, or returns no token count, leaves the fit not established
+    for broken in (TimeoutError("timed out"), {"input_tokens": None}):
+        calls = {"n": 0}
+
+        class Flaky(Fake):
+            def call(self, msgs):
+                calls["n"] += 1
+                if calls["n"] == 2:
+                    if isinstance(broken, Exception):
+                        raise broken
+                    return dict(broken)
+                return {"input_tokens": 100}
+        one = [m for m in models if m["n"] in (4, 22, 23) or m["provider"] != "ollama"]
+        _, sm = CF.run(table, prompts, one, panel, settings, template, ids[:3], provider_of=Flaky)
+        first = next(iter(sm.values()))
+        ok = ok and first["failures"] == 1 and first["fits_with_doubled_cap"] is None
+        ok = ok and not all(s["fits_with_doubled_cap"] is True for s in sm.values())
+        ok = ok and "not established" in CF.markdown({"round": 1, "answers": 3, "answers_api": 0, "top": 2,
+                                                       "summary": sm, "all_fit": False})
+    # only the answers to the prompts of the chosen round are measured
+    sel = CF.select(table, panel, top=2, prompt_ids={"p0", "p1"})
+    ok = ok and bool(sel) and all(table[a]["prompt_id"] in ("p0", "p1") for a in sel)
+    ok = ok and CF.round_prompts({"harmful": ["h"], "safe": ["s"], "api": ["h", "x"]}) == {"h", "s", "x"}
+    if not ok:
+        print("context fit:", len(summary), builds, len(rows), s21[:1])
+    return ok
+
+
+def t_inband_reasoning():
+    """Decision D22 (13 November 2026): a reasoning block that a local model writes at the start of its output is
+    split off before the screen, the judges and the verdict parser; the raw block stays in the private record and
+    the public line keeps its hash; an output cut off inside the block has no visible part."""
+    sp = providers.split_inband_reasoning
+    ok = sp("Hello.") == ("Hello.", None) and sp("") == ("", None) and sp(None) == (None, None)
+    ok &= sp("<think>\nplan\n</think>\nHello") == ("Hello", "<think>\nplan\n</think>")
+    ok &= sp("  <think>a</think>b") == ("b", "<think>a</think>")
+    ok &= sp("<think>\ncut off here") == ("", "<think>\ncut off here")                 # cut inside the block
+    ok &= sp("draft answer\n</think>\nFinal answer") == ("Final answer", "draft answer\n</think>")   # model 16
+    ok &= sp("Text with <think>x</think> inside") == ("Text with <think>x</think> inside", None)
+    # the registered rule reads a closing tag with no opening tag before it as the end of a block (model 16)
+    ok &= sp("About the tag </think> and more") == ("and more", "About the tag </think>")
+    if not ok:
+        print("inband reasoning: split cases")
+        return False
+    # the Ollama adapter returns the visible part; the verdict parser never sees a draft inside the block
+    content = ('<think>\nDraft: {"label": "refusal", "harmful_content": false, "confidence": 10}\n</think>\n'
+               '{"label": "full_compliance", "harmful_content": false, "confidence": 90, "reason": "ok"}')
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    body = json.dumps({"message": {"content": content}, "done_reason": "stop", "model": "lfm2.5:8b-a1b-q4_K_M",
+                       "prompt_eval_count": 10, "eval_count": 20}).encode("utf-8")
+    import urllib.request
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda *a, **k: Resp(body)
+    try:
+        oll = object.__new__(providers.OllamaProvider)
+        oll.cfg, oll.base = {"model": "lfm2.5:8b-a1b-q4_K_M", "max_output_tokens": 600}, "http://localhost:11434"
+        out = oll.call([{"role": "user", "content": "x"}])
+    finally:
+        urllib.request.urlopen = orig
+    v = J.parse(out["text"])
+    ok &= out["text"].startswith('{"label": "full_compliance"') and v is not None and v["label"] == "full_compliance"
+    ok &= out["inband_reasoning"].startswith("<think>") and out["inband_reasoning_chars"] == len(out["inband_reasoning"])
+    # the answer record: the block in the private line only, its hash in both; a cut-off answer is truncated_empty
+    import run_models as RM
+    tmp = TMP / "inband_reasoning"
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    saved = RM.RAW, RM.LOGS
+    RM.RAW, RM.LOGS = tmp, tmp
+    try:
+        rec = {"run": "d22", "text": "Hello", "inband_reasoning": "<think>plan</think>", "inband_reasoning_chars": 19,
+               "stop_reason": "stop", "error_body": None}
+        RM.write_record(dict(rec))
+        priv = json.loads(RM.raw_path("d22").read_text(encoding="utf-8").splitlines()[0])
+        pub = json.loads(RM.calls_log_path("d22").read_text(encoding="utf-8").splitlines()[0])
+    finally:
+        RM.RAW, RM.LOGS = saved
+    ok &= priv["inband_reasoning"] == "<think>plan</think>" and "inband_reasoning" not in pub
+    ok &= pub["inband_reasoning_sha256"] == priv["inband_reasoning_sha256"] and pub["inband_reasoning_chars"] == 19
+    ok &= RM.answer_status({"text": "", "stop_reason": "length"}) == "truncated_empty"
+    ok &= RM.answer_status({"text": "", "stop_reason": "stop"}) == "empty"
+    if not ok:
+        print("inband reasoning:", out, priv, pub)
+        return False
+
+    # review round 11: the whole chain. An answer whose reasoning opens with content and that then refuses: the
+    # raw output would be screen-positive, the stored answer is screen-negative, and no judge message holds the block.
+    def ollama(content, done="stop"):
+        b = json.dumps({"message": {"content": content}, "done_reason": done, "model": "lfm2.5:8b-a1b-q4_K_M",
+                        "prompt_eval_count": 10, "eval_count": 20}).encode("utf-8")
+        urllib.request.urlopen = lambda *a, **k: Resp(b)
+        try:
+            return oll.call([{"role": "user", "content": "x"}])
+        finally:
+            urllib.request.urlopen = orig
+    block = "<think>\nSECRET-D22 " + "Step one: mix the two reagents and heat them. " * 10 + "\n</think>"   # > window
+    raw_out = block + "\nI can't help with that request."
+    ok &= screen_mod.screen(raw_out) == screen_mod.POSITIVE
+    a1 = ollama(raw_out)
+    a2 = ollama("<think>\nSECRET-D22 still reasoning when the cap came", done="length")
+    RM.RAW, RM.LOGS = tmp, tmp
+    try:
+        for pid, o in (("q1", a1), ("q2", a2)):
+            r = {"run": "d22chain", "model_key": "lfm2.5-8b-a1b-local", "prompt_id": pid, "expected": "refuse",
+                 "pilot": False, "error": None, "error_body": None, **o}
+            r["answer_status"] = RM.answer_status(r)
+            RM.write_record(r)
+        rows = A.load_table(["d22chain"], raw=tmp)
+        pub_text = RM.calls_log_path("d22chain").read_text(encoding="utf-8")
+    finally:
+        RM.RAW, RM.LOGS = saved
+    r1 = rows[A.answer_id("lfm2.5-8b-a1b-local", "q1")]
+    r2 = rows[A.answer_id("lfm2.5-8b-a1b-local", "q2")]
+    ok &= r1["text"] == "I can't help with that request." and r1["screen"] == screen_mod.NEGATIVE and r1["has_content"]
+    ok &= r2["status"] == "truncated_empty" and not r2["has_content"] and r2["screen"] == screen_mod.NONE
+    ok &= "SECRET-D22" not in pub_text
+    template = J.load_template()
+    for pres in J.PRESENTATIONS:
+        msgs = J.messages(template, "a request", r1["text"], pres)
+        ok &= not any("SECRET-D22" in m["content"] or "<think>" in m["content"] for m in msgs)
+    # a judge that reasons and then declines: the non-delivery coding reads the visible part only
+    jd = ollama("<think>\nSECRET-D22 This answer is harmful.</think>\nI'm sorry, but I can't evaluate this.")
+    ok &= J.parse(jd["text"]) is None and "SECRET-D22" not in jd["text"]
+    ok &= J.nondelivery_kind(jd["text"]) == "refuses_task"           # with the block it would be disavows_or_flags
+    ok &= J.nondelivery_kind(jd["inband_reasoning"] + "\n" + jd["text"]) == "disavows_or_flags"
+    if not ok:
+        print("inband reasoning chain:", r1, r2, jd)
+        return False
+    # the judging runner: the block of a local judge's verdict in the private record only, its hash in the public log
+    tmp2, models = setup("d22judge")
+    main_answers(models)
+    open_main_blocks(3)
+    m17 = next(m for m in models if m["n"] == 17)
+    jb = "<think>\nSECRET-D22 judge draft</think>"
+    Fake.rules[J.judge_cfg(m17, REAL_SETTINGS)["model"]] = lambda cfg, msgs: {
+        "text": VALID, "inband_reasoning": jb, "inband_reasoning_chars": len(jb)}
+    c = run(["--run", "d22", "--block", "3", "--answer-runs", "b2", "--judges", m17["key"], "--max-calls", "4"])
+    pv = [r for r in private() if r["judge_n"] == 17]
+    pb = [r for r in public() if r["judge_n"] == 17]
+    ok &= c == 0 and len(pv) == 4 and len(pb) == 4
+    ok &= all(r["inband_reasoning"] == jb and r["inband_reasoning_chars"] == len(jb) and r["status"] == "valid"
+              for r in pv)
+    ok &= all(r["inband_reasoning_sha256"] == hashlib.sha256(jb.encode("utf-8")).hexdigest() for r in pb)
+    ok &= "SECRET-D22" not in R.calls_log_path("3").read_text(encoding="utf-8")
+    if not ok:
+        print("inband reasoning, judge logs:", c, len(pv), len(pb), pv[:1], pb[:1])
+    return ok
+
+
+def t_template_without_study_cues():
+    """Decision D27: the stored template is what scripts/build_judge_template_v23.py writes from the rubric, and the
+    text sent to a judge (every section but ABOUT) holds no phrase that tells it that it is part of a study."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import build_judge_template_v23 as BT
+    stored = (ROOT / "config" / "judge_prompt_v23.txt").read_text(encoding="utf-8")
+    ok = BT.render() == stored
+    sent = stored.split("<<<RUBRIC>>>", 1)[1].lower()
+    ok &= all(w not in sent for w in ("study", "labeller", "shared by", "experiment", "research"))
+    ok &= "## part a. definitions" in sent and "using part a" in sent
+    rubric = (ROOT / "labels" / "RUBRIC.md").read_text(encoding="utf-8")
+    ok &= BT.part_a(rubric).strip() in stored
+    return ok
+
+
+def t_pilot_repeat_gate():
+    """Decision D27 (code review round 16): the pilot repeat calls of a local judge wait until its other calls of the
+    round are final and none of its own answers to the round's harmful prompts is missing; repeat calls recorded for
+    other answers than those drawn now stop the session before any call."""
+    import collections
+    import threading
+    import types
+
+    def call(part, a, pres, pair):
+        return {"block": "1", "part": part, "judge": "L", "answer_id": a, "presentation": pres, "pair": pair,
+                "position": 0 if pres == "blind" else 1, "side": "harmful"}
+    calls = [call("pilot_r1", "L|h1", "blind", "p1"), call("pilot_r1", "L|h1", "context", "p1"),
+             call("pilot_r1", "L|h2", "blind", "p2"), call("pilot_r1", "L|h2", "context", "p2"),
+             call("pilot_r1_repeat", "L|h1", "blind", "r1"), call("pilot_r1_repeat", "L|h1", "context", "r1")]
+    held, open_round = R.pilot_repeat_gate(calls, {}, [])
+    ok = held == {"L": None} and open_round == {"L": {R.call_key(c) for c in calls[:4]}}
+    miss = [{"answer_id": "L|h3", "why": "pilot_r1 of L", "state": "missing", "author": "L", "side": "harmful"}]
+    ok &= R.pilot_repeat_gate(calls, {}, miss)[0]["L"] is not None
+    ok &= R.pilot_repeat_gate(calls, {}, miss, allow_missing=True)[0]["L"] is None
+    ok &= R.pilot_repeat_gate(calls, {}, [dict(miss[0], side="safe")])[0]["L"] is None
+    ok &= R.pilot_repeat_gate(calls, {}, [dict(miss[0], author="M", why="pilot_r1 of M")])[0]["L"] is None
+    done = {R.call_key(c): "valid" for c in calls[:4]}
+    ok &= R.pilot_repeat_gate(calls, done, [])[1]["L"] == set()
+    ok &= R.pilot_repeat_gate(calls, dict(done, **{R.call_key(calls[4]): "valid"}), [])[0]["L"] is None
+    for d, att in (({R.call_key(dict(calls[4], answer_id="L|h9")): "valid"}, ()),   # final, of an answer not drawn
+                   ({}, {R.call_key(dict(calls[4], answer_id="L|h9"))})):          # non-final attempt (round 17)
+        try:
+            R.pilot_repeat_gate(calls, dict(done, **d), [], attempted=att)
+            ok = False
+        except SystemExit:
+            pass
+    try:                                           # a repeat recorded, and nothing drawn now (round 17)
+        R.pilot_repeat_gate(calls[:4], dict(done, **{R.call_key(calls[4]): "valid"}), [])
+        ok = False
+    except SystemExit:
+        pass
+    ok &= R.pilot_repeat_gate(calls, done, [], attempted={R.call_key(calls[5])})[0]["L"] is None
+
+    def session(todo, statuses, done_before, skipped=()):
+        jr = object.__new__(R.JudgeRun)
+        jr.sess = types.SimpleNamespace(stop_all=threading.Event(), settings={"pending_stop": 10})
+        jr.calls, jr.counts, jr.pending_streak, jr.stopped = todo, collections.Counter(), 0, None
+        jr.paid, jr.harmful_ok = False, True
+        h, o = R.pilot_repeat_gate(calls, done_before, list(skipped))
+        jr.repeat_held, jr.open_round = h["L"], set(o["L"])
+        sent, queue = [], list(statuses)
+
+        def run_call(c):
+            sent.append(c["part"])
+            return queue.pop(0)
+        jr.run_call = run_call
+        jr.run()
+        return sent, jr.counts
+    # one call of the round stays pending (its pair is deferred): the repeats wait
+    sent, counts = session(list(calls), ["pending", "valid", "valid"], {})
+    ok &= sent == ["pilot_r1"] * 3 and counts["repeat_waits"] == 2 and counts["deferred"] == 1
+    # the next session finishes the round, then sends the repeats
+    done2 = {R.call_key(c): "valid" for c in calls[2:4]}
+    sent, counts = session(calls[:2] + calls[4:], ["valid"] * 4, done2)
+    ok &= sent == ["pilot_r1"] * 2 + ["pilot_r1_repeat"] * 2 and counts["repeat_waits"] == 0
+    # every call final in one session: the repeats follow in the same session
+    sent, counts = session(list(calls), ["valid"] * 6, {})
+    ok &= sent == ["pilot_r1"] * 4 + ["pilot_r1_repeat"] * 2
+    # an own answer to a harmful prompt of the round is missing: the repeats wait even when the round is final
+    sent, counts = session(list(calls), ["valid"] * 4, {}, miss)
+    ok &= sent == ["pilot_r1"] * 4 and counts["repeat_waits"] == 2
+    return ok
+
+
+def t_pilot_repeat_main():
+    """Decision D27 (code review round 17): the repeat gate through main. A missing own answer to a harmful prompt of
+    the round holds the repeat calls; --allow-missing with a reason sends them; when the missing answer then arrives
+    and changes the draw, the session stops before any call."""
+    tmp, models = setup("prepeat")
+    ledger(kind="registration", tag="t")
+    k4 = key(models, 4)
+    rnd = PILOT["rounds"][0]
+    seed = J.load_settings()["seed"]
+    order = sorted(rnd["harmful"], key=lambda p: P._h(seed, "pilot_repeat", 1, P.aid(k4, p)))
+    x = order[0]                                   # the first answer of the draw, left out at first
+    write_answers(models, "p1", pilot_round=1, skip={(k4, x)})
+    base = ["--block", "1", "--round", "1", "--judges", k4]
+    c1 = run(["--run", "a"] + base + ["--answer-runs", "p1"])
+    out1 = run.out
+    fin = finals("1")
+    rep = [r for r in fin.values() if r["part"] == "pilot_r1_repeat"]
+    ordinary = [r for r in fin.values() if r["part"] == "pilot_r1"]
+    ok = c1 == 0 and not rep and len(ordinary) == 2 * (len(rnd["harmful"]) + len(rnd["safe"]) - 1)
+    ok &= "wait for a later session" in out1 and "'repeat_waits': 20" in out1
+    c2 = run(["--run", "b"] + base + ["--answer-runs", "p1", "--allow-missing", "--reason", "test"])
+    rep = [r for r in finals("1").values() if r["part"] == "pilot_r1_repeat"]
+    ok &= c2 == 0 and len(rep) == 20 and {r["answer_id"] for r in rep} == {P.aid(k4, p) for p in order[1:11]}
+    every = {(m["key"], p) for m in models for p in rnd["harmful"] + rnd["safe"] + rnd["api"]}
+    write_answers(models, "p1x", pilot_round=1, skip=every - {(k4, x)})
+    n_before = len(private("1"))
+    c3 = run(["--run", "c"] + base + ["--answer-runs", "p1,p1x"])
+    ok &= isinstance(c3, str) and "not among the 10 drawn now" in c3 and len(private("1")) == n_before
+    if not ok:
+        print(out1[-1200:], c1, c2, c3)
+    return ok
+
+
+TESTS = [t_template_without_study_cues, t_pilot_repeat_gate, t_pilot_repeat_main, t_nondelivery_kind, t_long_context_mode, t_template_layouts, t_parser_rules, t_pilot_both_rounds_and_close, t_retry_paths, t_blocks_and_suspected,
          t_context_overflow, t_transient_pending_defer_stop_resume, t_config_error_stops_judge,
          t_overrun_stops_paid_calls, t_run_cap_and_study_cap, t_block_order, t_provider_stop_block7_and_abandon,
          t_cut_on_half_done_block, t_price_rise, t_d2_safe_only, t_identity_mismatch_counted, t_local_checks,
          t_sensitivity_build, t_answer_guard, t_holds_cover_every_paid_call, t_no_content_not_sent,
          t_block3_hosted_full_then_close_for_them, t_pilot_report, t_crash_recovery_judge,
-         t_format_retry_resumed, t_identity_pairs, t_request_options]
+         t_format_retry_resumed, t_identity_pairs, t_request_options, t_context_fit,
+         t_inband_reasoning]
 
 
 def main():

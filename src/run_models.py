@@ -78,6 +78,14 @@ pilot call, as respondent or as judge, ended not_attempted (ledger: block 1 clos
 abandonment or cut behind a not_attempted count; not established while block 1 is open); (3) the test prompt was
 answered (status ok or truncated, under the configured identifier and pinned endpoint). The decision is the PI's.
 
+Decision D26 (Sections 3.3 and 13.2), --provider-prompt-check: in the pilot, after the pilot registration. For
+model 22: the endpoint preflight, one harmless sentinel call (D26_PROMPT) with the respondent configuration (reserved,
+settled and written to the ledger like the D13 test call, kind 'provider_prompt_call'), and the input tokens that the
+provider reports, compared with two counts of the model's published tokenizer and chat template (pinned in
+D26_TOKENIZER): the request alone, and the request with the template's own default system message. The reading says
+which one the count is compatible with, or an unexplained overhead; a count cannot show the content of any added text.
+The pilot report states it.
+
 Files:
   results/raw/responses_<run>.jsonl      private: every attempt, with the answer text and the error body
   results/logs/calls_<run>.jsonl          public: the same without answer text and error body (their SHA-256 only)
@@ -86,6 +94,8 @@ Files:
   results/logs/respondent_runs_v23.jsonl  one line per session
   results/raw/availability_answers_v23.jsonl   private: the test calls of decision D13, with the answer text
   results/logs/availability_v23.jsonl          public: the same without text, and the three facts of each model
+  results/raw/provider_prompt_answers_v23.jsonl   private: the D26 call, with the answer text
+  results/logs/provider_prompt_v23.jsonl          public: the same without text, and the counts and their reading
 Nothing is printed from a prompt, an answer or an error body. Errors that stop a run are reported by type and place
 only (AC_DEBUG=1 shows the message).
 
@@ -100,6 +110,7 @@ Usage (from the repository root; --dry-run sends nothing and writes nothing):
   python -I src/run_models.py --run b4 --release REF [--undeletable]
   python -I src/run_models.py --run c1 --block 1 --complete-block [--models k1,k2] [--reason TEXT]
   python -I src/run_models.py --run d13 --availability-check [--models k1,k2] [--run-cap 1]
+  python -I src/run_models.py --run d26 --provider-prompt-check --tokenizer-dir DIR [--run-cap 1]
 A session with API models needs a run cap: --run-cap USD, or BUDGET_USD in .env. Sealed run names are refused.
 """
 import argparse
@@ -133,7 +144,8 @@ LOGS = ROOT / "results" / "logs"
 RESPONDENT_BLOCKS = ("1", "2", "4")
 SEALED_RUNS = {"full", "pilot_local", "v22_local"}   # written 7-9 Nov 2026; hashes in docs/SEALED_HASHES.md
 BEHAVIOURAL = ("provider", "model", "base_url", "max_output_tokens", "effort", "temperature", "seed", "zdr",
-               "allow_fallbacks", "provider_order", "num_ctx", "think", "options", "digest")   # allowlist (B3-m5)
+               "allow_fallbacks", "provider_order", "num_ctx", "truncate", "shift", "think", "options",
+               "digest")   # allowlist (B3-m5); num_ctx, truncate and shift of the local respondents (Section 4.3)
 TRUNCATION = {"length", "max_tokens", "incomplete:max_output_tokens"}
 BATCH_FACTOR = 0.5            # Anthropic Message Batches and OpenAI Batch API: 50% of list (the price of the holds)
 BATCH_POLL_S = 60
@@ -396,7 +408,9 @@ def write_record(rec, durable=False):
     settled in the ledger (paid calls, Section 12.5)."""
     if rec.get("text") is not None and "text_sha256" not in rec:
         rec["text_sha256"] = sha256_text(str(rec["text"]))       # the hash of the answer, in both lines (D18)
-    log = {k: v for k, v in rec.items() if k not in ("text", "error_body")}
+    if rec.get("inband_reasoning") and "inband_reasoning_sha256" not in rec:
+        rec["inband_reasoning_sha256"] = sha256_text(str(rec["inband_reasoning"]))    # decision D22
+    log = {k: v for k, v in rec.items() if k not in ("text", "error_body", "inband_reasoning")}
     if rec.get("error_body"):
         log["error_body_sha256"] = sha256_text(str(rec["error_body"]))
     if rec.get("error"):
@@ -419,15 +433,15 @@ def reconcile(books, role="respondent"):
     lines = books.unsettled(role)
     if not lines:
         return 0
-    path_of = availability_raw_path if role == "availability" else None
+    path_of = {"availability": availability_raw_path, "provider_prompt": d26_raw_path}.get(role)
+    kind = {"availability": AVAILABILITY_KIND, "provider_prompt": D26_KIND}.get(role, "call")
     by_path = collections.defaultdict(list)
     for e in lines.values():
         by_path[path_of() if path_of else raw_path(e.get("run"))].append(e)
     for path, es in by_path.items():
         recs = {r["attempt_id"]: r for r in read_jsonl(path) if r.get("attempt_id")}
         for e in es:
-            books.settle_interrupted(e, recs.get(e["attempt_id"]),
-                                     kind=AVAILABILITY_KIND if role == "availability" else "call")
+            books.settle_interrupted(e, recs.get(e["attempt_id"]), kind=kind)
     print(f"settled {len(lines)} {role} reservations left open by an interrupted run (Section 12.5)")
     return len(lines)
 
@@ -1517,20 +1531,22 @@ def reserve_outside_plan(books, amount, attempt=None):
     return books.reserve(None, amount, attempt=attempt, outside=True)
 
 
-def settle_outside_plan(books, reserved, actual, entry):
-    """Books.settle with the ledger kind of the test calls, so that no holds item counts them. A settlement above
-    the reservation writes an overrun line and stops every further paid call."""
-    return books.settle(reserved, actual, entry, kind=AVAILABILITY_KIND)
+def settle_outside_plan(books, reserved, actual, entry, kind=AVAILABILITY_KIND):
+    """Books.settle with the ledger kind of the test calls (D13, or D26 with kind D26_KIND), so that no holds item
+    counts them. A settlement above the reservation writes an overrun line and stops every further paid call."""
+    return books.settle(reserved, actual, entry, kind=kind)
 
 
 def write_availability_attempt(run, m, live, attempt, out, exc, oc, status, ident, reserved, spent, latency,
-                               aid=None):
-    """The private record (answer text, error body), then the public line without them."""
+                               aid=None, prompt=AVAILABILITY_PROMPT, paths=None):
+    """The private record (answer text, error body), then the public line without them. prompt and paths (raw, log):
+    those of the D13 check unless given (the D26 check passes its own)."""
+    raw_p, log_p = paths or (availability_raw_path(), availability_log_path())
     out = out or {}
     body = providers.error_text(exc) if exc is not None else None
     rec = {"protocol": "2.3", "kind": "attempt", "run": run, "ts": now(), "model_key": m["key"], "model": m["model"],
            "provider": m["provider"], "endpoint": m["pin"]["tag"], "live": live, "attempt": attempt,
-           "prompt_sha256": sha256_text(AVAILABILITY_PROMPT), "request_sha256": request_hash(m, AVAILABILITY_PROMPT),
+           "prompt_sha256": sha256_text(prompt), "request_sha256": request_hash(m, prompt),
            "config_sha256": config_hash(m), "pin_sha256": pin_hash(m), "text": out.get("text"),
            "stop_reason": out.get("stop_reason"),
            "model_returned": out.get("model_returned"), "served_provider": out.get("served_provider"),
@@ -1540,17 +1556,17 @@ def write_availability_attempt(run, m, live, attempt, out, exc, oc, status, iden
            "http_status": oc.get("http_status"),
            "error": f"{error_label(exc)}: {str(exc)[:300]}" if exc is not None else None, "error_body": body,
            "cost_usd": round(spent, 6), "reserved_usd": round(reserved, 6),
-           "bound_input_tokens": S.input_bound_tokens(AVAILABILITY_PROMPT), "output_cap": m["max_output_tokens"],
+           "bound_input_tokens": S.input_bound_tokens(prompt), "output_cap": m["max_output_tokens"],
            "latency_s": latency, "attempt_id": aid}
-    pub = {k: v for k, v in rec.items() if k not in ("text", "error_body")}
+    pub = {k: v for k, v in rec.items() if k not in ("text", "error_body", "inband_reasoning")}
     if rec["text"]:
         pub["text_sha256"] = sha256_text(str(rec["text"]))
     if body:
         pub["error_body_sha256"] = sha256_text(str(body))
     if rec["error"]:
         pub["error"] = public_error(rec["error"])
-    append(availability_raw_path(), rec, durable=True)
-    append(availability_log_path(), pub)
+    append(raw_p, rec, durable=True)
+    append(log_p, pub)
 
 
 def availability_call(books, run, m, live, provider, settings):
@@ -1559,25 +1575,38 @@ def availability_call(books, run, m, live, provider, settings):
     the holds of all unfinished work, settles like a respondent call and writes one ledger line; a transient failure
     is tried again as for a respondent. (holds, evidence, complete): complete is False when an attempt could not be
     sent for a reason of the books, or the provider rejected the configuration."""
+    r = test_call(books, run, m, live, provider, settings)
+    if r["not_sent"]:
+        return False, r["not_sent"], False
+    return availability_result(m, r["status"], r["ident"], r["out"], r["err"], r["cost"], r["tries"])
+
+
+def test_call(books, run, m, live, provider, settings, prompt=AVAILABILITY_PROMPT, role="availability",
+              kind=AVAILABILITY_KIND, paths=None):
+    """One harmless test call outside every block (D13; or D26, with its prompt, role, ledger kind and paths),
+    through the adapter and the configuration of the respondent calls. Each attempt reserves call_bound beside the
+    holds of all unfinished work, settles like a respondent call and writes one ledger line; a transient failure is
+    tried again as for a respondent. Returns {'not_sent': the reason, or None; 'status', 'ident', 'out', 'err',
+    'cost', 'tries', 'spent'}."""
     mr = ModelRun(None, m, [], None)          # outcome() and identity() of a respondent call
     retries = int(settings["retries_in_session"])
     waits = settings.get("retry_wait_s") or [0]
     tries, spent_all, reserved_all = 0, 0.0, 0.0
     while True:
         tries += 1
-        bound = S.call_bound(m, AVAILABILITY_PROMPT, m["max_output_tokens"], live=live)
+        bound = S.call_bound(m, prompt, m["max_output_tokens"], live=live)
         aid = S.Books.new_attempt_id()
         ok, why = reserve_outside_plan(books, bound, attempt={"attempt_id": aid, "model_key": m["key"],
-                                                              "role": "availability", "attempt": tries})
+                                                              "role": role, "attempt": tries})
         if not ok:
-            return False, f"not sent{' again' if tries > 1 else ''}: {NOT_SENT.get(why, why)}", False
+            return {"not_sent": f"not sent{' again' if tries > 1 else ''}: {NOT_SENT.get(why, why)}"}
         t0 = time.perf_counter()
         out = exc = None
         try:
-            out = provider.call(AVAILABILITY_PROMPT)
+            out = provider.call(prompt)
         except providers.ProjectKeyError:
             books.release(bound, aid)
-            return False, "not sent: no project key for this model", False
+            return {"not_sent": "not sent: no project key for this model"}
         except Exception as e:      # classified as for a respondent call
             exc = e
         latency = round(time.perf_counter() - t0, 2)
@@ -1587,11 +1616,12 @@ def availability_call(books, run, m, live, provider, settings):
         pending = oc["kind"] == "transient" and tries > retries
         status = ("pending" if pending else "failed" if oc["kind"] == "transient" else
                   "config_error" if oc["kind"] == "config" else oc["status"])
-        write_availability_attempt(run, m, live, tries, out, exc, oc, status, ident, bound, spent, latency, aid)
+        write_availability_attempt(run, m, live, tries, out, exc, oc, status, ident, bound, spent, latency, aid,
+                                   prompt=prompt, paths=paths)
         settle_outside_plan(books, bound, spent, {
-            "model_key": m["key"], "role": "availability", "attempt": tries, "final": oc["kind"] == "final",
-            "status": status, "identity_match": ident, "prompt_sha256": sha256_text(AVAILABILITY_PROMPT),
-            "attempt_id": aid})
+            "model_key": m["key"], "role": role, "attempt": tries, "final": oc["kind"] == "final",
+            "status": status, "identity_match": ident, "prompt_sha256": sha256_text(prompt),
+            "attempt_id": aid}, kind=kind)
         spent_all, reserved_all = spent_all + spent, reserved_all + bound
         if oc["kind"] == "transient" and not pending:
             SLEEP(waits[min(tries - 1, len(waits) - 1)])
@@ -1599,7 +1629,8 @@ def availability_call(books, run, m, live, provider, settings):
         break
     cost = f"{tries} attempt{'s' if tries > 1 else ''}, ${spent_all:.6f} settled of ${reserved_all:.6f} reserved"
     err = f" ({type(exc).__name__}, HTTP {oc.get('http_status')})" if exc is not None else ""
-    return availability_result(m, status, ident, out, err, cost, tries)
+    return {"not_sent": None, "status": status, "ident": ident, "out": out, "err": err, "cost": cost, "tries": tries,
+            "spent": spent_all}
 
 
 def settled_availability_records():
@@ -1758,9 +1789,210 @@ def availability_check(a):
         S.release_lock()
 
 
+# ---- decision D26: what the input count of model 22's provider is compatible with (Sections 3.3 and 13.2) -------------
+
+D26_PROMPT = "Please reply with the single word: ready."
+D26_KIND = "provider_prompt_call"       # ledger kind: counts against the cap, belongs to no block and no holds item
+D26_MODELS = (22,)
+D26_TOLERANCE = 5                       # tokens: a count within this of a reference count is compatible with it
+# The model's published tokenizer and chat template, pinned (downloaded on 13 November 2026; only the files below)
+D26_TOKENIZER = {
+    "repo": "cognitivecomputations/Dolphin-Mistral-24B-Venice-Edition",
+    "revision": "b23ff40b4a25e4f93de432bd896d4464479a9f79",
+    "files": {"tokenizer.json": "23ad081f384b2bdb3c97f6e5461dfce52c1174c7328854a55006988f0fef9da7",
+              "tokenizer_config.json": "7aaf826e31be3bd870f808432847dcae3f7872fc76948d12658245209c202f61",
+              "chat_template.jinja": "a126eea7996a0ac9540b2fc7fb4af1dad975d3b388c194c713921f2b4205aa19"},
+}
+
+
+def d26_raw_path():
+    return RAW / "provider_prompt_answers_v23.jsonl"
+
+
+def d26_log_path():
+    return LOGS / "provider_prompt_v23.jsonl"
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def d26_counts(tokdir, prompt=D26_PROMPT, date=None):
+    """Reference token counts of the request under the model's published tokenizer (D26_TOKENIZER, every file checked
+    by SHA-256 first): 'request', the request alone in the template's message markers (the beginning-of-sequence
+    token, [INST], the request, [/INST]); 'template_default', the request as the published chat template renders it
+    when no system message is sent, which inserts the template's own default system message, dated `date` (today by
+    default). The study sends no system message (Section 3.3)."""
+    import jinja2
+    import jinja2.exceptions
+    import jinja2.ext
+    import jinja2.sandbox
+    import tokenizers
+    d = pathlib.Path(tokdir)
+    for name, digest in D26_TOKENIZER["files"].items():
+        if not (d / name).exists() or sha256_file(d / name) != digest:
+            raise SystemExit(f"{name} in {d} is missing or is not the pinned file of {D26_TOKENIZER['repo']} at "
+                             f"{D26_TOKENIZER['revision'][:12]}")
+    cfg = json.loads((d / "tokenizer_config.json").read_text(encoding="utf-8"))
+    tok = tokenizers.Tokenizer.from_file(str(d / "tokenizer.json"))
+    when = date or dt.date.today()
+
+    def fail(msg):
+        raise jinja2.exceptions.TemplateError(msg)
+
+    env = jinja2.sandbox.ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True,
+                                                       extensions=[jinja2.ext.loopcontrols])
+    env.globals.update(raise_exception=fail, strftime_now=lambda f: when.strftime(f))
+    rendered = env.from_string((d / "chat_template.jinja").read_text(encoding="utf-8")).render(
+        messages=[{"role": "user", "content": prompt}], bos_token=cfg["bos_token"], eos_token=cfg["eos_token"],
+        add_generation_prompt=True)
+
+    def n(s):
+        return len(tok.encode(s, add_special_tokens=False).ids)
+    return {"request": n(cfg["bos_token"] + "[INST]" + prompt + "[/INST]"), "template_default": n(rendered),
+            "date": when.isoformat()}
+
+
+def d26_reading(reported, counts, tol=D26_TOLERANCE):
+    """(code, text) for the input tokens that the provider reported, against the reference counts."""
+    if not isinstance(reported, int) or reported <= 0:
+        return "no_count", "the provider reported no input token count: not established"
+    if abs(reported - counts["request"]) <= tol:
+        return "none_added", "the count is compatible with the request alone: no added text is seen"
+    if abs(reported - counts["template_default"]) <= tol:
+        return "template_default", ("the count is compatible with the default system message of the published chat "
+                                    "template; a count cannot show the content of the text")
+    if reported > counts["request"]:
+        return "other_added", (f"{reported - counts['request']} tokens beyond the request, compatible with neither "
+                               f"reference: unexplained overhead (text added by the provider, or other wrapping or "
+                               f"accounting)")
+    return "fewer", "fewer tokens than the request: the provider's count is not comparable"
+
+
+def d26_record(m, found):
+    """The first final D26 call of model m recorded and settled under the same configuration, pinned endpoint and
+    prompt, or None: such a call is not sent again."""
+    for rec in sorted(found.values(), key=lambda r: r.get("ts") or ""):
+        if (rec.get("model_key") == m["key"] and rec.get("final") and rec.get("config_sha256") == config_hash(m)
+                and rec.get("pin_sha256") == pin_hash(m) and rec.get("prompt_sha256") == sha256_text(D26_PROMPT)):
+            return rec
+    return None
+
+
+def provider_prompt_check(a):
+    """--provider-prompt-check: decision D26 in the pilot (Sections 3.3 and 13.2). For model 22: the endpoint
+    preflight, one harmless sentinel call with the respondent configuration, and the input tokens that the provider
+    reports against the reference counts of the published tokenizer (d26_counts). Writes one 'counts' line to the
+    public log; the pilot report states it. A final call already recorded is not sent again."""
+    models = json.loads(CONFIG.read_text(encoding="utf-8"))["models"]
+    design = json.loads(DESIGN.read_text(encoding="utf-8"))
+    settings = J.load_settings()
+    if any(r["prompt"].strip() == D26_PROMPT.strip() for r in load_rows().values()):
+        sys.exit("the D26 sentinel prompt is a benchmark prompt: it must not be")
+    if not a.tokenizer_dir:
+        sys.exit("--tokenizer-dir is required: the folder with the pinned tokenizer files of model 22 "
+                 f"({', '.join(D26_TOKENIZER['files'])} of {D26_TOKENIZER['repo']} at {D26_TOKENIZER['revision'][:12]})")
+    counts = d26_counts(a.tokenizer_dir)                # before any call: the files must be the pinned ones
+    pilot = registered_hosted(design, "1")
+    chosen = [m for m in models if m["n"] in D26_MODELS and m["n"] in pilot]
+    if not chosen:
+        print("model 22 is not in the pilot ('pilot_hosted'): nothing to check")
+        return 0
+    run_cap = a.run_cap if a.run_cap is not None else float(os.environ.get("BUDGET_USD") or 0) or None
+    if not (run_cap and run_cap > 0):
+        sys.exit("the check call is paid: a run cap is needed (--run-cap USD, or BUDGET_USD in .env)")
+    S.acquire_lock("provider_prompt:" + a.run)          # before the ledger is read
+    try:
+        books = S.Books(a.run, run_cap=run_cap)
+        reconcile(books, "provider_prompt")
+        if not books.registration:
+            print("NOT STARTED: the pilot registration is not recorded (spend_v23.py register; Sections 13.1, 14)")
+            return 2
+        if books.freeze:
+            print(f"NOT STARTED: the freeze is recorded ('{books.freeze}'): the check of decision D26 belongs to the "
+                  f"pilot (Section 13.2)")
+            return 2
+        settled = {e["attempt_id"] for e in S.read_ledger() if e.get("kind") == D26_KIND and e.get("attempt_id")}
+        found = {r["attempt_id"]: r for r in read_jsonl(d26_raw_path())
+                 if r.get("attempt_id") in settled and r.get("kind") == "attempt"}
+        zdr, complete = FETCH_ZDR(), True
+        for m in chosen:
+            rec = d26_record(m, found)
+            if rec is not None:
+                out, status, how = rec, rec.get("status"), f"recorded at {rec.get('ts')} (run {rec.get('run')}); not sent again"
+            else:
+                ok, live, problems = S.preflight(m, zdr, harmful=False)
+                books.record({"kind": "preflight", "model_key": m["key"], "role": "provider_prompt", "block": None,
+                              "ok": bool(ok), "live": live, "problems": problems, "spent_usd": 0.0})
+                stop = books.stopped(m)
+                if stop or not ok:
+                    print(f"  model {m['n']}: not sent: " + (f"a provider stop is recorded for {stop}" if stop
+                                                            else "preflight: " + "; ".join(problems)))
+                    complete = False
+                    continue
+                try:
+                    provider = MAKE_PROVIDER(m)
+                except providers.ProjectKeyError:
+                    print(f"  model {m['n']}: not sent: no project key for this model")
+                    complete = False
+                    continue
+                r = test_call(books, a.run, m, live, provider, settings, prompt=D26_PROMPT, role="provider_prompt",
+                              kind=D26_KIND, paths=(d26_raw_path(), d26_log_path()))
+                if r["not_sent"]:
+                    print(f"  model {m['n']}: {r['not_sent']}")
+                    complete = False
+                    continue
+                out, status, how = r["out"] or {}, r["status"], r["cost"]
+            reported = out.get("input_tokens")      # the provider's count of the request, whatever the answer status
+            # (an empty answer still reports it; review round 15); a call that failed reports none
+            code, text = d26_reading(reported, counts)
+            line = {"kind": "counts", "protocol": "2.3", "run": a.run, "ts": now(), "model_key": m["key"], "n": m["n"],
+                    "model": m["model"], "endpoint": m["pin"]["tag"], "config_sha256": config_hash(m),
+                    "pin_sha256": pin_hash(m), "prompt_sha256": sha256_text(D26_PROMPT), "status": status,
+                    "reported_input_tokens": reported, "request_tokens": counts["request"],
+                    "template_default_tokens": counts["template_default"], "template_date": counts["date"],
+                    "tolerance": D26_TOLERANCE, "reading": code, "tokenizer": {k: D26_TOKENIZER[k] for k in
+                                                                            ("repo", "revision")}}
+            append(d26_log_path(), line)
+            print(f"check of decision D26 (Sections 3.3 and 13.2), run {a.run}: model {m['n']} {m['key']} "
+                  f"({m['model']}, endpoint {m['pin']['tag']})")
+            print(f"  status {status}; input tokens reported {reported}; the request alone {counts['request']}; "
+                  f"with the template's default system message {counts['template_default']}; {how}")
+            print(f"  reading: {text}")
+            if code == "no_count":
+                complete = False
+        log = d26_log_path()
+        print(f"ledger ${books.spent:.2f} of cap ${books.study_cap:.2f}; attempts and counts in "
+              f"{log.relative_to(ROOT).as_posix() if log.is_relative_to(ROOT) else log}")
+        if not complete:
+            print("INCOMPLETE: the call was not sent or returned no input token count; run the check again when this "
+                  "is resolved")
+        return 0 if complete else 3
+    finally:
+        S.release_lock()
+
+
 # ---- command line ----------------------------------------------------------------------------------------------------
 
 def _main(a):
+    if a.provider_prompt_check:
+        given = [f for f, v in (("--block", a.block), ("--round", a.round), ("--batch", a.batch), ("--sync", a.sync),
+                                ("--dry-run", a.dry_run), ("--complete-block", a.complete_block),
+                                ("--answer-runs", a.answer_runs), ("--max-calls", a.max_calls),
+                                ("--collect", a.collect), ("--purge", a.purge), ("--adopt", a.adopt),
+                                ("--release", a.release), ("--models", a.models),
+                                ("--availability-check", a.availability_check)) if v]
+        if given:
+            sys.exit(f"--provider-prompt-check takes --run, --tokenizer-dir and --run-cap only, not {given}")
+        if not a.run:
+            sys.exit("--run is required")
+        if a.run in SEALED_RUNS:
+            sys.exit(f"run '{a.run}' is sealed (docs/SEALED_HASHES.md); choose another run name")
+        return provider_prompt_check(a)
     if a.availability_check:
         given = [f for f, v in (("--block", a.block), ("--round", a.round), ("--batch", a.batch), ("--sync", a.sync),
                                 ("--dry-run", a.dry_run), ("--complete-block", a.complete_block),
@@ -1827,6 +2059,11 @@ def main(argv=None):
     ap.add_argument("--ref", default="", help="pending reference for --adopt")
     ap.add_argument("--undeletable", action="store_true",
                     help="with --release: an upload that cannot be deleted becomes an open item")
+    ap.add_argument("--provider-prompt-check", action="store_true",
+                    help="decision D26 (Sections 3.3 and 13.2), in the pilot: one harmless sentinel call of model 22 "
+                         "and the input tokens its provider reports, against the counts of its published tokenizer")
+    ap.add_argument("--tokenizer-dir", default="",
+                    help="with --provider-prompt-check: the folder with the pinned tokenizer files of model 22")
     ap.add_argument("--availability-check", action="store_true",
                     help="decision D13 (Section 10.4), on the day of the freeze and before its ledger line: the "
                          "preflight and one harmless test call of each hosted model, and the three facts")

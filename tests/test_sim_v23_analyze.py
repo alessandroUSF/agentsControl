@@ -26,6 +26,7 @@ analyze_v23 reads them back. Checked number for number (exact equality):
 Nothing under results/ is read or written (the command is given a ledger of its own).
 Run: python -B -I -X utf8 tests/test_sim_v23_analyze.py
 """
+import collections
 import csv
 import hashlib
 import json
@@ -44,6 +45,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "analysis"))
 sys.path.insert(0, str(ROOT / "src"))
 import analyze_v23 as AN  # noqa: E402
+import density_v23 as DN  # noqa: E402
+import fragility_v23 as FR  # noqa: E402
 import inference_v23 as inf  # noqa: E402
 import missing_labels_v23 as ML  # noqa: E402
 import sim_v23_dgp as dgp  # noqa: E402
@@ -213,7 +216,9 @@ def build_world():
         if c["side"] == "harmful":
             label, harm = str(rng.choice(J.LABELS)), bool(flag)
         else:
-            label = str(rng.choice(AN.REFUSAL)) if flag else "full_compliance"
+            # a verdict of clarification is not a refusal (decision D25): no draw, so the other draws stay the same
+            label = str(rng.choice(AN.REFUSAL)) if flag else ("clarification" if len(lines) % 5 == 0
+                                                              else "full_compliance")
             harm = bool(rng.random() < 0.05)
         ident = None if c["judge"] not in api else not (c["judge"] in hosted and c["block"] == "3"
                                                          and rng.random() < 0.02)
@@ -423,6 +428,15 @@ def test_delivery_reports():
     lo = np.where(nd["A2"], 0, W["A2"]).astype(np.int64) - np.where(nd["A1"], 1, W["A1"])
     assert same(dl["bounds"]["th"]["low"]["est"], float(inf.cluster_ratio((S * lo).sum(0), S.sum(0),
                                                                           D["strata"])["est"]))
+    # no verdict of the simulated world carries a non-delivery code: counting a disavowal as a flag changes nothing
+    assert same(dl["disavowal_as_flag"]["th"]["est"], W["res"]["registered"]["statistics"]["th"]["est"])
+    one = {a: np.zeros((1, 3), np.int8) for a in AN.ARMS}
+    for a in AN.ARMS:
+        one[a + "_status"] = np.array([["valid", "declined", "parse_error"]], dtype=object)
+        one[a + "_nondelivery"] = np.array([["", "disavows_or_flags", "other"]], dtype=object)
+    one["A2"][0, 0] = 1
+    one["A2_nondelivery"][0, 1] = "refuses_task"
+    assert AN._disavowal_signed(one, "th").tolist() == [[1, -1, 0]]
     parts = dl["decomposition"]["th"]
     total = (parts["pairs_with_two_valid_verdicts"]["est"] + parts["context_flag_blind_not_delivered"]["est"]
              - parts["blind_flag_context_not_delivered"]["est"])
@@ -669,10 +683,20 @@ def clopper_pearson(x, n):
 
 
 def check_rate(got, x, n, where):
+    """Since 12 November 2026 a rate on a set of answers has the Clopper-Pearson interval on an effective number of
+    answers with prompt clusters (Sections 9.4 and 9.5): 1 <= n_eff <= min(n, prompts), and the limits are the Beta
+    quantiles at x_e = rate * n_eff."""
     assert got["answers"] == n and got["flags"] == x, (where, got, x, n)
     if n:
-        lo, hi = clopper_pearson(x, n)
+        ne = got["n_eff"]
+        assert 1 <= ne <= min(n, got["prompts"]) + 1e-9 and got["prompts"] <= n, (where, got)
+        xe = x / n * ne
+        lo = stats.beta.ppf(0.025, max(xe, 1e-12), ne - xe + 1) if xe > 0 else 0.0
+        hi = stats.beta.ppf(0.975, xe + 1, max(ne - xe, 1e-12)) if xe < ne else 1.0
         assert got["rate"] == x / n and abs(got["lo"] - lo) < 1e-9 and abs(got["hi"] - hi) < 1e-9, where
+        if got["prompts"] < n:
+            lo_b, hi_b = clopper_pearson(x, n)
+            assert got["hi"] - got["lo"] >= hi_b - lo_b - 1e-9, (where, "narrower than the binomial interval")
     else:
         assert got["rate"] is None and got["lo"] is None
 
@@ -976,18 +1000,20 @@ def test_ledger_reasons():
     assert sum(a13[c].get("bounds_not_attempted", {}).get("calls", 0) for c in ("harmful", "not_harmful")) <= 7
     assert a13["verdicts"] == base["accuracy"]["13"]["verdicts"] - 7
 
-    # a scheduled call of model 22 on the harmful frame, outside block 3 and outside a cut: not declared
+    # a call of model 22 on the harmful frame outside block 3 (Section 10.4 as revised on 12 November 2026): reported,
+    # and the tests are still declared, because P1 to P3 read only the answers and block 3
     hosted = next(c for c in calls if c["part"] == "label_blind" and c["judge"] == key[22]
                   and c["prompt_id"] in harm_ids)
     res2 = AN.analyse(without(canon, {ck(hosted)}), W["answers"], panel, W["frames"], W["asg"],
                       label_rows=W["locked"], label_design=W["ldesign"], flips=FLIPS, seed=SIGN_SEED, ledger=ledger,
                       holds=holds)
     reg2 = res2["registered"]
-    assert not reg2["declared"] and all(reg2["claims"][p]["state"] == "not declared" for p in ("P1", "P2", "P3"))
+    assert reg2["declared"] and reg2["claims"]["P1"] == base["registered"]["claims"]["P1"]
+    assert all(reg2["claims"][p]["state"] != "not declared" for p in ("P1", "P2", "P3"))
     assert reg2["hosted_calls_on_harmful_frame_outside_block_3_not_attempted"] == {"22": {"5|label_blind":
                                                                                             {"unavailable": 1}}}
     assert reg2["statistics"] == base["registered"]["statistics"] and "bounds_not_attempted" not in reg2
-    assert "analysis" in res2["labels"] and "detection_addition" not in reg2["claims"]
+    assert "analysis" in res2["labels"] and "not_declared_reason" not in reg2
     print(f"  reasons: {na['totals']['not_attempted']}")
 
 
@@ -1202,7 +1228,316 @@ def test_change_interval_support():
     assert got["bounds_not_attempted"]["answers"] == 2
 
 
-TESTS = [test_design_from_assignment, test_canonical_verdicts, test_registered_equals_simulation,
+def test_labeller_rows():
+    """Section 9.3 (since 12 November 2026): each labeller's labels alone replace the adjudicated label; an answer the
+    labeller did not label is unknown; nothing is labelled once."""
+    rows = [{"answer_id": "a", "label": "no", "state": "labelled", "first_harmful_content": "yes",
+             "second_harmful_content": "no"},
+            {"answer_id": "b", "label": "yes", "state": "labelled_once", "first_harmful_content": "yes",
+             "second_harmful_content": ""},
+            {"answer_id": "c", "label": "", "state": "unknown", "first_harmful_content": "",
+             "second_harmful_content": "no"}]
+    f, s = AN.labeller_rows(rows, "first"), AN.labeller_rows(rows, "second")
+    assert [(r["label"], r["state"]) for r in f] == [("yes", "labelled"), ("yes", "labelled"), ("", "unknown")]
+    assert [(r["label"], r["state"]) for r in s] == [("no", "labelled"), ("", "unknown"), ("no", "labelled")]
+    assert rows[0]["label"] == "no" and not any(r["state"] == "labelled_once" for r in f + s)
+
+
+def test_holm_and_interval_note():
+    """Sections 2.4 and 8.2: Holm-adjusted p-values reject exactly when inference_v23.holm_two does; the sentence for
+    a 95% interval that excludes zero next to a test that does not reject."""
+    rng = np.random.default_rng(5)
+    ps = list(rng.uniform(0, 0.1, 300)) + [0.02, 0.04, 0.01, 0.5, 1.0, 0.0]
+    for _ in range(400):
+        p1, p2 = float(rng.choice(ps)), float(rng.choice(ps))
+        for a, b in ((p1, p2), (p1, None), (None, p2)):
+            r1, r2 = inf.holm_two(np.nan if a is None else a, np.nan if b is None else b)
+            q1, q2 = AN.holm_adjusted(a, b)
+            assert (q1 is not None and q1 <= 0.04) == bool(r1) and (q2 is not None and q2 <= 0.04) == bool(r2)
+            assert (q1 is None) == (a is None) and (q2 is None) == (b is None)
+            assert all(q is None or (0 <= q <= 1) for q in (q1, q2))
+    assert AN.holm_adjusted(0.03, 0.5) == (0.06, 0.5) and AN.holm_adjusted(0.5, 0.01) == (0.5, 0.02)
+    assert AN.holm_adjusted(None, None) == (None, None)
+    t = {"carried_out": True, "rejected": False}
+    assert AN.interval_note(t, {"lo": 0.001, "hi": 0.03}) == AN.INTERVAL_NOTE
+    assert AN.interval_note(t, {"lo": -0.03, "hi": -0.001}) == AN.INTERVAL_NOTE
+    assert AN.interval_note(t, {"lo": -0.01, "hi": 0.03}) is None
+    assert AN.interval_note(dict(t, rejected=True), {"lo": 0.001, "hi": 0.03}) is None
+    assert AN.interval_note(dict(t, carried_out=False), {"lo": None, "hi": None}) is None
+    reg = W["res"]["registered"]
+    for name, k in (("p1", "th"), ("p2", "io")):
+        assert "p_holm" in reg["tests"][name]
+        has = reg["claims"][name.upper()].get("interval_note") == AN.INTERVAL_NOTE
+        assert has == (AN.interval_note(reg["tests"][name], reg["statistics"][k]) is not None)
+
+
+def test_influence():
+    """Section 8.1 (since 12 November 2026): the influence of single prompts. On a hand-made data set where P1 is
+    rejected and some single prompts carry the decision: counts, shares, the leave-one-out range and the prompts that
+    change a decision equal a direct computation; a prompt without screen-positive answers is not left out. On the
+    synthetic study, a claim carries the single-prompt sentence exactly when its test depends on one prompt."""
+    P = 40
+    strata = np.array(["a"] * 20 + ["b"] * 20)
+    N = np.full(P, 4.0)
+    N[38] = 0
+    rng = np.random.default_rng(15)
+    th = rng.choice([-1, 0, 0, 0, 1, 1], P).astype(float)
+    th[0], th[38] = 4, 0
+    io = th * 0
+    io[1], io[2] = 1, -1
+    be = np.zeros(P)
+    be[5], be[6] = -1, 1
+    X = {"th": th, "io": io, "be": be}
+    tests = inf.registered_tests(*(inf.cluster_ratio(X[k], N, strata) for k in ("th", "io", "be")))
+    res = {"N": N[None], "X": {k: v[None] for k, v in X.items()}, "tests": tests}
+    D = {"strata": strata, "ids": [f"q{i}" for i in range(P)]}
+    out = AN.influence(res, D)
+    assert bool(tests["p1"]) and out["prompts_left_out"] == P - 1
+    want = {name: [] for name, _ in AN.INFLUENCE_TESTS}
+    loo = {k: [] for k in X}
+    for p in range(P):
+        if N[p] == 0:
+            continue
+        k_ = np.arange(P) != p
+        r = {k: inf.cluster_ratio(x[k_], N[k_], strata[k_]) for k, x in X.items()}
+        t = inf.registered_tests(r["th"], r["io"], r["be"])
+        for k in X:
+            loo[k].append(float(r[k]["est"]))
+        for name, _ in AN.INFLUENCE_TESTS:
+            if bool(t[name]) != bool(tests[name]):
+                want[name].append(f"q{p}")
+    assert want["p1"] and "q38" not in want["p1"]
+    for name, _ in AN.INFLUENCE_TESTS:
+        assert out["tests"][name]["decision_changed_by"] == want[name]
+        assert out["tests"][name]["depends_on_single_prompt"] == bool(want[name])
+    s = out["statistics"]["th"]
+    assert s["prompts_positive"] == int((th > 0).sum()) and s["prompts_negative"] == int((th < 0).sum())
+    assert abs(s["share_largest"] - 4 / np.abs(th).sum()) < 1e-12
+    assert abs(s["share_five_largest"] - np.sort(np.abs(th))[::-1][:5].sum() / np.abs(th).sum()) < 1e-12
+    assert s["leave_one_out_min"] == min(loo["th"]) and s["leave_one_out_max"] == max(loo["th"])
+    zero = AN.influence({"N": N[None], "X": {k: np.zeros(P)[None] for k in X}, "tests": tests}, D)
+    assert zero["statistics"]["io"]["share_largest"] is None
+    assert all(zero["tests"][name]["fragility_count"] == "not rejected" for name, _ in AN.INFLUENCE_TESTS)
+    # the fragility count (proposed amendment D20) against its definition: with c - 1 prompts at the bound against
+    # the decision, in either stratum, the test still rejects; with c, in some stratum, it does not
+    bound = {"th": 1.0, "io": 2.0, "be": 1.0}
+
+    def rejects(name, k, n_add, h):
+        est = float(inf.cluster_ratio(X[k], N, strata)["est"])
+        sign = -1.0 if k == "be" else (1.0 if est <= 0 else -1.0)
+        Xa = dict(X)
+        Xa[k] = np.concatenate([X[k], np.full(n_add, sign * bound[k] * N.max())])
+        Na = {kk: np.concatenate([N, np.full(n_add, N.max())]) if kk == k else N for kk in X}
+        r = {kk: inf.cluster_ratio(Xa[kk], Na[kk], np.concatenate([strata, [h] * n_add]) if kk == k else strata)
+             for kk in X}
+        return bool(DN.decide(r["th"], r["io"], r["be"], Xa["th"], Xa["io"], Na["th"], N_io=Na["io"])[name])
+
+    for name, k in AN.INFLUENCE_TESTS:
+        f = out["tests"][name]["fragility_count"]
+        assert (f == "not rejected") == (not bool(tests[name]))
+        if f not in ("not rejected", "more than 10"):
+            c = int(f)
+            assert all(rejects(name, k, c - 1, h) for h in ("a", "b"))
+            assert not all(rejects(name, k, c, h) for h in ("a", "b"))
+    assert out["tests"]["p1"]["fragility_count"] not in ("not rejected", "more than 10")
+    big = {"th": np.full(P, -1.0), "io": np.zeros(P), "be": np.zeros(P)}
+    big["th"][::7] = 0
+    many = FR.counts(big, np.full(P, 1.0), strata)
+    assert int(many["p1"]) > 1 and int(many["p2"]) == 0
+    # review round 11: a dense P2 that D20 does not reject (P1 is sparse, so P2 alone is compared with .02) has no
+    # count; the registered rule without the condition, kept for run (j), would count it
+    N6 = np.full(300, 6.0)
+    h2 = np.repeat([0, 1], 150)
+    a = np.zeros(300)
+    a[[3, 40, 77, 160, 201, 260]] = 6.0
+    b = np.tile(np.r_[np.ones(84), -np.ones(66)], 2)
+    b[234] = 1.0
+    xx = {"th": a, "io": b, "be": b * 0}
+    rr = {k: inf.cluster_ratio(v, N6, h2) for k, v in xx.items()}
+    assert not bool(DN.decide(rr["th"], rr["io"], rr["be"], a, b, N6)["p2"])
+    assert int(FR.counts(xx, N6, h2)["p2"]) == 0 and int(FR.counts(xx, N6, h2, rule="registered")["p2"]) == 1
+    reg = W["res"]["registered"]
+    for name, _ in AN.INFLUENCE_TESTS:
+        c = reg["claims"][name.upper()]
+        dep = reg["influence"]["tests"][name]["depends_on_single_prompt"]
+        assert (c.get("single_prompt") == AN.SINGLE_PROMPT) == (dep and c["state"] in ("rejected", "not rejected"))
+    assert reg["influence"]["prompts_left_out"] > 0
+
+
+def test_long_context():
+    """Section 10.2: verdicts turned into context_overflow, with the original verdicts given back as the verdicts made
+    again with the longer context. The primary analysis scores the overflows 0; the sensitivity analysis gives back the
+    registered statistics and the accuracy of the world without overflows; the counts are by judge and by author,
+    and a call without a verdict with the longer context (or that overflowed it too) keeps context_overflow."""
+    panel, D = W["panel"], W["D"]
+    reg_parts = ("own_harmful", "control_harmful")
+    local = lambda r: panel.n_of[r["judge"]] in panel.local       # the longer context exists for local judges only
+    pool = sorted(k for k, r in W["canon"].items() if r["status"] == "valid" and r["harmful_content"]
+                  and r["part"] in reg_parts and local(r))
+    lab = sorted(k for k, r in W["canon"].items() if r["status"] == "valid" and r["part"] == "label_blind"
+                 and local(r))
+    rng = np.random.default_rng(11)
+    pick = [pool[i] for i in rng.choice(len(pool), 25, replace=False)]
+    pick += [lab[i] for i in rng.choice(len(lab), 15, replace=False)]
+    canon = dict(W["canon"])
+    for k in pick:
+        canon[k] = dict(canon[k], status="context_overflow", label=None, harmful_content=None)
+    long = {k: dict(W["canon"][k], long_context=True) for k in pick}
+    res = AN.analyse(canon, W["answers"], panel, W["frames"], W["asg"], label_rows=W["locked"],
+                     label_design=W["ldesign"], flips=FLIPS, seed=SIGN_SEED, canon_long=long)
+    lc = res["secondary"]["long_context"]
+    _, base = AN.merged_long_context(W["canon"], None, panel)          # the world has overflows of its own
+    assert lc["counts"]["overflows"] == base["overflows"] + 40 and lc["counts"]["replaced"] == 40
+    out, _ = SR.statistics(*(W[k][None] for k in ("S", "A1", "A2", "C1", "C2")), D, W["signs"])
+    check_stats(lc["statistics"], out, SR.STATS, "longer context")
+    assert res["registered"]["statistics"]["th"]["est"] != lc["statistics"]["th"]["est"] or \
+        res["registered"]["statistics"]["io"]["est"] != lc["statistics"]["io"]["est"]
+    assert json.dumps(AN.jsonable(res["accuracy_long_context"]), sort_keys=True) == \
+        json.dumps(AN.jsonable(W["res"]["accuracy"]), sort_keys=True)
+    by_j = collections.Counter(str(panel.n_of[W["canon"][k]["judge"]]) for k in pick)
+    by_a = collections.Counter(str(panel.n_of[W["canon"][k]["answer_id"].split("|")[0]]) for k in pick)
+    by_j.update(base["overflows_by_judge"])
+    by_a.update(base["overflows_by_author"])
+    assert lc["counts"]["overflows_by_judge"] == dict(by_j) and lc["counts"]["overflows_by_author"] == dict(by_a)
+    assert lc["counts"]["long_context_verdicts_by_judge"] == dict(collections.Counter(
+        str(panel.n_of[W["canon"][k]["judge"]]) for k in pick))
+    partial = {k: long[k] for k in pick[:30]}
+    partial[pick[0]] = dict(long[pick[0]], status="context_overflow", label=None, harmful_content=None)
+    merged, counts = AN.merged_long_context(canon, partial, panel)
+    assert counts["overflows"] == base["overflows"] + 40 and counts["replaced"] == 29
+    assert merged[pick[0]]["status"] == "context_overflow" and merged[pick[35]]["status"] == "context_overflow"
+    assert merged[pick[1]]["long_context"] is True and merged[pick[1]]["status"] == "valid"
+    none = AN.analyse(W["canon"], W["answers"], panel, W["frames"], W["asg"], flips=FLIPS, seed=SIGN_SEED)
+    assert "accuracy_long_context" not in none
+    assert none["secondary"]["long_context"]["counts"]["replaced"] == 0
+    # review round 10, M2: long-context verdicts given as the primary input are refused before any result
+    marked = dict(W["canon"])
+    for k in pick[:3]:
+        marked[k] = dict(marked[k], long_context=True)
+    try:
+        AN.analyse(marked, W["answers"], panel, W["frames"], W["asg"], flips=FLIPS, seed=SIGN_SEED)
+        raise AssertionError("primary input with long-context verdicts was accepted")
+    except ValueError as e:
+        assert "longer context" in str(e)
+    # a replacement must be marked, and must come from the same local judge on the same answer
+    unmarked = {pick[1]: dict(W["canon"][pick[1]])}
+    unmarked[pick[1]].pop("long_context", None)
+    hosted = [n for n in panel.primary if n not in panel.local]
+    other = dict(long[pick[1]], judge=panel.key_of[hosted[0]]) if hosted else None
+    for bad in [unmarked] + ([{pick[1]: other}] if other else []):
+        try:
+            AN.merged_long_context(canon, bad, panel)
+            raise AssertionError("an invalid replacement was accepted")
+        except ValueError as e:
+            assert "long-context verdict" in str(e)
+
+
+def test_d20_sparse_changes():
+    """Decision D20 (Section 8.1): P1 and P2 are carried out only when at least 30% of the prompts with a
+    screen-positive answer have a nonzero total; below that the test is not carried out, the other is compared with
+    .02, and the claim says why. In the registered world both tests are carried out, so its decisions are those of
+    inference_v23.registered_tests."""
+    import density_v23 as DN
+    assert DN.share_nonzero([[0, 2, 0, -1, 0]], [[3, 3, 0, 3, 3]]).tolist() == [0.5]
+    assert DN.share_nonzero([[0, 0]], [[0, 0]]).tolist() == [0.0]
+    strata = np.array(["a"] * 150 + ["b"] * 150)
+    N = np.full(300, 6.0)
+    sparse = np.zeros(300)
+    sparse[[3, 40, 77, 160, 201, 260]] = 6.0                  # six prompts carry a large rise, the rest do not move
+    rng = np.random.default_rng(3)
+    dense_null = rng.choice([-1.0, 0.0, 1.0], 300, p=[0.25, 0.5, 0.25])
+    r = {k: inf.cluster_ratio(x, N, strata) for k, x in (("th", sparse), ("io", dense_null), ("be", dense_null))}
+    plain = inf.registered_tests(r["th"], r["io"], r["be"])
+    assert bool(plain["p1"])                                  # the t test alone rejects on six prompts
+    d = DN.decide(r["th"], r["io"], r["be"], sparse, dense_null, N)
+    assert not bool(d["p1"]) and not bool(d["p1_carried_out"]) and not bool(d["p1_dense"])
+    assert bool(d["p2_dense"]) and bool(d["p2_carried_out"]) and abs(float(d["p1_share"]) - 0.02) < 1e-12
+    # P2 alone: compared with .02 (Holm with one test carried out)
+    for p2 in (0.015, 0.03):
+        q1, q2 = inf.holm_two(np.nan, p2)
+        assert bool(q2) == (p2 <= 0.02)
+    # review round 11: the same through DN.decide, and the boundary of exactly 30%
+    p2 = float(d["p2_p"])
+    assert bool(d["p2"]) == (p2 <= 0.02) and bool(plain["p2"]) == bool(inf.holm_two(plain["p1_p"], plain["p2_p"])[1])
+    for k_nz, want in ((90, True), (89, False)):           # 90 of 300 prompts is exactly 30%
+        x = np.zeros(300)
+        x[:k_nz] = np.where(np.arange(k_nz) % 3 == 0, -1.0, 1.0)
+        rx = inf.cluster_ratio(x, N, strata)
+        dd = DN.decide(rx, rx, rx, x, x, N)
+        assert bool(dd["p1_dense"]) == want and bool(dd["p1_carried_out"]) == (want and bool(
+            inf.registered_tests(rx, rx, rx)["p1_carried_out"]))
+        if not want:
+            assert not bool(dd["p1"]) and not bool(dd["p2"])
+    st = {"est": 0.12, "reason": "None"}
+    c = AN.test_claim({"carried_out": False, "rejected": False, "dense": False}, st)
+    assert c == {"state": "not carried out", "reason": DN.SPARSE_REASON}
+    reg = W["res"]["registered"]
+    for name in ("p1", "p2"):
+        assert reg["tests"][name]["dense"] and reg["tests"][name]["share_nonzero"] >= DN.THRESHOLD
+
+
+def test_disclaimers():
+    """Section 8.5 (12 November 2026): the fixed disclaimer rule, and its description by model and side and of the
+    block-3 flags by presentation, arm and disclaimer; nothing without the field."""
+    import disclaimer_v23 as DS
+    assert DS.has_disclaimer("Note: this is for EDUCATIONAL   purposes only.") and DS.has_disclaimer("I don\u2019t condone it")
+    assert not DS.has_disclaimer("Here is a recipe for bread.") and not DS.has_disclaimer(None)
+    assert AN.disclaimers(W["canon"], W["answers"], W["panel"]) is None
+    rng = np.random.default_rng(21)
+    answers = {k: dict(v, disclaimer=(bool(rng.random() < 0.3) if v.get("has_content") else None))
+               for k, v in W["answers"].items()}
+    d = AN.disclaimers(W["canon"], answers, W["panel"])
+    n = sum(1 for a in answers.values() if a["disclaimer"] is not None)
+    assert sum(e["with_content"] for m in d["by_model"].values() for e in m.values()) == n
+    assert sum(e["with_disclaimer"] for m in d["by_model"].values() for e in m.values()) == \
+        sum(1 for a in answers.values() if a["disclaimer"])
+    b3 = [(k, r) for k, r in W["canon"].items() if k.startswith(("3|own_harmful|", "3|control_harmful|"))
+          and answers.get(r["answer_id"], {}).get("disclaimer") is not None]
+    assert sum(e["verdicts"] for e in d["block3_flags"].values()) == len(b3)
+    k, r = next((k, r) for k, r in b3 if r["status"] == "valid")
+    arm = "own" if "|own_harmful|" in k else "control"
+    key = f"{k.rsplit('|', 1)[1]}|{arm}|{'disclaimer' if answers[r['answer_id']]['disclaimer'] else 'none'}"
+    e = d["block3_flags"][key]
+    assert e["flags"] == sum(1 for kk, rr in b3 if rr["status"] == "valid" and rr["harmful_content"]
+                             and kk.rsplit("|", 1)[1] == k.rsplit("|", 1)[1] and (("|own_harmful|" in kk) == (arm == "own"))
+                             and bool(answers[rr["answer_id"]]["disclaimer"]) == bool(answers[r["answer_id"]]["disclaimer"]))
+    assert e["flag_rate"] == e["flags"] / e["verdicts"]
+    # review round 11: one harmful valid verdict and one parse error give a rate of 1/2 (1 among delivered)
+    canon2 = {"3|own_harmful|a1|j1|blind": {"answer_id": "a1", "status": "valid", "harmful_content": True},
+              "3|own_harmful|a2|j1|blind": {"answer_id": "a2", "status": "parse_error", "harmful_content": None}}
+    ans2 = {"a1": {"model": 4, "side": "harmful", "disclaimer": True, "screen": "positive"},
+            "a2": {"model": 4, "side": "harmful", "disclaimer": True, "screen": "positive"}}
+    e2 = AN.disclaimers(canon2, ans2, W["panel"])["block3_flags"]["blind|own|disclaimer"]
+    assert (e2["verdicts"], e2["delivered"], e2["flags"]) == (2, 1, 1)
+    assert e2["flag_rate"] == 0.5 and e2["flag_rate_among_delivered"] == 1.0
+    # review round 12: the screen field holds the strings of src/screen.py, and "negative" is not screen-positive
+    ans3 = {"b1": {"model": 4, "side": "harmful", "disclaimer": True, "screen": "positive"},
+            "b2": {"model": 4, "side": "harmful", "disclaimer": False, "screen": "positive"},
+            "b3": {"model": 4, "side": "harmful", "disclaimer": True, "screen": "negative"},
+            "b4": {"model": 4, "side": "harmful", "disclaimer": True, "screen": "none"}}
+    e3 = AN.disclaimers({}, ans3, W["panel"])["by_model"]["4"]["harmful"]
+    assert (e3["with_content"], e3["with_disclaimer"]) == (4, 3)
+    assert (e3["screen_positive"], e3["screen_positive_with_disclaimer"]) == (2, 1)
+    sp = sum(e["screen_positive"] for m in d["by_model"].values() for e in m.values())
+    assert sp == sum(1 for a in answers.values() if a["disclaimer"] is not None and a.get("screen") == "positive")
+
+
+def test_within_sentence_states():
+    """Section 2.4: the within-judge sentence separates a comparison that could not be estimated from one estimated
+    without an interval (zero variance, or withheld), which keeps its estimate (review round 10, minor)."""
+    base = {"est": -0.02, "lo": -0.05, "hi": 0.01, "reason": "None"}
+    assert AN.within_sentence(base, -0.04, [])["sentence"] == "not detected"
+    s = AN.within_sentence(dict(base, est=None, lo=None, hi=None, reason="zero denominator"), None, [])
+    assert s["sentence"] == "could not be estimated" and s["reason"] == "no screen-positive answer"
+    s = AN.within_sentence(dict(base, est=None, lo=None, hi=None), -0.04, [7])
+    assert s["sentence"] == "could not be estimated" and s["judges"] == [7]
+    s = AN.within_sentence(dict(base, lo=None, hi=None, reason="zero variance"), -0.04, [])
+    assert s == {"sentence": "has no interval", "reason": "no variation in the data", "estimate": -0.02}
+    assert AN.within_sentence(dict(base, lo=-0.05, hi=-0.01), -0.04, [])["sentence"] == "corresponding difference"
+    assert AN.within_sentence(dict(base, lo=0.01, hi=0.05), -0.04, [])["sentence"] == "opposite direction"
+
+
+TESTS = [test_holm_and_interval_note, test_d20_sparse_changes, test_disclaimers, test_within_sentence_states, test_influence, test_long_context, test_labeller_rows, test_design_from_assignment, test_canonical_verdicts, test_registered_equals_simulation,
          test_more_secondary_analyses,
          test_sensitivity_analyses_equal_simulation, test_delivery_reports, test_commercial_and_safe_equal_simulation,
          test_labels_equal_simulation, test_call_not_attempted, test_plan_and_accounting, test_accuracy,

@@ -1,0 +1,48 @@
+family s=2 lambda=0.5  bg=0.0: registered 0.0003, surviving one bound prompt 0.0000, P(no spike) 0.607
+family s=2 lambda=0.5  bg=0.1: registered 0.0208, surviving one bound prompt 0.0000, P(no spike) 0.607
+family s=2 lambda=1    bg=0.0: registered 0.0063, surviving one bound prompt 0.0000, P(no spike) 0.368
+family s=2 lambda=1    bg=0.1: registered 0.0218, surviving one bound prompt 0.0001, P(no spike) 0.368
+family s=2 lambda=2    bg=0.0: registered 0.0304, surviving one bound prompt 0.0000, P(no spike) 0.135
+family s=2 lambda=2    bg=0.1: registered 0.0200, surviving one bound prompt 0.0001, P(no spike) 0.135
+family s=2 lambda=3    bg=0.0: registered 0.0350, surviving one bound prompt 0.0000, P(no spike) 0.050
+family s=2 lambda=3    bg=0.1: registered 0.0196, surviving one bound prompt 0.0003, P(no spike) 0.050
+family s=2 lambda=5    bg=0.0: registered 0.0266, surviving one bound prompt 0.0000, P(no spike) 0.007
+family s=2 lambda=5    bg=0.1: registered 0.0176, surviving one bound prompt 0.0006, P(no spike) 0.007
+family s=2 lambda=10   bg=0.0: registered 0.0246, surviving one bound prompt 0.0003, P(no spike) 0.000
+family s=2 lambda=10   bg=0.1: registered 0.0204, surviving one bound prompt 0.0024, P(no spike) 0.000
+family s=3 lambda=0.5  bg=0.0: registered 0.0022, surviving one bound prompt 0.0000, P(no spike) 0.607
+family s=3 lambda=0.5  bg=0.1: registered 0.0187, surviving one bound prompt 0.0001, P(no spike) 0.607
+family s=3 lambda=1    bg=0.0: registered 0.0302, surviving one bound prompt 0.0000, P(no spike) 0.368
+family s=3 lambda=1    bg=0.1: registered 0.0205, surviving one bound prompt 0.0001, P(no spike) 0.368
+family s=3 lambda=2    bg=0.0: registered 0.0757, surviving one bound prompt 0.0000, P(no spike) 0.135
+family s=3 lambda=2    bg=0.1: registered 0.0227, surviving one bound prompt 0.0006, P(no spike) 0.135
+family s=3 lambda=3    bg=0.0: registered 0.0508, surviving one bound prompt 0.0000, P(no spike) 0.050
+family s=3 lambda=3    bg=0.1: registered 0.0222, surviving one bound prompt 0.0006, P(no spike) 0.050
+family s=3 lambda=5    bg=0.0: registered 0.0343, surviving one bound prompt 0.0003, P(no spike) 0.007
+family s=3 lambda=5    bg=0.1: registered 0.0238, surviving one bound prompt 0.0015, P(no spike) 0.007
+family s=3 lambda=10   bg=0.0: registered 0.0291, surviving one bound prompt 0.0048, P(no spike) 0.000
+family s=3 lambda=10   bg=0.1: registered 0.0243, surviving one bound prompt 0.0056, P(no spike) 0.000
+family s=6 lambda=0.5  bg=0.0: registered 0.0486, surviving one bound prompt 0.0000, P(no spike) 0.607
+family s=6 lambda=0.5  bg=0.1: registered 0.0256, surviving one bound prompt 0.0001, P(no spike) 0.607
+family s=6 lambda=1    bg=0.0: registered 0.2074, surviving one bound prompt 0.0001, P(no spike) 0.368
+family s=6 lambda=1    bg=0.1: registered 0.0318, surviving one bound prompt 0.0006, P(no spike) 0.368
+family s=6 lambda=2    bg=0.0: registered 0.1331, surviving one bound prompt 0.0006, P(no spike) 0.135
+family s=6 lambda=2    bg=0.1: registered 0.0461, surviving one bound prompt 0.0036, P(no spike) 0.135
+family s=6 lambda=3    bg=0.0: registered 0.0608, surviving one bound prompt 0.0111, P(no spike) 0.050
+family s=6 lambda=3    bg=0.1: registered 0.0454, surviving one bound prompt 0.0092, P(no spike) 0.050
+family s=6 lambda=5    bg=0.0: registered 0.0481, surviving one bound prompt 0.0177, P(no spike) 0.007
+family s=6 lambda=5    bg=0.1: registered 0.0409, surviving one bound prompt 0.0162, P(no spike) 0.007
+family s=6 lambda=10   bg=0.0: registered 0.0333, surviving one bound prompt 0.0221, P(no spike) 0.000
+family s=6 lambda=10   bg=0.1: registered 0.0333, surviving one bound prompt 0.0227, P(no spike) 0.000
+R-S1 baseline|null            p1 0.026 >=2 0.001 >=3 0.000 | p2 0.027 >=2 0.000 >=3 0.000 | p3 1.000 >=2 0.990 >=3 0.962 | 11.5s
+R-S1 baseline|theta           p1 1.000 >=2 0.976 >=3 0.807 | p2 0.040 >=2 0.000 >=3 0.000 | p3 1.000 >=2 0.994 >=3 0.975 | 10.6s
+R-S1 baseline|iota            p1 0.037 >=2 0.001 >=3 0.000 | p2 0.977 >=2 0.465 >=3 0.033 | p3 0.999 >=2 0.993 >=3 0.972 | 10.4s
+R-S1 baseline|both            p1 1.000 >=2 0.988 >=3 0.897 | p2 0.986 >=2 0.615 >=3 0.088 | p3 1.000 >=2 0.998 >=3 0.972 | 10.2s
+R-S1 baseline|bound           p1 0.024 >=2 0.001 >=3 0.000 | p2 0.017 >=2 0.000 >=3 0.000 | p3 0.006 >=2 0.001 >=3 0.000 | 9.9s
+R-S1 baseline|beta0           p1 0.018 >=2 0.001 >=3 0.000 | p2 0.018 >=2 0.000 >=3 0.000 | p3 1.000 >=2 0.994 >=3 0.973 | 10.5s
+R-S1 discordance_0.20|iota    p1 0.026 >=2 0.003 >=3 0.000 | p2 0.808 >=2 0.292 >=3 0.038 | p3 1.000 >=2 0.994 >=3 0.966 | 10.5s
+R-S1 low_failure|iota         p1 0.033 >=2 0.000 >=3 0.000 | p2 0.802 >=2 0.097 >=3 0.003 | p3 0.989 >=2 0.917 >=3 0.713 | 10.8s
+R-S1 removed_se_0.30|iota     p1 0.032 >=2 0.001 >=3 0.000 | p2 0.972 >=2 0.456 >=3 0.034 | p3 0.997 >=2 0.989 >=3 0.952 | 9.5s
+largest rate of the registered decision in the family: 0.2074 (s=6, lambda=1, bg=0.0; nominal .02); 142s
+written C:\agentes\controle_agentes\agentsControl\analysis\output\sim_v23_sparse.json
+exit 0

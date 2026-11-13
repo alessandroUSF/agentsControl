@@ -23,6 +23,13 @@ For API judges, the returned model identifier and serving provider of every call
 when the judge answered as a respondent; a mismatch is recorded on the call and counted (Section 3.3: a
 sensitivity analysis drops the affected answers).
 
+Answers that do not fit (Section 10.2, --long-context; decided by the PI on 12 November 2026): a local judge
+classifies again, in the same presentation, each call of the block that ended in context_overflow, on the same
+original answer, with the context J.LONG_CTX (32,768 tokens) in place of the context of Section 11.3. Nothing else
+changes and no model writes anything. The verdicts carry long_context = true and go to their own files ('_longctx'
+added to the stream), under the key of the call that overflowed: only the sensitivity analysis of Section 10.2 reads
+them. Local judges only (no paid call); an API judge's overflow stays at context_overflow.
+
 Files (stream: 'pilot' for block 1, 'main' otherwise; '_m6q4km' is added for the sensitivity build of model 6):
   results/raw/verdicts_v23_<stream>.jsonl     private: every attempt with its output text, the parsed verdict and
                                               the error body
@@ -39,6 +46,7 @@ Usage (run from the repository root; --dry-run sends nothing):
   python -I src/run_judges_v23.py --run j3h --block 3 --answer-runs b2 --judges venice-uncensored,cydonia-24b-v4.1
   python -I src/run_judges_v23.py --run c5h --block 5 --answer-runs b2,b4 --judges <22 and 23> --complete-block
   python -I src/run_judges_v23.py --run j3s --block 3 --answer-runs b2 --build sensitivity    (model 6, Q4_K_M)
+  python -I src/run_judges_v23.py --run k5 --block 5 --answer-runs b2,b4 --long-context        (Section 10.2)
 Standard library only.
 """
 import argparse
@@ -93,16 +101,40 @@ def sha256_json(obj):
     return sha256_text(json.dumps(obj, sort_keys=True, ensure_ascii=False))
 
 
-def stream(block, build="primary"):
-    return ("pilot" if str(block) == "1" else "main") + ("_m6q4km" if build == "sensitivity" else "")
+def stream(block, build="primary", long_context=False):
+    return (("pilot" if str(block) == "1" else "main") + ("_m6q4km" if build == "sensitivity" else "")
+            + ("_longctx" if long_context else ""))
 
 
-def verdicts_path(block, build="primary"):
-    return RAW / f"verdicts_v23_{stream(block, build)}.jsonl"
+def verdicts_path(block, build="primary", long_context=False):
+    return RAW / f"verdicts_v23_{stream(block, build, long_context)}.jsonl"
 
 
-def calls_log_path(block, build="primary"):
-    return LOGS / f"judge_calls_v23_{stream(block, build)}.jsonl"
+def calls_log_path(block, build="primary", long_context=False):
+    return LOGS / f"judge_calls_v23_{stream(block, build, long_context)}.jsonl"
+
+
+def overflowed_calls(sess, calls):
+    """Long-context mode (Section 10.2): (calls, report). The calls of the plan whose canonical verdict in the
+    primary file of the block (its first final attempt) is context_overflow and whose judge is local."""
+    first = {}
+    path = verdicts_path(sess.block, sess.a.build)
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    r = json.loads(line)
+                    if r.get("final") and r.get("key") not in first:
+                        first[r["key"]] = r.get("status")
+    out, report = [], collections.Counter()
+    for c in calls:
+        if first.get(call_key(c)) != "context_overflow":
+            continue
+        if sess.panel.by_key[c["judge"]]["provider"] != "ollama":
+            report["API judge: stays at context_overflow"] += 1
+        else:
+            out.append(c)
+    return out, report
 
 
 def runs_log_path():
@@ -186,6 +218,48 @@ def done_calls(path):
     return out
 
 
+def key_fields(k):
+    """(block, part, judge, answer id, presentation) of a call key; the answer id itself holds '|'."""
+    f = k.split("|")
+    return f[0], f[1], f[2], "|".join(f[3:-1]), f[-1]
+
+
+def is_pilot_repeat(part):
+    return part.startswith("pilot_r") and part.endswith("_repeat")
+
+
+def pilot_repeat_gate(calls, done, skipped, allow_missing=False, attempted=()):
+    """Decision D27 (Section 11.6): when the pilot repeat calls of a local judge may be sent. Returns
+    ({judge: why its repeat calls wait for a later session, or None}, {judge: keys of its other calls of the round that
+    are not final yet}); a repeat call is sent only when the first is None and the second set is empty (JudgeRun.run
+    empties it as these calls become final). The repeat answers are drawn from the judge's own answers to the round's
+    harmful prompts, so the calls also wait until none of these answers is missing (--allow-missing, with --reason,
+    for answers that were never made). Exits, before any call, when a repeat call already recorded for a judge of the
+    session, by any attempt, final or not (the keys of done and of attempted), is of an answer that is not drawn now,
+    also when nothing is drawn now: the draw would have changed."""
+    held, open_round = {}, {}
+    rounds = sorted({c["part"] for c in calls if c["block"] == "1" and c["part"].startswith("pilot_r")
+                     and not is_pilot_repeat(c["part"])})
+    recorded = [key_fields(k) for k in set(done) | set(attempted)]
+    for j in sorted({c["judge"] for c in calls if c["part"] in rounds}):
+        for base in rounds:
+            part = base + "_repeat"
+            drawn = {c["answer_id"] for c in calls if c["judge"] == j and c["part"] == part}
+            other = {f[3] for f in recorded if f[0] == "1" and f[1] == part and f[2] == j} - drawn
+            if other:
+                sys.exit(f"{j}: {len(other)} answers of its recorded {part} calls are not among the {len(drawn)} "
+                         f"drawn now (decision D27); nothing was sent")
+            if not drawn:
+                continue
+            missing = sum(1 for s in skipped if s["state"] == "missing" and s.get("author") == j
+                          and s.get("side") == "harmful" and s.get("why") == f"{base} of {j}")
+            held[j] = (f"{missing} of its own answers to the round's harmful prompts are missing"
+                       if missing and not allow_missing else None)
+            open_round[j] = {call_key(c) for c in calls if c["judge"] == j and c["part"] == base
+                             and call_key(c) not in done}
+    return held, open_round
+
+
 def load_prompts(path=None):
     """prompt id -> request text, verbatim as the respondents received it."""
     out = {}
@@ -233,6 +307,8 @@ class JudgeRun:
     def __init__(self, sess, m, calls, build):
         self.sess, self.m, self.calls, self.build = sess, m, calls, build
         self.cfg = J.judge_cfg(m, sess.settings, build)
+        if sess.long_context and "num_ctx" in self.cfg:        # Section 10.2: the longer context, nothing else
+            self.cfg["num_ctx"] = J.LONG_CTX
         self.cfg_sha = sha256_json(self.cfg)
         self.paid = m["provider"] != "ollama"
         self.provider = None
@@ -244,6 +320,8 @@ class JudgeRun:
         self.spent = 0.0
         self.harmful_ok = True
         self.ref_pairs = set()            # (returned identifier, serving host) of this model's own answers
+        self.repeat_held = None           # decision D27: why the pilot repeat calls wait, or None
+        self.open_round = set()           # decision D27: keys of the judge's other calls of the round not yet final
 
     def item(self, c):
         return S.item_id(c["block"], "judge", self.m["key"], c["part"])
@@ -320,7 +398,7 @@ class JudgeRun:
         attempt, retry = sess.prior.get(call_key(c), (0, False))      # a format retry owed by an earlier session
         while True:
             msgs = J.messages(sess.template, request, answer["text"], c["presentation"], retry=retry,
-                              rubric_in_user=self.cfg["rubric_in_user"])
+                              system=self.cfg["system"])
             tries = 0
             while True:
                 attempt += 1
@@ -354,6 +432,7 @@ class JudgeRun:
         status = "pending" if pending else oc["status"]
         base = {"protocol": "2.3", "run": sess.run, "ts": now(), "key": call_key(c), "block": c["block"],
                 "part": c["part"], "judge": c["judge"], "judge_n": m["n"], "build": self.build,
+                "long_context": sess.long_context,
                 "answer_id": c["answer_id"], "author": c["author"], "prompt_id": c["prompt_id"], "side": c["side"],
                 "arm": c["arm"], "presentation": c["presentation"], "pair": c["pair"], "position": c["position"],
                 "attempt": attempt, "format_retry": retry, "try": tries, "final": final, "status": status,
@@ -364,18 +443,27 @@ class JudgeRun:
                 "stop_reason": out.get("stop_reason"), "hit_cap": J.hit_cap(out.get("stop_reason")),
                 "input_tokens": out.get("input_tokens"), "output_tokens": out.get("output_tokens"),
                 "reasoning_tokens": out.get("reasoning_tokens"), "cache_read_tokens": out.get("cache_read_tokens"),
+                "inband_reasoning_chars": out.get("inband_reasoning_chars"),           # decision D22
                 "cache_write_tokens": out.get("cache_write_tokens"), "cost_usd": round(spent, 6),
                 "reserved_usd": round(reserved, 6), "latency_s": latency,
                 "bound_input_tokens": S.input_bound_tokens(msgs), "output_cap": self.cfg["max_output_tokens"],
                 "request_sha256": J.request_sha256(self.cfg["model"], msgs),
                 "template_sha256": sess.template["sha256"], "judge_cfg_sha256": self.cfg_sha, "attempt_id": aid}
-        private = dict(base, output=out.get("text"), label=oc.get("label"), harmful_content=oc.get("harmful_content"),
+        private = dict(base, output=out.get("text"), inband_reasoning=out.get("inband_reasoning"),
+                       label=oc.get("label"), harmful_content=oc.get("harmful_content"),
                        confidence=oc.get("confidence"), confidence_given=oc.get("confidence_given"),
                        reason=oc.get("reason"), reason_words=oc.get("reason_words"),
-                       block_marker=oc.get("block_marker"), error_body=err_body)
-        public = dict(base, error_body_sha256=sha256_text(err_body) if err_body else None)
-        append(verdicts_path(c["block"], self.build), private)       # private first: a written final call is done
-        append(calls_log_path(c["block"], self.build), public, durable=False)
+                       block_marker=oc.get("block_marker"), error_body=err_body,
+                       nondelivery=(J.nondelivery_kind(out.get("text"), sess.rules)
+                                    if oc["status"] in ("declined", "parse_error") else None),
+                       nondelivery_rule=(J.NONDELIVERY_RULE_VERSION
+                                         if oc["status"] in ("declined", "parse_error") else None))
+        public = dict(base, error_body_sha256=sha256_text(err_body) if err_body else None,
+                      inband_reasoning_sha256=(sha256_text(out["inband_reasoning"])
+                                               if out.get("inband_reasoning") else None))
+        cond = sess.long_context
+        append(verdicts_path(c["block"], self.build, cond), private)  # private first: a written final call is done
+        append(calls_log_path(c["block"], self.build, cond), public, durable=False)
         if self.paid:
             sess.books.settle(reserved, spent, {"model_key": m["key"], "block": c["block"], "role": "judge",
                                                 "item": self.item(c), "final": final, "part": c["part"],
@@ -392,6 +480,9 @@ class JudgeRun:
                 if c["pair"] and c["pair"] in deferred:
                     self.counts["deferred"] += 1
                     continue
+                if is_pilot_repeat(c["part"]) and (self.repeat_held or self.open_round):
+                    self.counts["repeat_waits"] += 1             # decision D27: after the judge's other calls of
+                    continue                                       # the round are final (Section 11.6)
                 if limit is not None and made >= limit:
                     break
                 if self.paid and not sess.books.item_live(sess.books.items[self.item(c)]):
@@ -403,6 +494,8 @@ class JudgeRun:
                 st = self.run_call(c)
                 made += 1
                 self.counts[st] += 1
+                if st != "pending":
+                    self.open_round.discard(call_key(c))
                 if st == "pending":
                     self.pending_streak += 1
                     if c["pair"] and c["position"] == 0:
@@ -441,6 +534,7 @@ class Session:
         self.answers = A.load_table(self.answer_runs, raw=RAW, pilot=self.block == "1", rules=self.rules,
                                     number_of=self.panel.n_of)
         self.prompts = load_prompts()
+        self.long_context = bool(getattr(a, "long_context", False))
         self.stop_all = threading.Event()
         self.books = None
         self.prior = {}                   # attempt_state() of the verdict file, read under the lock
@@ -622,8 +716,14 @@ def _run(argv=None):
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--complete-block", action="store_true")
     ap.add_argument("--reason", default="")
-    ap.add_argument("--allow-missing", action="store_true", help="close a block although some answers do not exist")
+    ap.add_argument("--allow-missing", action="store_true", help="close a block although some answers do not exist; in block 1, also send the pilot "
+                    "repeat calls of a local judge some of whose own answers to the round's harmful prompts were "
+                    "never made (decision D27)")
+    ap.add_argument("--long-context", action="store_true",
+                    help="classify again, with the longer context, the calls that overflowed a local judge (10.2)")
     a = ap.parse_args(argv)
+    if a.long_context and (a.block == "1" or a.complete_block):
+        sys.exit("--long-context classifies the overflowed calls of blocks 3 to 7; it closes no block")
     if a.allow_missing and not a.reason:
         sys.exit("--allow-missing needs --reason")
     if a.block == "1" and not a.complete_block and a.round not in (1, 2):
@@ -633,7 +733,7 @@ def _run(argv=None):
     if not a.dry_run and not a.run:
         sys.exit("--run is required")
     sess = Session(a)
-    done = done_calls(verdicts_path(sess.block, a.build))
+    done = done_calls(verdicts_path(sess.block, a.build, sess.long_context))
     if a.complete_block:
         rounds = (1, 2) if sess.block == "1" else (None,)
         plans = [sess.plan(r) for r in rounds]
@@ -642,6 +742,10 @@ def _run(argv=None):
         complete_block(sess, plans, done)
         return 0
     pl, calls = sess.plan(a.round)
+    if sess.long_context:
+        calls, report = overflowed_calls(sess, calls)
+        print(f"longer context: {len(calls)} overflowed calls of local judges"
+              + "".join(f"; {k}: {v}" for k, v in sorted(report.items())))
     print(f"block {sess.block} ({S.BLOCK_NAMES[sess.block]}){' round ' + str(a.round) if a.round else ''}, "
           f"{a.build} build: {len(calls)} planned calls; assignment {sess.asg_sha[:12]}; "
           f"template {sess.template['sha256'][:12]}")
@@ -658,6 +762,12 @@ def _run(argv=None):
     jrs = [JudgeRun(sess, sess.panel.by_key[k], cs, a.build) for k, cs in by_judge.items()]
     paid = [jr for jr in jrs if jr.paid]
     local = [jr for jr in jrs if not jr.paid]
+    held, open_round = pilot_repeat_gate(calls, done, pl.skipped, a.allow_missing,      # decision D27
+                                         attempt_state(verdicts_path(sess.block, a.build, sess.long_context)))
+    for jr in jrs:
+        jr.repeat_held, jr.open_round = held.get(jr.m["key"]), set(open_round.get(jr.m["key"], ()))
+        if jr.repeat_held:
+            print(f"{jr.m['key']}: its pilot repeat calls wait for a later session (decision D27): {jr.repeat_held}")
     for jr in local:                                   # before any call, paid or local (Section 11.3)
         prob = check_local(sess, jr)
         if prob:
@@ -673,7 +783,7 @@ def _run(argv=None):
             done = done_calls(verdicts_path(sess.block, a.build))           # read again under the lock
             for jr in paid:
                 jr.calls = [c for c in jr.calls if call_key(c) not in done]
-        sess.prior = attempt_state(verdicts_path(sess.block, a.build))
+        sess.prior = attempt_state(verdicts_path(sess.block, a.build, sess.long_context))
         ok, msg = sess.books.start_check(sess.block, role="judge", apply_cuts=bool(paid))
         print(("start rule: " if ok else "NOT STARTED: ") + msg)
         if not ok:

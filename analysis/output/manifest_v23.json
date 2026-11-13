@@ -14,6 +14,7 @@
   23
  ],
  "left_out": [],
+ "repricing": null,
  "blocks": [
   {
    "id": "resp.main",
@@ -52,8 +53,8 @@
    "calls_per_model": 300,
    "models": 10,
    "cut": 0,
-   "expected": 10.7774,
-   "pessimistic": 24.3053
+   "expected": 14.4767,
+   "pessimistic": 24.2574
   },
   {
    "id": "judge.commercial.2",
@@ -62,8 +63,8 @@
    "calls_per_model": 120,
    "models": 10,
    "cut": 0,
-   "expected": 4.3109,
-   "pessimistic": 9.7221
+   "expected": 5.7907,
+   "pessimistic": 9.703
   },
   {
    "id": "judge.commercial.3",
@@ -72,8 +73,8 @@
    "calls_per_model": 60,
    "models": 10,
    "cut": 2,
-   "expected": 2.1555,
-   "pessimistic": 4.8611
+   "expected": 2.8953,
+   "pessimistic": 4.8515
   },
   {
    "id": "judge.commercial.4",
@@ -82,8 +83,8 @@
    "calls_per_model": 70,
    "models": 10,
    "cut": 0,
-   "expected": 2.5147,
-   "pessimistic": 5.6712
+   "expected": 3.3779,
+   "pessimistic": 5.6601
   },
   {
    "id": "judge.commercial.5",
@@ -92,8 +93,8 @@
    "calls_per_model": 30,
    "models": 10,
    "cut": 0,
-   "expected": 1.0777,
-   "pessimistic": 2.4305
+   "expected": 1.4477,
+   "pessimistic": 2.4257
   },
   {
    "id": "judge.commercial.6",
@@ -102,8 +103,8 @@
    "calls_per_model": 30,
    "models": 10,
    "cut": 4,
-   "expected": 1.0777,
-   "pessimistic": 2.4305
+   "expected": 1.4477,
+   "pessimistic": 2.4257
   },
   {
    "id": "judge.commercial.7",
@@ -112,8 +113,8 @@
    "calls_per_model": 70,
    "models": 10,
    "cut": 3,
-   "expected": 2.5147,
-   "pessimistic": 5.6712
+   "expected": 3.3779,
+   "pessimistic": 5.6601
   },
   {
    "id": "judge.commercial.8",
@@ -122,8 +123,8 @@
    "calls_per_model": 60,
    "models": 10,
    "cut": 0,
-   "expected": 2.1555,
-   "pessimistic": 4.8611
+   "expected": 2.8953,
+   "pessimistic": 4.8515
   },
   {
    "id": "judge.commercial.9",
@@ -132,8 +133,8 @@
    "calls_per_model": 60,
    "models": 10,
    "cut": 0,
-   "expected": 2.1555,
-   "pessimistic": 4.8611
+   "expected": 2.8953,
+   "pessimistic": 4.8515
   },
   {
    "id": "judge.commercial.10",
@@ -142,8 +143,8 @@
    "calls_per_model": 20,
    "models": 10,
    "cut": 1,
-   "expected": 0.7185,
-   "pessimistic": 1.6204
+   "expected": 0.9651,
+   "pessimistic": 1.6172
   },
   {
    "id": "judge.hosted.1",
@@ -152,8 +153,8 @@
    "calls_per_model": 780,
    "models": 2,
    "cut": 0,
-   "expected": 1.4431,
-   "pessimistic": 2.1689
+   "expected": 1.5455,
+   "pessimistic": 2.3035
   },
   {
    "id": "judge.hosted.2",
@@ -162,8 +163,8 @@
    "calls_per_model": 780,
    "models": 2,
    "cut": 0,
-   "expected": 1.4431,
-   "pessimistic": 2.1689
+   "expected": 1.5455,
+   "pessimistic": 2.3035
   },
   {
    "id": "judge.hosted.3",
@@ -172,8 +173,8 @@
    "calls_per_model": 70,
    "models": 2,
    "cut": 0,
-   "expected": 0.1295,
-   "pessimistic": 0.1946
+   "expected": 0.1387,
+   "pessimistic": 0.2067
   },
   {
    "id": "judge.hosted.4",
@@ -182,8 +183,8 @@
    "calls_per_model": 567,
    "models": 2,
    "cut": 0,
-   "expected": 1.049,
-   "pessimistic": 1.5767
+   "expected": 1.1234,
+   "pessimistic": 1.6745
   },
   {
    "id": "judge.hosted.5",
@@ -192,8 +193,8 @@
    "calls_per_model": 60,
    "models": 2,
    "cut": 0,
-   "expected": 0.111,
-   "pessimistic": 0.1668
+   "expected": 0.1189,
+   "pessimistic": 0.1772
   },
   {
    "id": "judge.hosted.6",
@@ -202,8 +203,8 @@
    "calls_per_model": 60,
    "models": 2,
    "cut": 0,
-   "expected": 0.111,
-   "pessimistic": 0.1668
+   "expected": 0.1189,
+   "pessimistic": 0.1772
   },
   {
    "id": "judge.hosted.7",
@@ -212,13 +213,13 @@
    "calls_per_model": 20,
    "models": 2,
    "cut": 1,
-   "expected": 0.037,
-   "pessimistic": 0.0556
+   "expected": 0.0396,
+   "pessimistic": 0.0591
   }
  ],
  "totals": {
-  "expected": 47.12,
-  "pessimistic": 102.03
+  "expected": 57.54,
+  "pessimistic": 102.3
  },
  "cap_usd": 128.0,
  "freeze_ceiling_usd": 124.0,
@@ -229,66 +230,66 @@
  "labelled_answers": 567,
  "per_provider": {
   "anthropic": {
-   "expected": 8.43,
-   "pessimistic": 23.75
+   "expected": 12.82,
+   "pessimistic": 23.11
   },
   "openai": {
-   "expected": 8.02,
-   "pessimistic": 23.33
+   "expected": 12.82,
+   "pessimistic": 22.62
   },
   "openrouter": {
-   "expected": 30.67,
-   "pessimistic": 54.95
+   "expected": 31.9,
+   "pessimistic": 56.57
   }
  },
  "per_model": {
   "claude-sonnet-5.5": {
-   "expected": 8.07,
-   "pessimistic": 22.75
+   "expected": 12.27,
+   "pessimistic": 22.13
   },
   "claude-haiku-5.5": {
-   "expected": 0.35,
-   "pessimistic": 1.01
+   "expected": 0.55,
+   "pessimistic": 0.97
   },
   "gpt-5.6-luna": {
-   "expected": 0.8,
-   "pessimistic": 2.22
+   "expected": 1.2,
+   "pessimistic": 2.16
   },
   "deepseek-v4.1-flash": {
-   "expected": 0.38,
+   "expected": 0.39,
    "pessimistic": 0.78
   },
   "glm-5.3-flash": {
-   "expected": 0.83,
-   "pessimistic": 1.49
+   "expected": 0.86,
+   "pessimistic": 1.54
   },
   "gpt-6-luna": {
-   "expected": 0.35,
-   "pessimistic": 1.01
+   "expected": 0.55,
+   "pessimistic": 0.97
   },
   "hy3": {
-   "expected": 0.8,
-   "pessimistic": 1.46
+   "expected": 0.83,
+   "pessimistic": 1.5
   },
   "gpt-6.1-sol": {
-   "expected": 6.87,
-   "pessimistic": 20.1
+   "expected": 11.06,
+   "pessimistic": 19.49
   },
   "kimi-k3.1-pro": {
-   "expected": 13.68,
-   "pessimistic": 25.6
+   "expected": 14.11,
+   "pessimistic": 26.17
   },
   "grok-4.7": {
-   "expected": 10.49,
-   "pessimistic": 18.77
+   "expected": 10.92,
+   "pessimistic": 19.33
   },
   "venice-uncensored": {
-   "expected": 1.9,
-   "pessimistic": 2.93
+   "expected": 2.02,
+   "pessimistic": 3.09
   },
   "cydonia-24b-v4.1": {
-   "expected": 2.59,
-   "pessimistic": 3.92
+   "expected": 2.78,
+   "pessimistic": 4.16
   }
  },
  "cuts": [
@@ -300,12 +301,12 @@
   {
    "order": 2,
    "loses": "no author-versus-control comparison on safe prompts for the commercial judges",
-   "saves_pessimistic": 4.86
+   "saves_pessimistic": 4.85
   },
   {
    "order": 3,
    "loses": "no in-context verdicts of the commercial judges on the challenge set (blind verdicts remain)",
-   "saves_pessimistic": 5.67
+   "saves_pessimistic": 5.66
   },
   {
    "order": 4,
