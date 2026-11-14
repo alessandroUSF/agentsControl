@@ -132,9 +132,9 @@
    "enabled": false,
    "prompt_subset": "added_api",
    "receives_harmful": true,
-   "price_in": 0.022,
-   "price_out": 0.4,
-   "price_checked": "2026-11-11 pinned endpoint morph/fp8 (data/selection/2026-11-11)",
+   "price_in": 0.104,
+   "price_out": 0.583,
+   "price_checked": "2026-11-14 pinned endpoint morph/fp8 (data/selection/2026-11-14); 0.022 / 0.4 on 2026-11-11",
    "max_output_tokens": 16000,
    "effort": "high",
    "est_output_tokens": 2450,
@@ -150,8 +150,8 @@
     "tag": "morph/fp8",
     "provider_name": "Morph",
     "quantization": "fp8",
-    "prompt_usd_per_m": 0.022,
-    "completion_usd_per_m": 0.4,
+    "prompt_usd_per_m": 0.104,
+    "completion_usd_per_m": 0.583,
     "cache_write_usd_per_m": null,
     "safety_retention": false,
     "status": 0,
@@ -179,8 +179,8 @@
      "top_p"
     ],
     "discount": 0,
-    "source": "data/selection/2026-11-11/raw/or_endpoints_zdr.json",
-    "recorded": "2026-11-11"
+    "source": "data/selection/2026-11-14/raw/or_endpoints_zdr.json",
+    "recorded": "2026-11-14"
    },
    "d2_safety_retention": null
   },

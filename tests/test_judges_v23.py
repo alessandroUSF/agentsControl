@@ -37,6 +37,12 @@ REAL_DESIGN = json.loads((ROOT / "config" / "panel_v23.json").read_text(encoding
 REAL_HOLDS = json.loads((ROOT / "config" / "stage_holds.json").read_text(encoding="utf-8"))
 REAL_SETTINGS = json.loads((ROOT / "config" / "judge_v23.json").read_text(encoding="utf-8"))
 SNAPSHOT = json.loads((ROOT / "data/selection/2026-11-11/raw/or_endpoints_zdr.json").read_text(encoding="utf-8"))["data"]
+for _m in json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))["models"]:
+    _src, _id = (_m.get("pin") or {}).get("source"), (_m["model"], (_m.get("pin") or {}).get("tag"))
+    if _src and _src != "data/selection/2026-11-11/raw/or_endpoints_zdr.json":   # a pin recorded from a later snapshot
+        _new = [e for e in json.loads((ROOT / _src).read_text(encoding="utf-8"))["data"]
+                if (e.get("model_id"), e.get("tag")) == _id]
+        SNAPSHOT = [_new[0] if (e.get("model_id"), e.get("tag")) == _id else e for e in SNAPSHOT]
 FR = frames_v23.frames()
 PILOT = P.load_pilot()
 RULES = screen_mod.load()
