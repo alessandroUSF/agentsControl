@@ -10,10 +10,11 @@ A synthetic study is written under E:/claude/agentsControl_tests/e2e_v23/study (
     author's own harmful answers flagged less often in context);
   - a synthetic PI who reads the pilot draw, and two synthetic labellers with known error rates, plus adjudication.
 Steps, in the order of Section 12.3:
-  pilot registration -> block 1 (answers, judging of both rounds, close) -> pilot report -> reading draw and the
-  screen revision, in force from then on -> D13 and freeze -> block 2 (answers) -> block 3 (judges, and the
-  sensitivity build of model 6) -> block 4 (answers, label sample and sheets, labels, join, adjudication, lock)
-  -> blocks 5, 6 and 7 (judges) -> every block closed by its runner -> analysis (analysis/analyze_v23.py)
+  pilot registration -> block 1 (answers, judging of both rounds, close) -> the guards on the answers of round 1
+  (decision D29) -> pilot report -> reading draw and the screen revision, in force from then on -> D13 and freeze ->
+  block 2 (answers) -> block 3 (judges, and the sensitivity build of model 6) -> block 4 (answers, label sample and
+  sheets, labels, join, adjudication, lock) -> the guards on the label sample -> blocks 5, 6 and 7 (judges) -> every
+  block closed by its runner -> analysis (analysis/analyze_v23.py), the guard rows included
 Checks: every block closed by role; calls per judge equal to the plan and within Section 12.1; ledger within the cap
 with no overrun; reservations at or above settlements; no text, label or reason in the public logs; pairs made
 next to each other; the label lock and the pilot report written; the stub's rates recovered from the verdicts.
@@ -46,6 +47,7 @@ import label_join_v23 as LJ  # noqa: E402
 import pilot_report_v23 as PR  # noqa: E402
 import plan_v23 as P  # noqa: E402
 import reading_draw_v23 as RD  # noqa: E402
+import run_guards_v23 as RG  # noqa: E402
 import run_judges_v23 as R  # noqa: E402
 import run_models as RM  # noqa: E402
 import screen as SCR  # noqa: E402
@@ -293,6 +295,49 @@ def close_judges(block, runs, labels=None, judges=None):
     return code if "not attempted {}" in last else (code or 1)      # every planned call has a final verdict
 
 
+# ---------------------------------------------------------------- stub guards (decision D29)
+
+GUARD_SENS = {"G1": 0.70, "G2": 0.80}      # chance that a guard flags a harmful synthetic answer
+GUARD_FPR = {"G1": 0.05, "G2": 0.10}       # and a benign or refusing one
+
+
+class StubGuard:
+    """Ollama stand-in for the two guards: it reads the markers of the synthetic answer in the raw prompt and answers
+    in the guard's own output format, with known rates; a few outputs go off format and a few prompts overflow."""
+
+    def __init__(self, gc):
+        self.gc = gc
+
+    def call(self, prompt):
+        gid = self.gc["id"]
+        mm = MARK.search(prompt)
+        truth = mm.group(2) if mm else "R"
+        u = T.h01("guard odd", gid, prompt)
+        if u < 0.004:
+            raise R.providers.HTTPStatusError(400, '{"error":"request (9000 tokens) exceeds the available context '
+                                                   'size (8192 tokens), try increasing it"}')
+        if u < 0.01:
+            text = "I would rather explain my assessment in prose."
+        else:
+            flag = T.h01("guard flag", gid, prompt) < (GUARD_SENS[gid] if truth == "H" else GUARD_FPR[gid])
+            text = ("\n\nunsafe\nS2" if flag else "\n\nsafe") if gid == "G1" else ("Yes" if flag else "No")
+        return {"text": text, "stop_reason": "stop", "model_returned": self.gc["model"],
+                "input_tokens": len(prompt) // 4, "output_tokens": 3}
+
+
+def guard_identity(model, base=None):
+    cfg = RG.load_config()
+    g = next(g for g in cfg["guards"] if g["model"] == model)
+    return {"digest": g["digest"], "ollama_version": cfg["ollama_version"]}
+
+
+def run_guards(argv, what):
+    code = quiet(RG.main, argv)
+    last = quiet.out.strip().splitlines()[-2:] if quiet.out.strip() else []
+    say(f"  guards on {what}: exit {code}; " + "; ".join(x.strip()[:160] for x in last))
+    return code in (0, None)
+
+
 # ---------------------------------------------------------------- reading draw and labels
 
 def pi_reads(draw_dir):
@@ -370,7 +415,8 @@ def analysis(tmp, lock_dir, initial_screen):
     out = tmp / "analysis_v23.json"
     code = quiet(AN.main, ["--verdicts", str(R.verdicts_path("3")), "--m6", str(R.verdicts_path("3", "sensitivity")),
                            "--answer-runs", "b2,b4", "--raw", str(R.RAW), "--labels", str(lock_dir),
-                           "--initial-screen", str(initial_screen), "--out", str(out)])
+                           "--initial-screen", str(initial_screen), "--out", str(out),
+                           "--guards", str(RG.records_path())])
     text = quiet.out
     good = code in (0, None) and out.exists()
     say(f"  analysis: exit {code}; {'written ' + out.name if out.exists() else 'no output'}")
@@ -383,6 +429,18 @@ def analysis(tmp, lock_dir, initial_screen):
     reg, claims = res["registered"], res["registered"]["claims"]
     no_text = "[AUTH:" not in raw and "[AUTH:" not in text
     say("check: the analysis output holds no answer text:", no_text)
+    ga = res.get("accuracy_guards") or {}
+    cg = set(ga) == {"G1", "G2"} and ga["G1"]["related_models"] == [4, 6, 20] and ga["G2"]["related_models"] == [16]
+    for g, e in ga.items():
+        u, r = e["unrelated"], e["related"]
+        cg &= u["answers"] + r["answers"] == len(AN.ML.load_locked(lock_dir / "labels_locked_v23.csv"))
+        cg &= u["not_classified"] == 0 and e["digest_mismatch"] == 0 and u["harmful"]["answers"] > 20
+        cg &= u["harmful"]["rate"] > u["not_harmful"]["rate"] and u["weighted"]["harmful"]["est"] is not None
+        say(f"  guard {g}: unrelated answers {u['answers']}, related {r['answers']}; flag rate among answers labelled "
+            f"harmful {u['harmful']['rate']:.3f} (stub {GUARD_SENS[g]}), not harmful {u['not_harmful']['rate']:.3f}; "
+            f"final statuses {e['final_by_status']}")
+    say("check: guard rows beside the judges, both forms, related answers apart (decision D29):", cg)
+    no_text &= cg
     if SMALL:                     # judges left out: their calls are not attempted, so nothing may be declared
         c = reg["declared"] is False
         say("check: with judges left out, P1 to P3 are not declared:", c)
@@ -404,6 +462,7 @@ def main():
     BY_MODEL.update({m["model"]: m for m in models})
     RO.Fake.rules = {m["model"]: respond for m in models}
     RO.Fake.result_rules = {m["model"]: batch_rule for m in models}
+    RG.MAKE_PROVIDER, RG.OLLAMA_IDENTITY, RG.SLEEP = StubGuard, guard_identity, lambda s: None     # decision D29
     design = json.loads(R.DESIGN.read_text(encoding="utf-8"))
     settings = json.loads(J.SETTINGS.read_text(encoding="utf-8"))
     panel = P.Panel(models, design, registered_hosted=design["registered_hosted"])
@@ -438,8 +497,16 @@ def main():
     for rnd in (1, 2):
         ok &= judge_block("1", ["p1", "p2"], judges, rnd=rnd) == 0
     ok &= close_judges("1", ["p1", "p2"]) == 0
+    ok &= run_guards(["--run", "e2e_guards_p1", "--pilot-round", "1", "--answer-runs", "p1"], "pilot round 1")
     quiet(PR.main, ["--round", "1", "--answer-runs", "p1", "--out", str(tmp / "pilot")])
     rep = json.loads((tmp / "pilot" / "pilot_report_r1.json").read_text(encoding="utf-8"))
+    gp = rep.get("guards") or {}
+    c = set(gp) == {"G1", "G2"} and all(e["planned"] > 0 and e["final"] == e["planned"] and e["pending"] == 0
+                                        and e["delivered"] + e["not_delivered"] + e["context_overflow"] == e["final"]
+                                        for e in gp.values())
+    say("check: pilot report counts the guards' calls on round 1:", c,
+        {k: (e["delivered"], e["not_delivered"], e["context_overflow"]) for k, e in gp.items()})
+    ok &= c
     say("pilot report rules:", {k: v for k, v in rep["rules"].items() if "rule 4" not in k and "rule 5" not in k
                                 and "rule 6" not in k})
 
@@ -500,6 +567,11 @@ def main():
     ok &= (lock / "labels_locked_v23.csv").exists()
     say("label lock:", json.loads((lock / "labels_lock_v23.json").read_text(encoding="utf-8")).get("counts")
         if (lock / "labels_lock_v23.json").exists() else "missing")
+    ok &= run_guards(["--run", "e2e_guards_label", "--answer-runs", "b2,b4", "--labels", str(labels)], "the label sample")
+    pub = T.jsonl(RG.calls_log_path())
+    c = bool(pub) and not any(k in r for r in pub for k in ("output", "flag", "categories", "error_body"))
+    say("check: the public guard log holds no output and no flag:", c)
+    ok &= c
 
     # blocks 5, 6, 7
     ok &= judge_block("5", ["b2", "b4"], primary_judges, labels=labels) == 0

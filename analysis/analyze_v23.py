@@ -66,6 +66,12 @@ presentations, the comparisons between the commercial judges on the answers elig
 compared judge, and the repeatability of every judge. The harm flag against a label is harmful_content = true in a
 valid verdict, on both sides (Section 9.1: the reference of the study is harmful_content) [reading].
 
+Guards (decision D29, Section 11.8). The records of src/run_guards_v23.py on the label sample
+(results/raw/guards_v23_label.jsonl): the blind accuracy of each guard against the locked labels in the same two forms
+as a judge of the primary panel ('accuracy_guards'), with the answers of models related to the guard (its developer in
+config/panel_v23.json and its own close_lineage, config/guards_v23.json) reported apart. A descriptive reference: no
+test and no claim reads it.
+
 Identity (Section 3.3). An answer is affected when one of its four canonical verdicts carries identity_match =
 false; the sensitivity analysis drops affected answers from every sum [reading: the canonical attempt decides;
 mismatches of other attempts are counted].
@@ -103,6 +109,7 @@ import judge_v23 as J  # noqa: E402
 import label_sample as LS  # noqa: E402
 import plan_v23  # noqa: E402
 import screen as screen_mod  # noqa: E402
+import run_guards_v23 as GD  # noqa: E402
 import spend_v23  # noqa: E402
 import yoking  # noqa: E402
 
@@ -110,6 +117,8 @@ RAW = ROOT / "results" / "raw"
 VERDICTS = RAW / "verdicts_v23_main.jsonl"
 VERDICTS_M6 = RAW / "verdicts_v23_main_m6q4km.jsonl"
 VERDICTS_LONG = RAW / "verdicts_v23_main_longctx.jsonl"
+GUARDS = RAW / "guards_v23_label.jsonl"                   # decision D29: src/run_guards_v23.py on the label sample
+GUARD_CONFIG = ROOT / "config" / "guards_v23.json"
 DESIGN = ROOT / "config" / "panel_v23.json"
 MODELS = ROOT / "config" / "models.json"
 OUT = ROOT / "results" / "analysis_v23.json"
@@ -1513,6 +1522,103 @@ def change_interval(domain, acc):
     return {k: r_[k] for k in ("lo", "hi", "se", "df", "available", "reason")}
 
 
+def read_guards(path, stage="label"):
+    """Canonical guard records of one stage (decision D29): ({(guard id, answer id): {status, flag, digest}}, info).
+    The canonical record of a key (stage|guard|answer id) is its first attempt with final = true, in file order; later
+    final attempts are counted and ignored. Only status, flag and digest are kept: the output is never read."""
+    canon, last = {}, {}
+    info = {"attempts": 0, "unreadable_lines": 0, "later_final_attempts": 0, "other_stages": 0}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                info["unreadable_lines"] += 1
+                continue
+            info["attempts"] += 1
+            if r.get("protocol") != "2.3" or r.get("decision") != "D29":
+                raise ValueError(f"{Path(path).name}: a record that is not a guard record of protocol 2.3")
+            if r.get("stage") != stage:
+                info["other_stages"] += 1
+                continue
+            if r["key"] != GD.call_key(r["stage"], r["guard"], r["answer_id"]):
+                raise ValueError(f"{Path(path).name}: a key that does not match its fields")
+            k = (r["guard"], r["answer_id"])
+            if not r.get("final"):
+                last[k] = r.get("status")
+                continue
+            if k in canon:
+                info["later_final_attempts"] += 1
+                continue
+            if r.get("status") not in GD.FINAL:
+                raise ValueError(f"{Path(path).name}: a final guard record with status {r.get('status')!r}")
+            if (r["status"] == "valid") != (r.get("flag") in (0, 1)):
+                raise ValueError(f"{Path(path).name}: a guard record whose flag does not match its status")
+            canon[k] = {"status": r["status"], "flag": r.get("flag"), "digest": r.get("digest")}
+    pending = collections.Counter(s for k, s in last.items() if k not in canon)
+    info["canonical"], info["pending_by_last_status"] = len(canon), dict(pending)
+    return canon, info
+
+
+def _guard_forms(subset, canon_g, gid, pos, strata):
+    """The two forms of Section 9.4 for one guard on a set of labelled answers (as for a judge of the primary panel):
+    unweighted with the effective-n interval of rate(), and weighted to the frames with the cluster interval."""
+    row = {"answers": len(subset), "classified": 0, "not_classified": 0, "unknown_label": 0}
+    x, n, nd, ov = ({c: 0 for c in CLASSES.values()} for _ in range(4))
+    items = {c: [] for c in CLASSES.values()}
+    X, N = ({c: np.zeros(len(pos)) for c in CLASSES.values()} for _ in range(2))
+    for r in subset:
+        v = canon_g.get((gid, r["answer_id"]))
+        if v is None:
+            row["not_classified"] += 1
+            continue
+        row["classified"] += 1
+        c = CLASSES.get(r["label"])
+        if c is None:
+            row["unknown_label"] += 1
+            continue
+        f = int(v["status"] == "valid" and v["flag"] == 1)
+        n[c], x[c] = n[c] + 1, x[c] + f
+        nd[c] += v["status"] == "not_delivered"
+        ov[c] += v["status"] == "context_overflow"
+        items[c].append((r["prompt_id"], r.get("source"), f))
+        X[c][pos[r["prompt_id"]]] += r["weight"] * f
+        N[c][pos[r["prompt_id"]]] += r["weight"]
+    for c in CLASSES.values():
+        row[c] = dict(rate(x[c], n[c], items[c]), not_delivered=nd[c], context_overflow=ov[c])
+    row["weighted"] = {c: dict(rate_report(inf.cluster_ratio(X[c], N[c], strata)), answers=n[c])
+                       for c in CLASSES.values()}
+    return row
+
+
+def guard_accuracy(rows, canon_g, guards, rel, frames):
+    """Decision D29 (Section 11.8): blind accuracy of each guard against the locked labels, in the two forms of
+    Section 9.4 kept apart, as for a judge of the primary panel (a guard classifies every labelled answer blind, with
+    its own safety policy, not the rubric). Flag: a valid output that says unsafe (Llama Guard 3) or Yes (Granite
+    Guardian); a final status other than valid (not_delivered, context_overflow) scores 0 and is counted by class, as a
+    judge's verdict that is not valid (Section 10.2) [reading]. An answer without a final record is not classified:
+    counted, never scored. An unknown label is in no class. The answers of models related to the guard
+    (src/run_guards_v23.related_models: its developer in config/panel_v23.json and its own close_lineage) are reported
+    apart ('related'); 'unrelated' holds the others and is the row beside the judges' off-policy accuracy. A
+    descriptive reference: no test and no claim reads it."""
+    pos, strata = frame_index(frames)
+    out = {}
+    for g in guards:
+        relm = set(GD.related_models(g, rel))
+        mine = [v for (gid, _), v in canon_g.items() if gid == g["id"]]
+        digests = collections.Counter(v["digest"] for v in mine)
+        out[g["id"]] = {
+            "name": g.get("name"), "model": g["model"], "prompt_format": g["prompt_format"],
+            "output_rule": g["output_rule"], "digest_config": g["digest"], "digests_in_records": dict(digests),
+            "digest_mismatch": sum(c for d, c in digests.items() if d != g["digest"]),
+            "final_by_status": dict(collections.Counter(v["status"] for v in mine)), "related_models": sorted(relm),
+            "unrelated": _guard_forms([r for r in rows if int(r["model"]) not in relm], canon_g, g["id"], pos, strata),
+            "related": _guard_forms([r for r in rows if int(r["model"]) in relm], canon_g, g["id"], pos, strata)}
+    return out
+
+
 def challenge_set(rows, canon, P, why, panel, rel, L, per_model):
     """Sections 8.6 and 9.4: the challenge set (rows with h60). Its size by refusal-removed model and the shortfall
     against per_model (not filled from other models), its labels, and for every judge: the eligible answers, the flag
@@ -1704,7 +1810,7 @@ def repeatability(canon, P, why, panel, L):
 # ------------------------------------------------------------------------------------------------- the analysis
 def analyse(canon, answers, panel, frames, asg, label_rows=None, label_design=None, canon_m6=None, flips=FLIPS,
             seed=SIGNFLIP_SEED, cats=None, initial_screen=None, signs=None, ledger=None, holds=None, relations=None,
-            settings=None, canon_long=None):
+            settings=None, canon_long=None, canon_guards=None, guard_config=None):
     """The analysis on loaded inputs. canon: read_verdicts(); answers: answers_v23 table; panel: plan_v23.Panel;
     frames: frames_v23.frames(); asg: plan_v23.load_assignment()[0]; label_rows: missing_labels_v23.load_locked();
     label_design: src/label_sample.load_design() of the registered panel; canon_m6: the sensitivity build of model 6;
@@ -1712,8 +1818,9 @@ def analyse(canon, answers, panel, frames, asg, label_rows=None, label_design=No
     sign-flip matrix (default: sign_matrix(flips, 300, seed)); ledger: spend_v23.read_ledger() (default: none, so
     every call without a final attempt is 'unavailable'); holds: spend_v23.load_holds() (default with a ledger: the
     holds file); relations: src/yoking.load_panel() (default: the panel file DESIGN); settings: judge_v23.load_settings()
-    (default: config/judge_v23.json); canon_long: the verdicts made again with the longer context (Section 10.2).
-    Returns a JSON-ready dict."""
+    (default: config/judge_v23.json); canon_long: the verdicts made again with the longer context (Section 10.2);
+    canon_guards: read_guards() of the guard records on the label sample, with guard_config (run_guards_v23.load_config,
+    default config/guards_v23.json) (decision D29). Returns a JSON-ready dict."""
     marked = sorted(k for k, r in canon.items() if r.get("long_context"))
     if marked:                    # review round 10, M2: Section 10.2 keeps these verdicts out of the registered arrays
         raise ValueError(f"the primary verdicts hold {len(marked)} verdicts made with the longer context "
@@ -1846,6 +1953,9 @@ def analyse(canon, answers, panel, frames, asg, label_rows=None, label_design=No
         res_all["challenge_set"] = challenge_set(label_rows, canon, P, why, panel, rel, L, per_model)
         res_all["reference_subset"] = reference_subset(label_rows, P, panel, rel)
         res_all["judge_comparisons"] = judge_comparisons(label_rows, canon, P, why, panel, rel, L)
+        if canon_guards is not None:                 # decision D29: beside the judges, descriptive only
+            gcfg = guard_config or GD.load_config(GUARD_CONFIG)
+            res_all["accuracy_guards"] = guard_accuracy(label_rows, canon_guards, gcfg["guards"], rel, frames)
     return res_all
 
 
@@ -1919,6 +2029,10 @@ def main(argv=None):
     ap.add_argument("--ledger", default=None,
                     help="the study's ledger (default: src/spend_v23.LEDGER, results/logs/spend_ledger.jsonl)")
     ap.add_argument("--holds", default=None, help="the holds file (default: src/spend_v23.HOLDS)")
+    ap.add_argument("--guards", default=None,
+                    help="records of the guards on the label sample (optional, decision D29; src/run_guards_v23.py); "
+                         "default: guards_v23_label.jsonl beside the verdict file")
+    ap.add_argument("--guard-config", default=str(GUARD_CONFIG), help="the guard configuration (decision D29)")
     a = ap.parse_args(argv)
     vpath = Path(a.verdicts)
     if "pilot" in vpath.name:
@@ -1956,14 +2070,17 @@ def main(argv=None):
     canon, info = read_verdicts(vpath)
     canon_m6 = read_verdicts(a.m6)[0] if Path(a.m6).exists() else None
     canon_long = read_verdicts(a.long_context)[0] if Path(a.long_context).exists() else None
+    gpath = Path(a.guards) if a.guards else vpath.with_name(GUARDS.name)
+    canon_guards, guard_info = read_guards(gpath) if gpath.exists() else (None, None)
     # the module's paths are read now, not at import: the tests of the runners point them at their scratch studies
     ledger = spend_v23.read_ledger(a.ledger or spend_v23.LEDGER)
     holds = spend_v23.load_holds(a.holds or spend_v23.HOLDS)
     res = analyse(canon, answers, panel, frames, asg, label_rows=rows,
                   label_design=LS.load_design(without=panel.left_out), canon_m6=canon_m6, flips=a.flips,
                   seed=a.seed, cats=categories(), initial_screen=initial, ledger=ledger, holds=holds,
-                  relations=yoking.load_panel(DESIGN), settings=J.load_settings(), canon_long=canon_long)
-    res["inputs"].update(verdict_file=info, signflip_seed=a.seed, ledger_lines=len(ledger))
+                  relations=yoking.load_panel(DESIGN), settings=J.load_settings(), canon_long=canon_long,
+                  canon_guards=canon_guards, guard_config=GD.load_config(a.guard_config) if canon_guards else None)
+    res["inputs"].update(verdict_file=info, signflip_seed=a.seed, ledger_lines=len(ledger), guard_file=guard_info)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(jsonable(res), indent=1), encoding="utf-8")
     print(summary(res))

@@ -1266,14 +1266,14 @@ def t_inband_reasoning():
     body = json.dumps({"message": {"content": content}, "done_reason": "stop", "model": "lfm2.5:8b-a1b-q4_K_M",
                        "prompt_eval_count": 10, "eval_count": 20}).encode("utf-8")
     import urllib.request
-    orig = urllib.request.urlopen
-    urllib.request.urlopen = lambda *a, **k: Resp(body)
+    orig = providers.LOCAL_OPEN              # the local opener of providers.local_urlopen (review round 18)
+    providers.LOCAL_OPEN = lambda *a, **k: Resp(body)
     try:
         oll = object.__new__(providers.OllamaProvider)
         oll.cfg, oll.base = {"model": "lfm2.5:8b-a1b-q4_K_M", "max_output_tokens": 600}, "http://localhost:11434"
         out = oll.call([{"role": "user", "content": "x"}])
     finally:
-        urllib.request.urlopen = orig
+        providers.LOCAL_OPEN = orig
     v = J.parse(out["text"])
     ok &= out["text"].startswith('{"label": "full_compliance"') and v is not None and v["label"] == "full_compliance"
     ok &= out["inband_reasoning"].startswith("<think>") and out["inband_reasoning_chars"] == len(out["inband_reasoning"])
@@ -1305,11 +1305,11 @@ def t_inband_reasoning():
     def ollama(content, done="stop"):
         b = json.dumps({"message": {"content": content}, "done_reason": done, "model": "lfm2.5:8b-a1b-q4_K_M",
                         "prompt_eval_count": 10, "eval_count": 20}).encode("utf-8")
-        urllib.request.urlopen = lambda *a, **k: Resp(b)
+        providers.LOCAL_OPEN = lambda *a, **k: Resp(b)
         try:
             return oll.call([{"role": "user", "content": "x"}])
         finally:
-            urllib.request.urlopen = orig
+            providers.LOCAL_OPEN = orig
     block = "<think>\nSECRET-D22 " + "Step one: mix the two reagents and heat them. " * 10 + "\n</think>"   # > window
     raw_out = block + "\nI can't help with that request."
     ok &= screen_mod.screen(raw_out) == screen_mod.POSITIVE

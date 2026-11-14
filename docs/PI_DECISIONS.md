@@ -2,10 +2,10 @@
 
 Protocol v2.3, Section 19.1.
 
-- **Status: D12, D14, D15 and D16 recorded on 11 November 2026 and initialed by the PI the same day. The part of D2 on model 14 recorded on 11 November 2026. D1, the rest of D2, D17, D18, the part of D13 on the pilot and the later changes to D2 and D16 recorded on 12 November 2026. Every entry of 11 and 12 November is initialed by the PI; the entries of 11 November without initials on that day were initialed on 12 November. D14 was confirmed on 12 November 2026. D19 was proposed by the AI assistant and decided by the PI on 12 November 2026. D20 and D21 were decided by the PI on 12 November 2026, and D22 and the two sentences added to Part A of the rubric on 13 November 2026; the PI initialed them on 13 November 2026. D23 to D26 were decided by the PI on 13 November 2026 and initialed by the PI the same day. D27 was decided by the PI on 13 November 2026 and initialed by the PI the same day. D6 and D8 were decided by the PI on 13 November 2026 and initialed by the PI the same day. The other decisions are open.**
+- **Status: D12, D14, D15 and D16 recorded on 11 November 2026 and initialed by the PI the same day. The part of D2 on model 14 recorded on 11 November 2026. D1, the rest of D2, D17, D18, the part of D13 on the pilot and the later changes to D2 and D16 recorded on 12 November 2026. Every entry of 11 and 12 November is initialed by the PI; the entries of 11 November without initials on that day were initialed on 12 November. D14 was confirmed on 12 November 2026. D19 was proposed by the AI assistant and decided by the PI on 12 November 2026. D20 and D21 were decided by the PI on 12 November 2026, and D22 and the two sentences added to Part A of the rubric on 13 November 2026; the PI initialed them on 13 November 2026. D23 to D26 were decided by the PI on 13 November 2026 and initialed by the PI the same day. D27 was decided by the PI on 13 November 2026 and initialed by the PI the same day. D6 and D8 were decided by the PI on 13 November 2026 and initialed by the PI the same day. D28 and D29, and the move of the D7 reading to the freeze, were decided by the PI on 13 November 2026 and initialed by the PI the same day. The other decisions are open.**
 - The principal investigator (PI) records each decision here, with a date, before the step named under "Recorded before".
 - A recorded decision is not edited. A later change is a new dated entry under the same heading.
-- D1 to D5, D7, D12, D14 to D27 and the part of D13 on the pilot are conditions of the pilot registration (Section 14.2). D6 and D8 are recorded before the first training round (Section 19.2, action 14); both were decided on 13 November 2026. D10, the rest of D13 and the second statement of D5 are conditions of the freeze (Section 14.4), and the reader of D7 reads the pilot report before it (Section 19.2, action 15).
+- D1 to D5, D12, D14 to D29 and the part of D13 on the pilot are conditions of the pilot registration (Section 14.2). D7 is a condition of the freeze since 13 November 2026. D6 and D8 are recorded before the first training round (Section 19.2, action 14); both were decided on 13 November 2026. D10, the rest of D13 and the second statement of D5 are conditions of the freeze (Section 14.4), and the reader of D7 reads the pilot report before it (Section 19.2, action 15).
 - The recommendations are those of the draft protocol, which was written with an AI coding assistant. They are not decisions.
 
 ## D1. Commercial judges and answers shown as their own previous turn
@@ -84,8 +84,9 @@ Protocol v2.3, Section 19.1.
 
 ## D7. A human reader for the protocol
 
-- **Question.** Which researcher reads the protocol before the pilot registration, and the pilot report before the freeze (Sections 14.2 and 17.1)? So far no person other than the PI has reviewed the design.
-- **Recorded before.** Pilot registration.
+- **Question.** Which researcher reads the protocol and the pilot report before the freeze (Sections 14.4 and 17.1)? So far no person other than the PI has reviewed the design.
+- **Recorded before.** The freeze. Until 13 November 2026 the reading of the protocol was a condition of the pilot registration.
+- **Timing (decided by the PI on 13 November 2026).** The reading moves to the conditions of the freeze, so that the pilot can be registered without it. Changes to Sections 8 and 9 that follow from it are allowed until the freeze, each dated, with the comment that prompted it and the reason (Section 14.3). Drafted by the AI assistant from the PI's answer in the chat. PI's initials after checking: AA (13 November 2026)
 - **Recommendation of the draft.** One researcher with experience in evaluation methods.
 - **Decision and date.**
 
@@ -389,3 +390,19 @@ Protocol v2.3, Section 19.1.
   6. *A gate on each labeller's labels alone.* Not adopted: the quantities with each labeller's original labels are reported (Section 9.3); as a gate they would add a condition to the detection sentence.
   7. *An output cap of its own for model 17 as a respondent.* Not now: the pilot measures how many of its answers reach the cap, and rule 3 of Section 13.3 decides.
 - **Decision and date.** 13 November 2026: the recommended option on each point. Drafted by the AI assistant from the PI's answers in the chat. PI's initials after checking: AA (13 November 2026)
+
+## D28. Analyses that are not registered
+
+- **Question.** The protocol lists only its own analyses (Section 8.5), so it gives no route for an analysis that a journal reviewer asks for. Two journal-fit reviews of 13 November 2026 (a Claude agent, and GPT-6.1 Sol through Codex) were read before this decision.
+- **Recorded before.** Pilot registration.
+- **Options.** (a) One rule: such an analysis is reported only in a separate section headed post hoc, with the reason it was run and the date it was decided; it never enters the abstract, a sentence of Section 2.4 or the conclusions, and it changes no registered quantity, test or rule. (b) No rule.
+- **Recommendation of the AI assistant.** Option (a).
+- **Decision and date.** 13 November 2026: option (a) (Section 8.5). Drafted by the AI assistant from the PI's answer in the chat. PI's initials after checking: AA (13 November 2026)
+
+## D29. Dedicated guard classifiers as a reference
+
+- **Question.** Reviewers are likely to ask how the judges compare with dedicated safety classifiers such as Llama Guard. Protocol v2.2 had planned guard classifiers; this protocol had withdrawn them for cost (Section 15.2). Local guards cost no cash.
+- **Recorded before.** Pilot registration.
+- **Options.** (a) State the absence as a limitation. (b) One or two local guard classifiers classify the 567 labelled answers blind, as a reference with no test. Guards that fit the local GPU of 8 GB: Llama Guard 3 8B (Meta), Granite Guardian 3 8B (IBM) and ShieldGemma 9B (Google, one call per type of harm).
+- **Recommendation of the AI assistant.** Option (a), to keep the pilot registration close; under (b), Llama Guard 3 8B and Granite Guardian 3 8B.
+- **Decision and date.** 13 November 2026: option (b), with Llama Guard 3 8B and Granite Guardian 3 8B (Sections 9.4 and 11.8); the local GPU may be used for the check on invented texts. Drafted by the AI assistant from the PI's answers in the chat. PI's initials after checking: AA (13 November 2026)

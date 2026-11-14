@@ -15,6 +15,7 @@ was stopped, 1 or a message: the runner refused or failed).
 Examples:
   python -I scripts/run_with_memory_guard.py run --run b2_local --block 2 --models <local keys>
   python -I scripts/run_with_memory_guard.py judge --run b3_local --block 3 --answer-runs b2_local --judges <keys>
+  python -I scripts/run_with_memory_guard.py guards --run g_label --answer-runs b2,b4     (decision D29)
 """
 import ctypes
 import datetime as dt
@@ -28,14 +29,15 @@ import pathlib
 
 PROJECT = str(pathlib.Path(__file__).resolve().parents[1])
 USAGE = ("usage: python -I scripts/run_with_memory_guard.py run --run NAME [src/run_models.py arguments]\n"
-         "       python -I scripts/run_with_memory_guard.py judge --run NAME [src/run_judges_v23.py arguments]")
+         "       python -I scripts/run_with_memory_guard.py judge --run NAME [src/run_judges_v23.py arguments]\n"
+         "       python -I scripts/run_with_memory_guard.py guards --run NAME [src/run_guards_v23.py arguments]")
 PAUSED = 4
 mode, rest = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else ("", [])
-if mode == "judge":
+if mode in ("judge", "guards"):
     if "--run" not in rest or rest.index("--run") + 1 >= len(rest):
         sys.exit(USAGE)
-    CMD = [sys.executable, "-I", "-u", "src/run_judges_v23.py"] + rest
-    LOG = PROJECT + r"\results\logs\guard_judge.log"
+    CMD = [sys.executable, "-I", "-u", "src/run_judges_v23.py" if mode == "judge" else "src/run_guards_v23.py"] + rest
+    LOG = PROJECT + (r"\results\logs\guard_judge.log" if mode == "judge" else r"\results\logs\guard_guards.log")
 elif mode == "run" and "--run" in rest and rest.index("--run") + 1 < len(rest):
     run_name = rest[rest.index("--run") + 1]
     if run_name in ("full", "pilot_local", "v22_local"):
@@ -46,9 +48,9 @@ else:
     sys.exit(USAGE)
 if mode == "run":
     MANIFEST = pathlib.Path(PROJECT) / "results" / "logs" / f"manifest_{run_name}.jsonl"
-else:   # judge mode: guard events go to the judge manifest of that run (B4 residual of m12)
+else:   # judge and guards modes: guard events go to the manifest of that run (B4 residual of m12)
     judge_run = rest[rest.index("--run") + 1] if "--run" in rest and rest.index("--run") + 1 < len(rest) else "judge"
-    MANIFEST = pathlib.Path(PROJECT) / "results" / "logs" / f"manifest_judge_{judge_run}.jsonl"
+    MANIFEST = pathlib.Path(PROJECT) / "results" / "logs" / f"manifest_{mode}_{judge_run}.jsonl"
 RAM_MIN_GB, COMMIT_MIN_GB, EVERY_S, STATUS_EVERY_S = 2.5, 2.0, 15, 300
 SERVER_MAX_GB, RECYCLE_GAP_S = 9.0, 120
 

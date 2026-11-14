@@ -14,6 +14,9 @@ Reads
   results/logs/provider_prompt_v23.jsonl     the counts of decision D26 (src/run_models.py --provider-prompt-check):
                                              the input tokens that model 22's provider reported for a harmless
                                              sentinel request, and the two reference counts (Sections 3.3 and 13.2)
+  results/logs/guard_calls_v23_pilot.jsonl   decision D29 (src/run_guards_v23.py --pilot-round): for each guard, the
+                                             status, prompt tokens and seconds of its calls on the round's answers;
+                                             the public log holds no output and no flag, and none is read
 It computes no flag rate for the in-context presentation, no difference between presentations and none between
 authors and controls (Section 13.1). In-context calls enter counts of statuses, tokens and costs only, and, for the
 repeat calls of the local judges, counts of pairs that differ between a call and its repeat (decision D27).
@@ -43,6 +46,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import answers_v23 as A  # noqa: E402
 import judge_v23 as J  # noqa: E402
 import plan_v23 as P  # noqa: E402
+import run_guards_v23 as RG  # noqa: E402
 import run_judges_v23 as R  # noqa: E402
 import screen as screen_mod  # noqa: E402
 import spend_v23 as S  # noqa: E402
@@ -394,6 +398,38 @@ D26_TEXT = {"none_added": "compatible with the request alone: no added text is s
             "no_count": "no input token count reported: not established"}
 
 
+def guards(rnd_n, rnd, table, prompts, config=None):
+    """Decision D29 (Section 11.8): for each guard, on the answers with content of the pilot round
+    (run_guards_v23.pilot_items, the answers that its pilot mode classifies): how many it was planned to classify,
+    how many final calls were delivered (valid), not delivered and context_overflow, how many calls are still pending
+    and how many were not attempted, and the seconds and prompt tokens of the final calls. Read from the public guard
+    log: no output and no flag."""
+    stage = f"pilot_r{rnd_n}"
+    items, counts, _ = RG.pilot_items(rnd, table, prompts)
+    planned = {it["answer_id"] for it in items}
+    first, attempted = {}, collections.defaultdict(set)
+    for r in jsonl(RG.calls_log_path(rnd_n)):
+        if r.get("stage") != stage:
+            continue
+        attempted[r["guard"]].add(r["answer_id"])
+        if r.get("final"):
+            first.setdefault(r["key"], r)
+    out = {}
+    for g in RG.load_config(config)["guards"]:
+        fin = [r for r in first.values() if r["guard"] == g["id"] and r["answer_id"] in planned]
+        st = collections.Counter(r["status"] for r in fin)
+        done = {r["answer_id"] for r in fin}
+        pending = len((attempted[g["id"]] & planned) - done)
+        out[g["id"]] = {"model": g["model"], "planned": len(planned), "final": len(fin), "delivered": st["valid"],
+                        "not_delivered": st["not_delivered"], "context_overflow": st["context_overflow"],
+                        "pending": pending, "not_attempted": len(planned) - len(done) - pending,
+                        "seconds": dist([r.get("seconds") for r in fin]),
+                        "prompt_tokens": dist([r.get("prompt_tokens") for r in fin]),
+                        "hit_cap": sum(1 for r in fin if r.get("hit_cap")),
+                        "answers_without_content": counts.get("no_content", 0)}
+    return out
+
+
 def markdown(rep):
     L = [f"# Pilot report, round {rep['round']}", "",
          "Counts and rates only (Section 13.3). No answer or output is quoted. In-context calls are counted for "
@@ -449,6 +485,16 @@ def markdown(rep):
         L.append("| - | - | - | 0 | - | - | - | - |")
     inc = sorted(k for k, e in rl.items() if not e.get("complete"))
     L += ["", "Incomplete (fewer pairs than planned; not a result of no difference): " + (", ".join(inc) or "none")]
+    L += ["", "## Guards (decision D29)", "",
+          "Each guard classifies the answers of the round once, blind, with its own safety policy (Section 11.8). "
+          "Counts and times only; no flag is shown.", "",
+          "| Guard | Model | Planned | Final | Delivered | Not delivered | Context overflow | Pending | "
+          "Not attempted | Median seconds | Largest prompt tokens |",
+          "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for k, e in (rep.get("guards") or {}).items():
+        L.append(f"| {k} | {e['model']} | {e['planned']} | {e['final']} | {e['delivered']} | {e['not_delivered']} | "
+                 f"{e['context_overflow']} | {e['pending']} | {e['not_attempted']} | "
+                 f"{e['seconds'].get('median', '-')} | {e['prompt_tokens'].get('max', '-')} |")
     L += ["", "## Blocks by provider and presentation", ""]
     L += [f"- {b['account']} / {b['host']}, {b['presentation']}, {b['kind']}: {b['count']}" for b in rep["blocks"]] \
         or ["- none"]
@@ -529,7 +575,8 @@ def main(argv=None):
            "blocks": blocks, "rules": rules, "ledger": {"block1_spent_usd": round(spent1, 6)},
            "repeatability": rep_local,
            "delimiter_collisions": delimiter_collisions(table, prompts, ids),
-           "template_sha256": J.load_template()["sha256"], "provider_prompt": provider_prompt(R.LOGS)}
+           "template_sha256": J.load_template()["sha256"], "provider_prompt": provider_prompt(R.LOGS),
+           "guards": guards(a.round, rnd, table, prompts)}
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / f"pilot_report_r{a.round}.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")

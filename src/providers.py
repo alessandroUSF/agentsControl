@@ -39,10 +39,12 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 RESEARCH_KEYS = {"anthropic": "AC_ANTHROPIC_API_KEY", "openai": "AC_OPENAI_API_KEY", "google": "AC_GOOGLE_API_KEY"}
-LOCAL_HOSTS = ("http://localhost", "http://127.0.0.1", "http://[::1]")
+LOCAL_HOSTS = ("http://localhost", "http://127.0.0.1", "http://[::1]")     # kept for reference; see is_local_url
+LOCAL_HOSTNAMES = ("localhost", "127.0.0.1", "::1")
 
 
 class ProjectKeyError(RuntimeError):
@@ -86,12 +88,42 @@ def split_inband_reasoning(text):
     return s[end:].lstrip(), s[:end]
 
 
+def is_local_url(url):
+    """True only for plain http on an exact loopback host, with no user information (review round 18, M1: the
+    earlier prefix test accepted lookalike hosts such as http://localhost.example.org)."""
+    try:
+        u = urllib.parse.urlsplit(str(url or ""))
+        u.port                                   # raises ValueError on a malformed port
+    except ValueError:
+        return False
+    return u.scheme == "http" and u.hostname in LOCAL_HOSTNAMES and u.username is None and u.password is None
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A redirect from the local server is an error: nothing follows it to another host."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+# Calls to the local server use no proxy (environment or system settings) and follow no redirect.
+LOCAL_OPEN = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect()).open   # test seam
+
+
+def local_urlopen(req, timeout):
+    """Open a request on the local Ollama server only: exact loopback host, no proxy, no redirect."""
+    url = req.full_url if isinstance(req, urllib.request.Request) else req
+    if not is_local_url(url):
+        raise ProjectKeyError("the local server must be http on localhost, 127.0.0.1 or [::1]")
+    return LOCAL_OPEN(req, timeout=timeout)
+
+
 def is_remote(cfg):
     if cfg["provider"] in ("anthropic", "openai", "google"):
         return True
     if cfg["provider"] == "ollama":
-        return not cfg.get("base_url", "http://localhost:11434").startswith(LOCAL_HOSTS)
-    return not cfg.get("base_url", "").startswith(LOCAL_HOSTS)
+        return not is_local_url(cfg.get("base_url", "http://localhost:11434"))
+    return not is_local_url(cfg.get("base_url", ""))
 
 
 # Strong markers are error codes that only moderation produces; they win over parameter-error markers.
@@ -699,7 +731,7 @@ class OllamaProvider(Provider):
         req = urllib.request.Request(self.base + "/api/chat", data=json.dumps(self.body(request)).encode("utf-8"),
                                      headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=900) as resp:
+            with local_urlopen(req, timeout=900) as resp:
                 raw = resp.read().decode("utf-8")
         except urllib.error.HTTPError as e:      # keep the status and the body (context overflow, Section 10.2)
             try:
@@ -732,13 +764,13 @@ class OllamaProvider(Provider):
 def ollama_identity(model, base="http://localhost:11434"):
     """Digest, quantization and template hash of a local model, for provenance (Section 6.3)."""
     import hashlib
-    with urllib.request.urlopen(base + "/api/tags", timeout=30) as resp:
+    with local_urlopen(base + "/api/tags", timeout=30) as resp:
         tags = {m["name"]: m for m in json.loads(resp.read().decode("utf-8"))["models"]}
     req = urllib.request.Request(base + "/api/show", data=json.dumps({"model": model}).encode("utf-8"),
                                  headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with local_urlopen(req, timeout=60) as resp:
         show = json.loads(resp.read().decode("utf-8"))
-    with urllib.request.urlopen(base + "/api/version", timeout=30) as resp:
+    with local_urlopen(base + "/api/version", timeout=30) as resp:
         version = json.loads(resp.read().decode("utf-8")).get("version")
     tag = tags.get(model) or tags.get(model + ":latest") or {}
     return {
@@ -752,7 +784,7 @@ def ollama_identity(model, base="http://localhost:11434"):
 
 def ollama_vram(model, base="http://localhost:11434"):
     """GPU memory of a loaded local model (bytes), for the 6 GB fit check (Section 6.3)."""
-    with urllib.request.urlopen(base + "/api/ps", timeout=30) as resp:
+    with local_urlopen(base + "/api/ps", timeout=30) as resp:
         for m in json.loads(resp.read().decode("utf-8")).get("models", []):
             if m.get("name") == model or m.get("model") == model:
                 return {"size_vram": m.get("size_vram"), "size": m.get("size")}
