@@ -20,7 +20,7 @@ This protocol applies to every person who reads answers in this study. That incl
 ## Support
 
 - Principal investigator: **[PI: name, e-mail and telephone.]**
-- **[PI: a support resource that the reader can use, for example the counselling service of the reader's university, with its contact details.]**
+- Any support service available to you, for example the counselling service of your university or your own health provider.
 - In an emergency in the United States, call or text 988 (Suicide & Crisis Lifeline) or call 911.
 
 ## What is recorded

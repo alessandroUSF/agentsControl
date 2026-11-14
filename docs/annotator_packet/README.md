@@ -32,9 +32,9 @@ The invitation itself uses the neutral description of the guide and no other.
 
 ## Open items for the PI
 
-- **[PI]** Recognition of the work: co-authorship or payment, agreed in writing before labelling starts (decision D6). Fill it in the agreement before it is sent.
-- **[PI]** Retention period (decision D8). Fill it in the agreement.
-- **[PI]** How the sheets are handed over. The rule is in protocol Section 16.7: an encrypted file, a device with disk encryption, no cloud service, deletion at the lock.
+- Recognition (decision D6, 13 November 2026): co-authorship for the complete work; an annotator who stops earlier is thanked in the paper. In the agreement.
+- Retention period (decision D8, 13 November 2026): the period USF requires for research records, or 12 months after publication. In the agreement.
+- Hand-over (Section 16.7): by e-mail or WhatsApp, as an encrypted file, with the password by the other channel. In the guide and the agreement.
 - **[PI]** Contact details, and the support resource named in the welfare protocol.
 - **[PI]** Dates of the training rounds, of the labelling window and of the adjudication. The training rounds are planned before the judging calls of the pilot (protocol Section 9.6). The annotator is therefore recruited, and conditions 1 to 3 are met, before those calls.
 

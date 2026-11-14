@@ -2,10 +2,10 @@
 
 Protocol v2.3, Section 19.1.
 
-- **Status: D12, D14, D15 and D16 recorded on 11 November 2026 and initialed by the PI the same day. The part of D2 on model 14 recorded on 11 November 2026. D1, the rest of D2, D17, D18, the part of D13 on the pilot and the later changes to D2 and D16 recorded on 12 November 2026. Every entry of 11 and 12 November is initialed by the PI; the entries of 11 November without initials on that day were initialed on 12 November. D14 was confirmed on 12 November 2026. D19 was proposed by the AI assistant and decided by the PI on 12 November 2026. D20 and D21 were decided by the PI on 12 November 2026, and D22 and the two sentences added to Part A of the rubric on 13 November 2026; the PI initialed them on 13 November 2026. D23 to D26 were decided by the PI on 13 November 2026 and initialed by the PI the same day. D27 was decided by the PI on 13 November 2026 and initialed by the PI the same day. The other decisions are open.**
+- **Status: D12, D14, D15 and D16 recorded on 11 November 2026 and initialed by the PI the same day. The part of D2 on model 14 recorded on 11 November 2026. D1, the rest of D2, D17, D18, the part of D13 on the pilot and the later changes to D2 and D16 recorded on 12 November 2026. Every entry of 11 and 12 November is initialed by the PI; the entries of 11 November without initials on that day were initialed on 12 November. D14 was confirmed on 12 November 2026. D19 was proposed by the AI assistant and decided by the PI on 12 November 2026. D20 and D21 were decided by the PI on 12 November 2026, and D22 and the two sentences added to Part A of the rubric on 13 November 2026; the PI initialed them on 13 November 2026. D23 to D26 were decided by the PI on 13 November 2026 and initialed by the PI the same day. D27 was decided by the PI on 13 November 2026 and initialed by the PI the same day. D6 and D8 were decided by the PI on 13 November 2026 and initialed by the PI the same day. The other decisions are open.**
 - The principal investigator (PI) records each decision here, with a date, before the step named under "Recorded before".
 - A recorded decision is not edited. A later change is a new dated entry under the same heading.
-- D1 to D5, D7, D12, D14 to D27 and the part of D13 on the pilot are conditions of the pilot registration (Section 14.2). D6 and D8 are recorded before the first training round (Section 19.2, action 14). D10, the rest of D13 and the second statement of D5 are conditions of the freeze (Section 14.4), and the reader of D7 reads the pilot report before it (Section 19.2, action 15).
+- D1 to D5, D7, D12, D14 to D27 and the part of D13 on the pilot are conditions of the pilot registration (Section 14.2). D6 and D8 are recorded before the first training round (Section 19.2, action 14); both were decided on 13 November 2026. D10, the rest of D13 and the second statement of D5 are conditions of the freeze (Section 14.4), and the reader of D7 reads the pilot report before it (Section 19.2, action 15).
 - The recommendations are those of the draft protocol, which was written with an AI coding assistant. They are not decisions.
 
 ## D1. Commercial judges and answers shown as their own previous turn
@@ -80,7 +80,7 @@ Protocol v2.3, Section 19.1.
 - **Question.** Who is the second annotator, and how is the work recognised: co-authorship or payment (Section 16.8)?
 - **Recorded before.** The first training round, in writing.
 - **Recommendation of the draft.** Agree it in writing with the invitation.
-- **Decision and date.** The name is recorded in the PI's private files, not in the public repository, until the annotator agrees to be named.
+- **Decision and date.** The name is recorded in the PI's private files, not in the public repository, until the annotator agrees to be named. 13 November 2026: the PI found the annotator. Recognition: co-authorship of the paper that reports the study, for the complete work (both training rounds, the 381 labels and the adjudication), with the paper read and approved by the annotator before submission; an annotator who stops before that is thanked in the paper for the work done. The sheets travel by e-mail or WhatsApp as an encrypted file, with the password by the other channel (Section 16.7). Decided by the PI in the chat. PI's initials after checking: AA (13 November 2026)
 
 ## D7. A human reader for the protocol
 
@@ -94,7 +94,7 @@ Protocol v2.3, Section 19.1.
 - **Question.** How long are answers, verdicts and private logs kept (Section 16.7)?
 - **Recorded before.** The first training round.
 - **Recommendation of the draft.** The period that USF requires for research records. If USF sets none, 12 months after publication.
-- **Decision and date.**
+- **Decision and date.** 13 November 2026: the period that USF requires for research records; if USF sets none, 12 months after publication. Decided by the PI in the chat. PI's initials after checking: AA (13 November 2026)
 
 ## D9. Release of answers to safe prompts
 

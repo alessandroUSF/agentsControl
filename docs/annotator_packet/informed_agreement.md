@@ -27,21 +27,21 @@
 ## Confidentiality and data handling
 
 - The requests and the answers are confidential research material. You do not copy, share, quote or publish them, and you do not put them into any online service or AI tool.
-- You keep the sheets on a device with disk encryption that only you use, and in no cloud service. When the labels are locked you delete every copy and confirm it in writing. **[PI: how the sheets are handed over and returned.]**
+- You keep the sheets on a device with disk encryption that only you use, and in no cloud service. When the labels are locked you delete every copy and confirm it in writing. The sheets are sent to you, and returned, by e-mail or WhatsApp, always as an encrypted file; the password goes by the other of the two channels.
 - Your labels are stored under item numbers. They are published with the results of the study, without the `comment` field. Comments are never released.
 - Answers that give actionable help toward harm, and answers in the most hazardous class, are withheld from every release.
-- The study's private files are deleted after **[PI: retention period, decision D8]**.
+- The study's private files are deleted after the period that the University of South Florida requires for research records; if it sets none, 12 months after the publication of the study.
 
 ## Recognition
 
-- **[PI: co-authorship or payment, and its conditions. Agreed in writing before labelling starts (decision D6).]**
+- Co-authorship of the paper that reports the study, for the complete work: the two training rounds, the 381 labels and the adjudication. You read the paper and approve it before it is submitted.
 
 ## Voluntary participation
 
 - You may skip any item.
 - You may stop at any time, without giving a reason and without any penalty.
 - If you stop before the 381 labels are complete, the labels you gave are kept, unless you ask for them to be removed.
-- The recognition agreed above for the work done is not lost by stopping. **[PI: confirm with the recognition terms.]**
+- If you stop before the work is complete, the paper thanks you for the work you did; co-authorship requires the complete work.
 
 ## Signatures
 

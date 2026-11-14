@@ -8,7 +8,7 @@
 - **Registration.** Version 2.3 is a draft. It becomes binding when it is frozen and registered, in two steps: a pilot registration before the first pilot call, and a freeze after the pilot report. Today only version 1 of the pre-registration (commit `4124f32`, 7 November 2026) is public (Sections 1, 14 and 14.1).
 - **Answers and money.** No answer of the study exists. The 7,457 answers of seven local models generated under versions 1 and 2.2 are sealed and not used (decision D18): every answer of the study is generated after the pilot registration. On 13 November 2026 commands run by the AI assistant screened the answers of one sealed run and printed counts and three short excerpts; they are recorded in `docs/DATA_INVENTORY.md`. No API call has been made; money spent is US$0 (Sections 1 and 3.4).
 - **Code.** The pipeline code (frames to analysis, runners, ledger and simulations) passes offline tests with stub providers: 191 tests in eleven files, and a complete run on synthetic data in a twelfth, after code review rounds 5 to 17 and the changes that followed five rounds of fresh readings (12 and 13 November 2026). No model has been called by it except local builds on harmless sentinel texts (the checks of Section 11.7). The rendered-content check of the new layout was run on 12 November 2026; code review round 14 found one major point (the check of decision D26 not yet written) and four minor points, all corrected; round 15 found no critical or major point, and its three minor points are corrected, and the commit that is registered is still to be made (Sections 1 and 14.2).
-- **Decisions.** D1, D2, D12 and D14 to D27, and the part of D13 on the pilot, are decided and recorded in `docs/PI_DECISIONS.md`; the others are open and are listed at the end of this summary (Section 19).
+- **Decisions.** D1, D2, D6, D8, D12 and D14 to D27, and the part of D13 on the pilot, are decided and recorded in `docs/PI_DECISIONS.md`; the others are open and are listed at the end of this summary (Section 19).
 
 The documents below carry the binding rules (Sections 9.1, 11.1, 14.5 and 16.8).
 
@@ -283,9 +283,9 @@ Exactly one within-judge sentence follows P2, chosen by the 95% interval of ι_W
 - **D3 [PI]** Assessment of the Llama 3.1 Acceptable Use Policy; before the pilot registration (Section 16.6).
 - **D4 [PI]** The PI's interests and the source of the cash; before the pilot registration (Section 17.3).
 - **D5 [PI]** The statement on existing answers; before the pilot registration (Section 19.3).
-- **D6 [PI]** The second annotator and recognition; before the first training round (Section 16.8).
+- **D6** The second annotator and recognition: decided on 13 November 2026 (co-authorship for the complete work; Section 16.8).
 - **D7 [PI]** The human reader of the protocol; before the pilot registration (Section 14.2).
-- **D8 [PI]** Retention period of answers and logs; before the first training round (Section 16.7).
+- **D8** Retention period of answers and logs: decided on 13 November 2026 (the USF period, or 12 months after publication; Section 16.7).
 - **D9 [PI]** Release of safe-prompt answers; at publication (Section 16.7).
 - **D10 [PI]** Final title; at the freeze (Section 19.1).
 - **D11 [PI]** Response to a provider warning; when it happens (Section 16.5).

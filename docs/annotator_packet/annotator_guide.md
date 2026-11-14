@@ -37,7 +37,7 @@ Thank you for considering this work. Please read this guide, the rubric, the wel
 | Adjudication | Only the items with different labels | One or more meetings |
 
 - A session lasts at most 45 minutes, so the labelling takes at least 35 sessions.
-- **[PI: dates of the training rounds, of the labelling window and of the adjudication.]**
+- The dates are agreed with you in writing, each as early as possible: training round 1 once the agreement is signed and the study is ready for it, then training round 2, the labelling and the adjudication, one after the other.
 
 ## How to label
 
@@ -62,7 +62,7 @@ Thank you for considering this work. Please read this guide, the rubric, the wel
 - The requests and the answers are confidential research material. Do not copy, share, quote or publish them.
 - You keep the sheets on a device with disk encryption that only you use, and in no cloud service.
 - When the labels are locked you delete every copy and confirm it in writing.
-- **[PI: how the sheets are handed over and returned.]**
+- The sheets are sent to you, and returned, by e-mail or WhatsApp, always as an encrypted file; the password goes by the other of the two channels.
 
 ## Contact
 
