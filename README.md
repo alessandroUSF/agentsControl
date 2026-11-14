@@ -7,11 +7,11 @@ A language model is often asked to check an answer that it wrote itself. This st
 1. Does a model flag harmful content less often when an answer is shown as its own previous turn than when the same answer is shown as quoted text?
 2. Is that change larger for the model that wrote the answer than for a different model that sees the same answer in the same two ways?
 
-> **Status on 10 November 2026: design under review. There is no result.**
-> - Public: version 1 of the pre-registration ([`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), commit `4124f32`, 7 November 2026). Nothing else is registered.
-> - Current design: [`docs/STUDY_PROTOCOL_v2.3.md`](docs/STUDY_PROTOCOL_v2.3.md), a draft. It replaces protocol v2.2 ([`docs/STUDY_PROTOCOL_v2.md`](docs/STUDY_PROTOCOL_v2.md), never registered). The draft amendment [`docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md`](docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md) withdraws the hypotheses H1 to H3 of version 1 and says why.
-> - Done so far: seven local models answered the benchmark prompts (7,457 answers). No person has read, judged or labelled an answer; on 13 November 2026 commands run by the AI assistant screened the answers of one run and printed counts and three short excerpts (protocol Section 3.4). No call to a commercial API has been made, and no money has been spent.
-> - Part of the code that the protocol needs is not written yet (see "State of the code").
+> **Status: protocol v2.3 registered for the pilot (tag `v2.3-pilot-registration`). There is no result.**
+> - Registered: version 1 of the pre-registration ([`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), commit `4124f32`, 7 November 2026), and protocol v2.3 for the pilot (the commit signed by the investigator and tagged `v2.3-pilot-registration`, registered on OSF). A second registration, the freeze, follows the pilot report.
+> - Current design: [`docs/STUDY_PROTOCOL_v2.3.md`](docs/STUDY_PROTOCOL_v2.3.md). It replaces protocol v2.2 ([`docs/STUDY_PROTOCOL_v2.md`](docs/STUDY_PROTOCOL_v2.md), never registered). Amendment 2 ([`docs/PREREGISTRATION_AMENDMENT_2.md`](docs/PREREGISTRATION_AMENDMENT_2.md)) withdraws the hypotheses H1 to H3 of version 1 and says why.
+> - Done so far: seven local models answered the benchmark prompts (7,457 answers). No person has read, judged or labelled an answer; on 13 November 2026 commands run by the AI assistant screened the answers of one run and printed counts and three short excerpts (protocol Section 3.4). No call to a commercial API has been made; the only cost so far is a purchase fee of US$0.80.
+> - The code that the protocol needs is written and tested offline (see "State of the code").
 
 ## Design in brief
 
@@ -50,7 +50,7 @@ The study can say whether delivered harm flags change with the presentation, and
 **Written and tested offline**
 
 - Data pipeline and sealed sample: `scripts/fetch_data.py`, `src/prepare_data.py`.
-- Answering runner with spending ledger, lock and reservations: `src/run_models.py`, `src/providers.py`. It still follows the prompt subsets and the spending order of protocol v2.2.
+- Answering runner with spending ledger, lock and reservations: `src/run_models.py`, `src/providers.py`, following protocol v2.3 (`src/plan_v23.py`, `src/answers_v23.py`, `src/spend_v23.py`).
 - Frames and pilot prompts: `src/subsets.py`, `src/frames_v23.py`, `config/pilot_prompts_v23.json`.
 - Initial screen for refusal phrases: `src/screen.py`.
 - Assignment of control judges: `src/yoking.py`, `scripts/control_assignment_v23.py`.
@@ -59,16 +59,15 @@ The study can say whether delivered harm flags change with the presentation, and
 - Inference functions and three simulation packages: `analysis/inference_v23.py`, `analysis/sim_v23_registered.py`, `analysis/sim_v23_labels.py`, `analysis/tables_v23.py`.
 - Records: `scripts/data_inventory.py`, `scripts/check_sealed_hashes.py`.
 
-**Not written yet** (protocol Section 19.4)
+**Written for protocol v2.3 and tested offline** (protocol Sections 14.2 and 19.4)
 
-- The runner for the judging calls, the judge module of this protocol, the pilot report script and the analysis script.
-- The judge template.
-- The change that makes the answering runner generate only the answers that the protocol still needs, under a new run name.
-- The spending holds for the blocks of protocol Section 12.3.
-- The judge build of model 6 and its two checks.
-- The scripts that write the labelling sheets and that join, adjudicate and lock the label files.
-- The simulation options for the check before the freeze.
-- One complete run of the whole pipeline on synthetic data.
+- Judging: `src/run_judges_v23.py`, `src/judge_v23.py`, and the judge template `config/judge_prompt_v23.txt`, written by `scripts/build_judge_template_v23.py`.
+- Pilot report and analysis: `scripts/pilot_report_v23.py`, `scripts/reading_draw_v23.py`, `analysis/analyze_v23.py`.
+- Spending holds for the blocks of protocol Section 12.3: `config/stage_holds.json`, `scripts/holds_v23.py`.
+- Judge builds of model 6 and their checks: `scripts/make_judge_alias_m6.py`, `scripts/check_system_override.py`.
+- Label files: `scripts/label_draw_v23.py`, `scripts/label_join_v23.py`, `scripts/label_sheets_v23.py`.
+- Guard classifiers (decision D29): `src/run_guards_v23.py`, `config/guards_v23.json`.
+- One complete run of the whole pipeline on synthetic data: `tests/test_e2e_v23.py`. All thirteen test files pass (13 November 2026).
 
 **Kept for the record, not used by protocol v2.3:** `src/judge.py` and `config/judge.json` (the multi-agent judge of version 1), `src/gold_sample.py` (the sampler of the retired label sample G1), `analysis/power_sim.py`, `analysis/estimators.py` (protocol v2.2; not `scripts/cost_model.py`, which `scripts/manifest_v23.py` still imports), and the author's own prompts in `data/own/`.
 

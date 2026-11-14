@@ -1,22 +1,22 @@
-# Amendment 2 to the pre-registration: withdrawal of H1–H3 and replacement of the design (DRAFT)
+# Amendment 2 to the pre-registration: withdrawal of H1–H3 and replacement of the design
 
-> Draft of 10 November 2026, revised on 11 November with the PI's decisions D12, D14, D15, D16 and the part of D2 on model 14, and on 12 November with D1, the rest of D2 and D17. Committed locally on 11 November 2026, except the changes made since then; not registered and not pushed. It becomes effective only when it is
-> committed and pushed together with protocol v2.3 and registered on OSF, before the pilot of protocol v2.3
-> starts (protocol v2.3, Section 14.1). Nothing is pushed or registered without the explicit instruction of the
-> principal investigator. Section numbers below refer to `docs/STUDY_PROTOCOL_v2.3.md`.
+> Written on 10 November 2026, revised on 11 November with the PI's decisions D12, D14, D15, D16 and the part of D2 on model 14, and on 12 November with D1, the rest of D2 and D17. Committed locally on 11 November 2026, and pushed as a draft with the draft branch of protocol v2.3 on 13 November 2026.
+> Published with the pilot registration of protocol v2.3, the commit signed by the PI and tagged `v2.3-pilot-registration`, and
+> registered on OSF with it, before the pilot of protocol v2.3 starts (protocol v2.3, Section 14.1). Its draft was
+> named `docs/PREREGISTRATION_AMENDMENT_2_DRAFT.md`. Section numbers below refer to `docs/STUDY_PROTOCOL_v2.3.md`.
 
 ## 1. What is public and what is not
 
 | Record | Date | Status | Content |
 |---|---|---|---|
 | Pre-registration v1 (commit `4124f32`) | 7 November 2026 | Public on GitHub | H1, H2, H3; six models; gold set of about 150 answers; commercial APIs receive only safe prompts and the author's own non-harmful prompts. |
-| Amendment 1 (commit `e95a932`) | 8 November 2026 | Committed locally, never pushed | Criteria for added models and for independent judges. Revised the same day; the revision was never committed. |
+| Amendment 1 (commit `e95a932`) | 8 November 2026 | Committed locally; first pushed on 13 November 2026 with the draft branch of protocol v2.3 | Criteria for added models and for independent judges. Revised the same day; the revision was never committed. |
 | Protocol v2.0–v2.2 | 8–10 November 2026 | Working copy only | Expanded design (22 models, instrument selection, RQ4, self-judging tests T1–T4). Never registered. |
-| Protocol v2.3 | 10 to 12 November 2026 | Working copy; registered together with this amendment | The design that replaces v1 and v2.2 (Section 4 below). On 11 November the PI added model 23, pinned one endpoint for each model reached through OpenRouter, and moved model 14 to Google's own API (decisions D15, D16 and D2). On 12 November model 14 left the study before any call, because its price doubles on 1 December 2026 (decision D17). |
+| Protocol v2.3 | 10 to 12 November 2026 | Working copy, and a public draft on the branch `v2.3-pre-registration` since 13 November 2026; registered together with this amendment | The design that replaces v1 and v2.2 (Section 4 below). On 11 November the PI added model 23, pinned one endpoint for each model reached through OpenRouter, and moved model 14 to Google's own API (decisions D15, D16 and D2). On 12 November model 14 left the study before any call, because its price doubles on 1 December 2026 (decision D17). |
 
 Amendment 1 is reproduced unchanged in the appendix of this amendment, together with its uncommitted revision,
-so that the public record shows how the model panel was chosen. The push that publishes this amendment also
-publishes commit `e95a932` for the first time. The dates of the model selection, from the public version 1 to the decisions of 11 November, are listed in Section 3.2 of the protocol. On 11 November 2026 the list of hashes of the selection files was stamped with OpenTimestamps (protocol Section 19.2, action 22).
+so that the public record shows how the model panel was chosen. Commit `e95a932` was first
+published on 13 November 2026, by the push of the draft branch of protocol v2.3, before this amendment was registered. The dates of the model selection, from the public version 1 to the decisions of 11 November, are listed in Section 3.2 of the protocol. On 11 November 2026 the list of hashes of the selection files was stamped with OpenTimestamps (protocol Section 19.2, action 22).
 
 ## 2. Withdrawal statement
 
@@ -91,7 +91,7 @@ not used (Section 15.1).
 
 | Text | Source | Lines | SHA-256 of the reproduced text |
 |---|---|---|---|
-| A.1 Amendment 1 as committed | `docs/PREREGISTRATION.md` at commit `e95a932` (8 November 2026, never pushed), from the heading "Amendment 1" to the end | 45 | `5a41049208897554223890c66436df55b72bdb287b87985f191de31032f2aa90` |
+| A.1 Amendment 1 as committed | `docs/PREREGISTRATION.md` at commit `e95a932` (8 November 2026, first pushed on 13 November 2026), from the heading "Amendment 1" to the end | 45 | `5a41049208897554223890c66436df55b72bdb287b87985f191de31032f2aa90` |
 | A.2 Revision of the same day, never committed | Working copy of the same file on 10 November 2026, from the heading "Amendment 1" to the end | 76 | `d4465548c2f221371fb5cbcfae3d680e0a4604034f7b237549eb46b4278dddd0` |
 
 - The whole working copy is kept as `docs/audit/2026-11-08_PREREGISTRATION_working_copy_with_unpublished_revision.md` (SHA-256 `d0e31cf9c27832d63d3638968021b3bfed502e3daef7e66b9035c4c69d24ec8a`).

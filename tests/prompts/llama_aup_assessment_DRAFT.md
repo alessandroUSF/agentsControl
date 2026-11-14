@@ -1,5 +1,7 @@
 # Llama 3.1 Acceptable Use Policy — compliance assessment (DRAFT for the PI to review and adopt)
 
+> **Superseded on 13 November 2026.** The PI's assessment is recorded under decision D3 in `docs/PI_DECISIONS.md`. This draft is kept as the record of what was proposed.
+
 > **Note of 10 November 2026 (protocol v2.3).** This draft was written for protocol v2.2. Two parts are out of date. The author's own prompts are not used in this study (protocol v2.3, Section 15.2). And no statement about what the models will produce can be made before any answer is handled under the protocol: the sentences below that predict compliance are expectations, not findings. The PI writes the assessment of decision D3 from the licence text itself.
 
 > Satisfies the protocol's requirement to record **who assessed** the Llama policy for harmful

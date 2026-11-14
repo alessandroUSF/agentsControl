@@ -5,7 +5,7 @@
 - `python -I scripts/check_sealed_hashes.py` checks every file of this record against its hash. On 10 November 2026 all of them matched.
 - **Decision D18 (12 November 2026).** No answer in these files is an answer of the study: every answer is generated after the pilot registration, with seed 20261126. The 96 answers of the retired sample G1 on prompts outside the frames, in `responses_full.jsonl`, are the only ones that are read: they train the annotators (protocol v2.3, Section 9.6). The code refuses the sealed run names as runs of the study (`src/answers_v23.py`).
 - No person has read an answer in any of these files (protocol v2.3, Sections 3.4 and 15.3). The history of what scripts did with them is in `docs/DATA_INVENTORY.md`.
-- This record and the selection snapshots were committed locally on 11 November 2026, not pushed. The other files it lists are not in the repository. The record is pushed with the pilot registration (protocol v2.3, Section 14).
+- This record and the selection snapshots were committed locally on 11 November 2026 and pushed with the draft branch of protocol v2.3 on 13 November 2026. The other files it lists are not in the repository. The record is registered with the pilot registration (protocol v2.3, Section 14).
 
 ## Recorded on 8 November 2026
 
