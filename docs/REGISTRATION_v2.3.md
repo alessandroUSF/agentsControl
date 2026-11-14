@@ -283,9 +283,7 @@ Exactly one within-judge sentence follows P2, chosen by the 95% interval of ι_W
 - **D3 [PI]** Assessment of the Llama 3.1 Acceptable Use Policy; before the pilot registration (Section 16.6).
 - **D4 [PI]** The PI's interests and the source of the cash; before the pilot registration (Section 17.3).
 - **D5 [PI]** The statement on existing answers; before the pilot registration (Section 19.3).
-- **D6** The second annotator and recognition: decided on 13 November 2026 (co-authorship for the complete work; Section 16.8).
 - **D7 [PI]** The human reader of the protocol; before the pilot registration (Section 14.2).
-- **D8** Retention period of answers and logs: decided on 13 November 2026 (the USF period, or 12 months after publication; Section 16.7).
 - **D9 [PI]** Release of safe-prompt answers; at publication (Section 16.7).
 - **D10 [PI]** Final title; at the freeze (Section 19.1).
 - **D11 [PI]** Response to a provider warning; when it happens (Section 16.5).
